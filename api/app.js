@@ -20,19 +20,16 @@ const validateRecipient = (req, res, next) => {
     // Remove any characters that are not alphanumeric, dot, underscore, or hyphen
     recipient = recipient.replace(/[^a-zA-Z0-9._-]/g, '');
 
-    // Append the domain if not already present
-    if (!recipient.includes('@')) {
-      recipient += '@akunlama.com';
-    }
-
     // Ensure the recipient ends with the correct domain
     const domain = 'akunlama.com';
-    if (!recipient.endsWith(`@${domain}`)) {
+    if (recipient.endsWith(`@${domain}`)) {
+      recipient = recipient.substring(0, recipient.indexOf('@'));
+    } else if (recipient.includes('@')) {
       return res.status(400).send({ error: 'Invalid recipient domain' });
     }
 
     // Update the sanitized recipient in the request query
-    req.query.recipient = recipient;
+    req.query.recipient = recipient + '@' + domain;
   }
 
   next();
