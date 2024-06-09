@@ -16,6 +16,11 @@ const validateRecipient = (req, res, next) => {
       return res.status(400).send({ error: 'Invalid recipient' });
     }
 
+    // Append @akunlama.com if not already present
+    if (!recipient.includes('@')) {
+      recipient += '@akunlama.com';
+    }
+
     // Check if the recipient matches the expected format and domain
     const isValidRecipient = /^[a-zA-Z0-9._-]+@akunlama\.com$/.test(recipient);
 
@@ -32,21 +37,13 @@ const validateRecipient = (req, res, next) => {
   next();
 };
 
-// Middleware to ensure recipient is provided in the API request
-const requireRecipient = (req, res, next) => {
-  if (!req.query.recipient) {
-    return res.status(400).send({ error: 'Recipient is required' });
-  }
-  next();
-};
-
 // Setup the routes with recipient validation middleware
-app.get("/api/v1/mail/list", requireRecipient, validateRecipient, require("./src/api/mailList"));
-app.get("/api/v1/mail/getInfo", requireRecipient, validateRecipient, require("./src/api/mailGetInfo"));
-app.get("/api/v1/mail/getHtml", requireRecipient, validateRecipient, require("./src/api/mailGetHtml"));
+app.get("/api/v1/mail/list", validateRecipient, require("./src/api/mailList"));
+app.get("/api/v1/mail/getInfo", validateRecipient, require("./src/api/mailGetInfo"));
+app.get("/api/v1/mail/getHtml", validateRecipient, require("./src/api/mailGetHtml"));
 
 // Legacy fallback behaviour - Note this is to be deprecated (after updating UI)
-app.get("/api/v1/mail/getKey", requireRecipient, validateRecipient, require("./src/api/mailGetInfo"));
+app.get("/api/v1/mail/getKey", validateRecipient, require("./src/api/mailGetInfo"));
 
 // Static regex 
 const staticRegex = /static\/(js|css|img)\/(.+)\.([a-zA-Z0-9]+)\.(css|js|png|gif)/g;
