@@ -20,6 +20,16 @@ module.exports = function (req, res) {
     return;
   }
 
+  // Validate recipient format
+  const recipientRegex = /^[a-zA-Z0-9._-]+@akunlama\.com$/;
+  if (!recipientRegex.test(recipient)) {
+    res.status(400).send({ error: "Invalid recipient format" });
+    return;
+  }
+
+  // Strip off domain to get the recipient's username
+  const recipientUsername = recipient.split('@')[0];
+
   // Ensure recipient is already validated and sanitized
   reader.recipientEventList(recipient)
     .then(response => {
