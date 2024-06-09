@@ -17,10 +17,15 @@ const validateRecipient = (req, res, next) => {
     }
 
     // Check if the recipient matches the expected format and domain
-    const isValidRecipient = /^[a-zA-Z0-9._-]+@akunlama\.com$/.test(recipient);
+    const isValidRecipient = /^[a-zA-Z0-9._-]+(@akunlama\.com)?$/.test(recipient);
 
     if (!isValidRecipient) {
       return res.status(400).send({ error: 'Invalid recipient' });
+    }
+
+    // Ensure recipient ends with '@akunlama.com'
+    if (!recipient.endsWith('@akunlama.com')) {
+      recipient += '@akunlama.com';
     }
 
     // Update the sanitized recipient in the request query
