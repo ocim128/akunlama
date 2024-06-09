@@ -47,27 +47,10 @@ const validateRecipient = (req, res, next) => {
     // Remove any leading/trailing whitespace
     recipient = recipient.trim();
 
-    // Check if the recipient contains only allowed characters
-    const isValidRecipient = /^[a-zA-Z0-9._-]+$/.test(recipient);
+    // Check if the recipient matches the expected format and domain
+    const isValidRecipient = /^[a-zA-Z0-9._-]+@akunlama\.com$/.test(recipient);
 
-    // Check if the recipient contains at least one letter or digit
-    const hasLetterOrDigit = /[a-zA-Z0-9]/.test(recipient);
-
-    // Check if the recipient starts or ends with a special character
-    const startsOrEndsWithSpecialChar = /^[._-]|[._-]$/.test(recipient);
-
-    // Check if the recipient contains consecutive special characters
-    const hasConsecutiveSpecialChars = /[._-]{2,}/.test(recipient);
-
-    // Check if the recipient is valid, not empty, contains at least one letter or digit,
-    // does not start or end with a special character, and does not contain consecutive special characters
-    if (
-      !isValidRecipient ||
-      recipient === '' ||
-      !hasLetterOrDigit ||
-      startsOrEndsWithSpecialChar ||
-      hasConsecutiveSpecialChars
-    ) {
+    if (!isValidRecipient) {
       return res.status(400).send({ error: 'Invalid recipient' });
     }
 
