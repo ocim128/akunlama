@@ -48,13 +48,14 @@ module.exports = function(req, res) {
     return;
   }
 
-  // Append the domain if not already present
+  // If the recipient does not include an '@', append the domain
   if (!recipient.includes('@')) {
     recipient = recipient + "@" + mailgunConfig.emailDomain;
   }
 
   // Ensure the recipient ends with the correct domain
-  if (!recipient.endsWith(`@${mailgunConfig.emailDomain}`)) {
+  const domain = `@${mailgunConfig.emailDomain}`;
+  if (!recipient.endsWith(domain)) {
     res.status(400).send({ error: "Invalid recipient domain" });
     return;
   }
