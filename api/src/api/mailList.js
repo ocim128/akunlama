@@ -14,8 +14,8 @@ function validateAndSanitizeRecipient(recipient) {
     throw new Error("Invalid recipient username");
   }
 
-  // Remove any characters that are not alphanumeric, underscore, or hyphen
-  recipient = recipient.replace(/[^a-zA-Z0-9_-]/g, '');
+  // Remove any characters that are not alphanumeric, dot, underscore, or hyphen
+  recipient = recipient.replace(/[^a-zA-Z0-9._-]/g, '');
 
   // Check if the recipient contains at least one alphanumeric character
   if (!/[a-zA-Z0-9]/.test(recipient)) {
@@ -51,6 +51,12 @@ module.exports = function(req, res) {
   // Append the domain if not already present
   if (!recipient.includes('@')) {
     recipient = recipient + "@" + mailgunConfig.emailDomain;
+  }
+
+  // Ensure the recipient ends with the correct domain
+  if (!recipient.endsWith(`@${mailgunConfig.emailDomain}`)) {
+    res.status(400).send({ error: "Invalid recipient domain" });
+    return;
   }
 
   reader.recipientEventList(recipient)
