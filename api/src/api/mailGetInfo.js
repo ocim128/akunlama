@@ -1,25 +1,25 @@
 // Loading mailgun reader and config
 const mailgunReader = require("../mailgunReader");
 const mailgunConfig = require("../../config/mailgunConfig");
-const cacheControl  = require("../../config/cacheControl");
+const cacheControl = require("../../config/cacheControl");
 const reader = new mailgunReader(mailgunConfig);
 
-// Function to validate and sanitize the region and key parameters
-function validateAndSanitizeParams(region, key) {
+/**
+ * Validate the recipient parameter
+ *
+ * @param {String} recipient
+ */
+function validateRecipient(recipient) {
   // Remove leading/trailing whitespace
-  region = region.trim();
-  key = key.trim();
+  recipient = recipient.trim();
 
-  // Remove any characters that are not alphanumeric, underscore, or hyphen
-  region = region.replace(/[^a-zA-Z0-9_-]/g, '');
-  key = key.replace(/[^a-zA-Z0-9_-]/g, '');
-
-  // Check if the region or key is empty after sanitization
-  if (region === '' || key === '') {
-    throw new Error("Invalid region or key");
+  // Ensure recipient contains valid characters and ends with the correct domain
+  const recipientRegex = /^[a-zA-Z0-9._-]+@akunlama\.com$/;
+  if (!recipientRegex.test(recipient)) {
+    throw new Error("Invalid recipient format");
   }
 
-  return { region, key };
+  return recipient;
 }
 
 /**
@@ -28,20 +28,16 @@ function validateAndSanitizeParams(region, key) {
  * @param {*} req
  * @param {*} res
  */
-module.exports = function(req, res){
-  let region = req.query.region;
-  let key = req.query.key;
+module.exports = function (req, res) {
+  let recipient = req.query.recipient;
 
   try {
-    // Validate and sanitize the region and key parameters
-    const validatedParams = validateAndSanitizeParams(region, key);
-    region = validatedParams.region;
-    key = validatedParams.key;
+    recipient = validateRecipient(recipient);
   } catch (error) {
     return res.status(400).send({ error: error.message });
   }
 
-  reader.getKey({ region, key }).then(response => {
+  reader.getKey({ recipient }).then(response => {
     let emailDetails = {};
     // Format and extract the name of the user
     let [name, ...rest] = formatName(response.from);
@@ -58,10 +54,10 @@ module.exports = function(req, res){
     res.set('cache-control', cacheControl.static);
     res.status(200).send(emailDetails);
   })
-  .catch(e => {
-    console.error(`Error getting mail metadata info for /${region}/${key}: `, e);
-    res.status(500).send({ error: 'Internal Server Error' });
-  });
+    .catch(e => {
+      console.error(`Error getting mail metadata info for ${recipient}: `, e);
+      res.status(500).send({ error: 'Internal Server Error' });
+    });
 };
 
 function formatName(sender) {
