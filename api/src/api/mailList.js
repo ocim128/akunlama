@@ -9,16 +9,16 @@ function validateAndSanitizeRecipient(recipient) {
   // Remove leading/trailing whitespace
   recipient = recipient.trim();
 
-  // Check if the recipient is not just "_" or "-"
-  if (recipient === "_" || recipient === "-") {
+  // Check if the recipient is not just "_" or "-" or similar invalid formats
+  if (/^[\W_]+$/.test(recipient)) {
     throw new Error("Invalid recipient username");
   }
 
   // Remove any characters that are not alphanumeric, underscore, or hyphen
   recipient = recipient.replace(/[^a-zA-Z0-9_-]/g, '');
 
-  // Check if the recipient is empty after sanitization
-  if (recipient === '') {
+  // Check if the recipient contains at least one alphanumeric character
+  if (!/[a-zA-Z0-9]/.test(recipient)) {
     throw new Error("Invalid recipient username");
   }
 
