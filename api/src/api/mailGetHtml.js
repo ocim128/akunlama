@@ -5,44 +5,21 @@ const cacheControl = require("../../config/cacheControl");
 const reader = new mailgunReader(mailgunConfig);
 
 /**
- * Validate the region and key parameters and ensure they contain only allowed characters
+ * Validate the recipient parameter
  *
- * @param {String} region
- * @param {String} key
+ * @param {String} recipient
  */
-function validateParams(region, key) {
+function validateRecipient(recipient) {
   // Remove leading/trailing whitespace
-  region = region.trim();
-  key = key.trim();
+  recipient = recipient.trim();
 
-  // Check if the region and key contain only allowed characters
-  const isValidRegion = region.split("").every((char) => {
-    return (
-      (char >= "a" && char <= "z") ||
-      (char >= "A" && char <= "Z") ||
-      (char >= "0" && char <= "9") ||
-      char === "." ||
-      char === "_" ||
-      char === "-"
-    );
-  });
-
-  const isValidKey = key.split("").every((char) => {
-    return (
-      (char >= "a" && char <= "z") ||
-      (char >= "A" && char <= "Z") ||
-      (char >= "0" && char <= "9") ||
-      char === "." ||
-      char === "_" ||
-      char === "-"
-    );
-  });
-
-  if (!isValidRegion || !isValidKey) {
-    throw new Error("Invalid region or key");
+  // Ensure recipient contains valid characters and ends with the correct domain
+  const recipientRegex = /^[a-zA-Z0-9._-]+@akunlama\.com$/;
+  if (!recipientRegex.test(recipient)) {
+    throw new Error("Invalid recipient format");
   }
 
-  return { region, key };
+  return recipient;
 }
 
 /**
@@ -52,27 +29,16 @@ function validateParams(region, key) {
  * @param {*} res
  */
 module.exports = function (req, res) {
-  let region = req.query.region;
-  let key = req.query.key;
-
-  if (region == null || region === "") {
-    return res.status(400).send('{ "error" : "No `region` param found" }');
-  }
-  if (key == null || key === "") {
-    return res.status(400).send('{ "error" : "No `key` param found" }');
-  }
+  let recipient = req.query.recipient;
 
   try {
-    // Validate and sanitize the region and key parameters
-    const validatedParams = validateParams(region, key);
-    region = validatedParams.region;
-    key = validatedParams.key;
+    recipient = validateRecipient(recipient);
   } catch (error) {
     return res.status(400).send({ error: error.message });
   }
 
   reader
-    .getKey({ region, key })
+    .getKey({ recipient })
     .then((response) => {
       let body = response["body-html"] || response["body-plain"];
       if (body === undefined || body == null) {
@@ -90,7 +56,7 @@ module.exports = function (req, res) {
       res.status(200).send(body);
     })
     .catch((e) => {
-      console.error(`Error getting mail HTML for /${region}/${key}: `, e);
+      console.error(`Error getting mail HTML for ${recipient}: `, e);
       res.status(500).send({ error: "Internal Server Error" });
     });
 };
