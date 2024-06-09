@@ -71,3 +71,5 @@ app.use(function(req, res) {
 var server = app.listen(8000, function () {
   console.log("app running on port.", server.address().port);
 });
+
+module.exports = app;
