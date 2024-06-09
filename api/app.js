@@ -39,3 +39,34 @@ app.use(function(req, res) {
 var server = app.listen(8000, function () {
 	console.log("app running on port.", server.address().port);
 });
+// Middleware to validate and sanitize the recipient parameter
+const validateRecipient = (req, res, next) => {
+  let recipient = req.query.recipient;
+
+  if (recipient) {
+    // Remove any leading/trailing whitespace
+    recipient = recipient.trim();
+
+    // Check if the recipient contains only allowed characters
+    const isValidRecipient = recipient.split('').every((char) => {
+      return (
+        (char >= 'a' && char <= 'z') ||
+        (char >= 'A' && char <= 'Z') ||
+        (char >= '0' && char <= '9') ||
+        char === '.' ||
+        char === '_' ||
+        char === '-'
+      );
+    });
+
+    // Check if the recipient is valid and not empty
+    if (!isValidRecipient || recipient === '') {
+      return res.status(400).send({ error: 'Invalid recipient' });
+    }
+
+    // Update the sanitized recipient in the request query
+    req.query.recipient = recipient;
+  }
+
+  next();
+};
