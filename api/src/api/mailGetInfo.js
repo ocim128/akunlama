@@ -10,9 +10,12 @@ function validateAndSanitizeParams(region, key) {
   region = region.trim();
   key = key.trim();
 
-  // Validate that the region and key contain only allowed characters
-  const allowedCharacters = /^[a-zA-Z0-9._-]+$/;
-  if (!allowedCharacters.test(region) || !allowedCharacters.test(key)) {
+  // Remove any characters that are not alphanumeric, underscore, or hyphen
+  region = region.replace(/[^a-zA-Z0-9_-]/g, '');
+  key = key.replace(/[^a-zA-Z0-9_-]/g, '');
+
+  // Check if the region or key is empty after sanitization
+  if (region === '' || key === '') {
     throw new Error("Invalid region or key");
   }
 
