@@ -9,6 +9,11 @@ function validateAndSanitizeRecipient(recipient) {
   // Remove leading/trailing whitespace
   recipient = recipient.trim();
 
+  // Check if the recipient is not just "_" or "-"
+  if (recipient === "_" || recipient === "-") {
+    throw new Error("Invalid recipient username");
+  }
+
   // Remove any characters that are not alphanumeric, underscore, or hyphen
   recipient = recipient.replace(/[^a-zA-Z0-9_-]/g, '');
 
@@ -43,12 +48,12 @@ module.exports = function(req, res) {
     return;
   }
 
-  // Strip off all @domain if there is any
-  if (recipient.indexOf("@") >= 0) {
-    recipient = recipient.substring(0, recipient.indexOf("@"));
+  // Append the domain if not already present
+  if (!recipient.includes('@')) {
+    recipient = recipient + "@" + mailgunConfig.emailDomain;
   }
 
-  reader.recipientEventList(recipient + "@" + mailgunConfig.emailDomain)
+  reader.recipientEventList(recipient)
     .then(response => {
       res.set('cache-control', cacheControl.dynamic);
       res.status(200).send(response.items);
