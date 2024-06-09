@@ -16,21 +16,18 @@ module.exports = function (req, res) {
   let recipient = params.recipient;
 
   if (recipient == null) {
-    res.status(400).send({ error: "No `recipient` param found" });
-    return;
+    return res.status(400).send({ error: "No `recipient` param found" });
   }
 
   // Validate recipient format
   const recipientRegex = /^[a-zA-Z0-9._-]+@akunlama\.com$/;
   if (!recipientRegex.test(recipient)) {
-    res.status(400).send({ error: "Invalid recipient format" });
-    return;
+    return res.status(400).send({ error: "Invalid recipient format" });
   }
 
-  // Strip off domain to get the recipient's username
-  const recipientUsername = recipient.split('@')[0];
-
-  // Ensure recipient is already validated and sanitized
+  // Ensure the recipient has valid characters and proper domain
+  recipient = recipient.replace(/[^a-zA-Z0-9._-@]/g, '');
+  
   reader.recipientEventList(recipient)
     .then(response => {
       res.set('cache-control', cacheControl.dynamic);
