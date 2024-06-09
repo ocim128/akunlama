@@ -59,17 +59,11 @@ const validateRecipient = (req, res, next) => {
       );
     });
 
-    // Check if the recipient contains at least one number or alphabet
-    const hasNumberOrAlphabet = recipient.split('').some((char) => {
-      return (
-        (char >= 'a' && char <= 'z') ||
-        (char >= 'A' && char <= 'Z') ||
-        (char >= '0' && char <= '9')
-      );
-    });
+    // Check if the recipient contains at least one letter or digit
+    const hasLetterOrDigit = /[a-zA-Z0-9]/.test(recipient);
 
-    // Check if the recipient is valid, not empty, and contains at least one number or alphabet
-    if (!isValidRecipient || recipient === '' || !hasNumberOrAlphabet) {
+    // Check if the recipient is valid, not empty, and contains at least one letter or digit
+    if (!isValidRecipient || recipient === '' || !hasLetterOrDigit) {
       return res.status(400).send({ error: 'Invalid recipient' });
     }
 
