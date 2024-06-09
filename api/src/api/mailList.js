@@ -2,6 +2,7 @@
 const mailgunReader = require("../mailgunReader");
 const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
+
 const reader = new mailgunReader(mailgunConfig);
 
 /**
