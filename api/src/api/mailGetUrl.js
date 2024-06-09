@@ -14,10 +14,8 @@ function validateUrl(url) {
   // Remove leading/trailing whitespace
   url = url.trim();
 
-  // Check if the URL is not empty and is a valid URL
-  try {
-    new URL(url); // This will throw if the URL is invalid
-  } catch (e) {
+  // Ensure the URL is not empty
+  if (url === '') {
     throw new Error("Invalid URL");
   }
 
