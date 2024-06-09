@@ -9,9 +9,11 @@ function validateAndSanitizeRecipient(recipient) {
   // Remove leading/trailing whitespace
   recipient = recipient.trim();
 
-  // Validate that the recipient contains only allowed characters
-  const allowedCharacters = /^[a-zA-Z0-9._-]+$/;
-  if (!allowedCharacters.test(recipient)) {
+  // Remove any characters that are not alphanumeric, underscore, or hyphen
+  recipient = recipient.replace(/[^a-zA-Z0-9_-]/g, '');
+
+  // Check if the recipient is empty after sanitization
+  if (recipient === '') {
     throw new Error("Invalid recipient username");
   }
 
