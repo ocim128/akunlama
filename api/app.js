@@ -48,22 +48,26 @@ const validateRecipient = (req, res, next) => {
     recipient = recipient.trim();
 
     // Check if the recipient contains only allowed characters
-    const isValidRecipient = recipient.split('').every((char) => {
-      return (
-        (char >= 'a' && char <= 'z') ||
-        (char >= 'A' && char <= 'Z') ||
-        (char >= '0' && char <= '9') ||
-        char === '.' ||
-        char === '_' ||
-        char === '-'
-      );
-    });
+    const isValidRecipient = /^[a-zA-Z0-9._-]+$/.test(recipient);
 
     // Check if the recipient contains at least one letter or digit
     const hasLetterOrDigit = /[a-zA-Z0-9]/.test(recipient);
 
-    // Check if the recipient is valid, not empty, and contains at least one letter or digit
-    if (!isValidRecipient || recipient === '' || !hasLetterOrDigit) {
+    // Check if the recipient starts or ends with a special character
+    const startsOrEndsWithSpecialChar = /^[._-]|[._-]$/.test(recipient);
+
+    // Check if the recipient contains consecutive special characters
+    const hasConsecutiveSpecialChars = /[._-]{2,}/.test(recipient);
+
+    // Check if the recipient is valid, not empty, contains at least one letter or digit,
+    // does not start or end with a special character, and does not contain consecutive special characters
+    if (
+      !isValidRecipient ||
+      recipient === '' ||
+      !hasLetterOrDigit ||
+      startsOrEndsWithSpecialChar ||
+      hasConsecutiveSpecialChars
+    ) {
       return res.status(400).send({ error: 'Invalid recipient' });
     }
 
