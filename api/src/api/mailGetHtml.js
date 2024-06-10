@@ -11,22 +11,22 @@ const reader = new mailgunReader(mailgunConfig);
  * @param {String} key
  */
 function validateParams(region, key) {
-  console.log("Validating parameters: region=", region, ", key=", key);
+    console.log("Validating parameters: region=", region, ", key=", key);
 
-  if (!region || !key) {
-    throw new Error("Region or key is undefined or null");
-  }
+    if (!region || !key) {
+        throw new Error("Region or key is undefined or null");
+    }
 
-  // Remove leading/trailing whitespace
-  region = region.trim();
-  key = key.trim();
+    // Remove leading/trailing whitespace
+    region = region.trim();
+    key = key.trim();
 
-  // Validate that only allowed characters are present
-  if (!/^[a-zA-Z0-9._-]+$/.test(region) || !/^[a-zA-Z0-9._-]+$/.test(key)) {
-    throw new Error("Invalid region or key");
-  }
+    // Validate that only allowed characters are present
+    if (!/^[a-zA-Z0-9._-]+$/.test(region) || !/^[a-zA-Z0-9._-]+$/.test(key)) {
+        throw new Error("Invalid region or key");
+    }
 
-  return { region, key };
+    return { region, key };
 }
 
 /**
@@ -36,41 +36,41 @@ function validateParams(region, key) {
  * @param {*} res
  */
 module.exports = function (req, res) {
-  let region = req.query.region;
-  let key = req.query.key;
+    let region = req.query.region;
+    let key = req.query.key;
 
-  console.log("Received request with region:", region, "and key:", key);
+    console.log("Received request with region:", region, "and key:", key);
 
-  try {
-    // Validate and sanitize the region and key parameters
-    const validatedParams = validateParams(region, key);
-    region = validatedParams.region;
-    key = validatedParams.key;
-  } catch (error) {
-    console.error("Validation error:", error.message);
-    return res.status(400).send({ error: error.message });
-  }
+    try {
+        // Validate and sanitize the region and key parameters
+        const validatedParams = validateParams(region, key);
+        region = validatedParams.region;
+        key = validatedParams.key;
+    } catch (error) {
+        console.error("Validation error:", error.message);
+        return res.status(400).send({ error: error.message });
+    }
 
-  reader
-    .getKey({ region, key })
-    .then((response) => {
-      let body = response["body-html"] || response["body-plain"];
-      if (body === undefined || body == null) {
-        body = "The kittens found no messages :(";
-      }
-      // Add JS injection to force all links to open as a new tab
-      // instead of opening inside the iframe
-      body +=
-        "<script>" +
-        'let linkArray = document.getElementsByTagName("a");' +
-        'for (let i=0; i<linkArray.length; ++i) { linkArray[i].target="_blank"; }' +
-        // eslint-disable-next-line
-        "<\\/script>";
-      res.set("cache-control", cacheControl.static);
-      res.status(200).send(body);
-    })
-    .catch((e) => {
-      console.error(`Error getting mail HTML for /${region}/${key}: `, e);
-      res.status(500).send({ error: "Internal Server Error" });
-    });
+    reader
+        .getKey({ region, key })
+        .then((response) => {
+            let body = response["body-html"] || response["body-plain"];
+            if (!body) {
+                body = "The kittens found no messages :(";
+            }
+            // Add JS injection to force all links to open as a new tab
+            // instead of opening inside the iframe
+            body +=
+                "<script>" +
+                'let linkArray = document.getElementsByTagName("a");' +
+                'for (let i=0; i<linkArray.length; ++i) { linkArray[i].target="_blank"; }' +
+                // eslint-disable-next-line
+                "<\\/script>";
+            res.set("cache-control", cacheControl.static);
+            res.status(200).send(body);
+        })
+        .catch((e) => {
+            console.error(`Error getting mail HTML for /${region}/${key}: `, e);
+            res.status(500).send({ error: "Internal Server Error" });
+        });
 };
