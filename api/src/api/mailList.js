@@ -2,51 +2,53 @@
 const mailgunReader = require("../mailgunReader");
 const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
-
 const reader = new mailgunReader(mailgunConfig);
 
-/**
- * Validate the URL parameter
- *
- * @param {String} url
- */
-function validateUrl(url) {
+// Function to validate and sanitize the recipient username
+function validateAndSanitizeRecipient(recipient) {
   // Remove leading/trailing whitespace
-  url = url.trim();
+  recipient = recipient.trim();
 
-  // Ensure the URL is not empty
-  if (url === '') {
-    throw new Error("Invalid URL");
+  // Check if the recipient matches the expected format and domain
+  const isValidRecipient = /^[a-zA-Z0-9._-]+$/.test(recipient);
+
+  if (!isValidRecipient) {
+    throw new Error("Invalid recipient username");
   }
 
-  return url;
+  return recipient;
 }
 
 /**
- * Get and return the URL link from the mailgun API - for the mail content
+ * Mail listing api, returns the list of emails
  *
  * @param {*} req
  * @param {*} res
  */
 module.exports = function (req, res) {
-  let url = req.query.url;
+  let params = req.query;
+  let recipient = params.recipient;
 
-  if (url == null || url === "") {
-    return res.status(400).send('{ "error" : "No `url` param found" }');
+  if (recipient == null) {
+    res.status(400).send({ error: "No `recipient` param found" });
+    return;
   }
 
   try {
-    url = validateUrl(url);
+    // Validate and sanitize the recipient username
+    recipient = validateAndSanitizeRecipient(recipient);
   } catch (error) {
-    return res.status(400).send({ error: error.message });
+    res.status(400).send({ error: error.message });
+    return;
   }
 
-  reader.getUrl(url).then(response => {
-    res.set('cache-control', cacheControl.static);
-    res.status(200).send(response);
-  })
-  .catch(e => {
-    console.error("Error: ", e);
-    res.status(500).send({ error: 'Internal Server Error' });
-  });
+  reader.recipientEventList(recipient + "@" + mailgunConfig.emailDomain)
+    .then(response => {
+      res.set('cache-control', cacheControl.dynamic);
+      res.status(200).send(response.items);
+    })
+    .catch(e => {
+      console.error(`Error getting list of messages for "${recipient}":`, e);
+      res.status(500).send({ error: 'Internal Server Error' });
+    });
 };
