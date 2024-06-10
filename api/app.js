@@ -32,7 +32,7 @@ app.use(app.express.static("public", {
 
 // Custom 404 handling - use index.html
 app.use(function (req, res) {
-  res.set('cache-control', cacheControl.static)
+  res.set('cache-control', cacheControl.static);
   res.sendFile(__dirname + '/public/index.html');
 });
 
