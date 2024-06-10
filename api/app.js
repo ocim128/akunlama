@@ -5,6 +5,7 @@ const cacheControl = require("./config/cacheControl");
 let app = require("./src/app-setup");
 
 // Setup the routes
+
 app.get("/api/v1/mail/list", require("./src/api/mailList"));
 app.get("/api/v1/mail/getInfo", require("./src/api/mailGetInfo"));
 app.get("/api/v1/mail/getHtml", require("./src/api/mailGetHtml"));
@@ -39,4 +40,14 @@ app.use(function (req, res) {
 // Setup the server
 var server = app.listen(8000, function () {
   console.log("app running on port.", server.address().port);
+});
+
+app.get('/api/v1/mail/getHtml', (req, res) => {
+  console.log("App.js received parameters:", req.query);
+  mailGetHtml(req, res);
+});
+
+app.get('/api/v1/mail/getInfo', (req, res) => {
+  console.log("App.js received parameters:", req.query);
+  mailGetInfo(req, res);
 });
