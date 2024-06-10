@@ -11,19 +11,16 @@ const reader = new mailgunReader(mailgunConfig);
  * @param {String} key
  */
 function validateParams(region, key) {
-  if (typeof region === 'undefined' || typeof key === 'undefined') {
-    throw new Error("Region or key is undefined");
+  if (!region || !key) {
+    throw new Error("Region or key is undefined or null");
   }
 
   // Remove leading/trailing whitespace
   region = region.trim();
   key = key.trim();
 
-  // Check if the region and key contain only allowed characters
-  const isValidRegion = /^[a-zA-Z0-9._-]+$/.test(region);
-  const isValidKey = /^[a-zA-Z0-9._-]+$/.test(key);
-
-  if (!isValidRegion || !isValidKey) {
+  // Validate that only allowed characters are present
+  if (!/^[a-zA-Z0-9._-]+$/.test(region) || !/^[a-zA-Z0-9._-]+$/.test(key)) {
     throw new Error("Invalid region or key");
   }
 
@@ -40,12 +37,15 @@ module.exports = function (req, res) {
   let region = req.query.region;
   let key = req.query.key;
 
+  console.log("Received request with region:", region, "and key:", key);
+
   try {
     // Validate and sanitize the region and key parameters
     const validatedParams = validateParams(region, key);
     region = validatedParams.region;
     key = validatedParams.key;
   } catch (error) {
+    console.error("Validation error:", error.message);
     return res.status(400).send({ error: error.message });
   }
 
@@ -61,7 +61,7 @@ module.exports = function (req, res) {
       body +=
         "<script>" +
         'let linkArray = document.getElementsByTagName("a");' +
-        'for (let i=0; i<linkArray.length; ++i) { linkArray[i].target="_blank"; }' +
+        'for (let i=0; linkArray.length; ++i) { linkArray[i].target="_blank"; }' +
         // eslint-disable-next-line
         "<\\/script>";
       res.set("cache-control", cacheControl.static);
