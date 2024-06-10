@@ -11,6 +11,8 @@ const reader = new mailgunReader(mailgunConfig);
  * @param {String} key
  */
 function validateParams(region, key) {
+  console.log("Validating parameters: region=", region, ", key=", key);
+
   if (!region || !key) {
     throw new Error("Region or key is undefined or null");
   }
@@ -61,7 +63,7 @@ module.exports = function (req, res) {
       body +=
         "<script>" +
         'let linkArray = document.getElementsByTagName("a");' +
-        'for (let i=0; linkArray.length; ++i) { linkArray[i].target="_blank"; }' +
+        'for (let i=0; i<linkArray.length; ++i) { linkArray[i].target="_blank"; }' +
         // eslint-disable-next-line
         "<\\/script>";
       res.set("cache-control", cacheControl.static);
