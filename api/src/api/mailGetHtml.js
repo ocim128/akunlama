@@ -5,21 +5,29 @@ const cacheControl = require("../../config/cacheControl");
 const reader = new mailgunReader(mailgunConfig);
 
 /**
- * Validate the recipient parameter
+ * Validate the region and key parameters and ensure they contain only allowed characters
  *
- * @param {String} recipient
+ * @param {String} region
+ * @param {String} key
  */
-function validateRecipient(recipient) {
-  // Remove leading/trailing whitespace
-  recipient = recipient.trim();
-
-  // Ensure recipient contains valid characters and ends with the correct domain
-  const recipientRegex = /^[a-zA-Z0-9._-]+@akunlama\.com$/;
-  if (!recipientRegex.test(recipient)) {
-    throw new Error("Invalid recipient format");
+function validateParams(region, key) {
+  if (!region || !key) {
+    throw new Error("Region or key is undefined");
   }
 
-  return recipient;
+  // Remove leading/trailing whitespace
+  region = region.trim();
+  key = key.trim();
+
+  // Check if the region and key contain only allowed characters
+  const isValidRegion = /^[a-zA-Z0-9._-]+$/.test(region);
+  const isValidKey = /^[a-zA-Z0-9._-]+$/.test(key);
+
+  if (!isValidRegion || !isValidKey) {
+    throw new Error("Invalid region or key");
+  }
+
+  return { region, key };
 }
 
 /**
@@ -29,16 +37,20 @@ function validateRecipient(recipient) {
  * @param {*} res
  */
 module.exports = function (req, res) {
-  let recipient = req.query.recipient;
+  let region = req.query.region;
+  let key = req.query.key;
 
   try {
-    recipient = validateRecipient(recipient);
+    // Validate and sanitize the region and key parameters
+    const validatedParams = validateParams(region, key);
+    region = validatedParams.region;
+    key = validatedParams.key;
   } catch (error) {
     return res.status(400).send({ error: error.message });
   }
 
   reader
-    .getKey({ recipient })
+    .getKey({ region, key })
     .then((response) => {
       let body = response["body-html"] || response["body-plain"];
       if (body === undefined || body == null) {
@@ -56,7 +68,7 @@ module.exports = function (req, res) {
       res.status(200).send(body);
     })
     .catch((e) => {
-      console.error(`Error getting mail HTML for ${recipient}: `, e);
+      console.error(`Error getting mail HTML for /${region}/${key}: `, e);
       res.status(500).send({ error: "Internal Server Error" });
     });
 };
