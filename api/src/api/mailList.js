@@ -6,6 +6,8 @@ const reader = new mailgunReader(mailgunConfig);
 
 // Function to validate and sanitize the region and key parameters
 function validateAndSanitizeParams(region, key) {
+  console.log("Validating parameters: region=", region, ", key=", key);
+
   if (!region || !key) {
     throw new Error("Region or key is undefined or null");
   }
