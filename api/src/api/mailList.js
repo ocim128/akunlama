@@ -6,35 +6,47 @@ const cacheControl = require("../../config/cacheControl");
 const reader = new mailgunReader(mailgunConfig);
 
 /**
- * Mail listing api, returns the list of emails
+ * Validate the URL parameter
+ *
+ * @param {String} url
+ */
+function validateUrl(url) {
+  // Remove leading/trailing whitespace
+  url = url.trim();
+
+  // Ensure the URL is not empty
+  if (url === '') {
+    throw new Error("Invalid URL");
+  }
+
+  return url;
+}
+
+/**
+ * Get and return the URL link from the mailgun API - for the mail content
  *
  * @param {*} req
  * @param {*} res
  */
 module.exports = function (req, res) {
-  let params = req.query;
-  let recipient = params.recipient;
+  let url = req.query.url;
 
-  if (recipient == null) {
-    return res.status(400).send({ error: "No `recipient` param found" });
+  if (url == null || url === "") {
+    return res.status(400).send('{ "error" : "No `url` param found" }');
   }
 
-  // Validate recipient format
-  const recipientRegex = /^[a-zA-Z0-9._-]+@akunlama\.com$/;
-  if (!recipientRegex.test(recipient)) {
-    return res.status(400).send({ error: "Invalid recipient format" });
+  try {
+    url = validateUrl(url);
+  } catch (error) {
+    return res.status(400).send({ error: error.message });
   }
 
-  // Ensure the recipient has valid characters and proper domain
-  recipient = recipient.replace(/[^a-zA-Z0-9._-@]/g, '');
-  
-  reader.recipientEventList(recipient)
-    .then(response => {
-      res.set('cache-control', cacheControl.dynamic);
-      res.status(200).send(response.items);
-    })
-    .catch(e => {
-      console.error(`Error getting list of messages for "${recipient}":`, e);
-      res.status(500).send({ error: 'Internal Server Error' });
-    });
+  reader.getUrl(url).then(response => {
+    res.set('cache-control', cacheControl.static);
+    res.status(200).send(response);
+  })
+  .catch(e => {
+    console.error("Error: ", e);
+    res.status(500).send({ error: 'Internal Server Error' });
+  });
 };
