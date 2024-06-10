@@ -10,7 +10,7 @@ function validateAndSanitizeRecipient(recipient) {
   recipient = recipient.trim();
 
   // Check if the recipient matches the expected format and domain
-  const isValidRecipient = /^[a-zA-Z0-9._-]+$/.test(recipient);
+  const isValidRecipient = /^[a-zA-Z0-9]+[a-zA-Z0-9._-]*[a-zA-Z0-9]+$/.test(recipient);
 
   if (!isValidRecipient) {
     throw new Error("Invalid recipient username");
