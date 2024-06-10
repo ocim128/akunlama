@@ -31,6 +31,10 @@ function validateUrl(url) {
 module.exports = function (req, res) {
   let url = req.query.url;
 
+  if (url == null || url === "") {
+    return res.status(400).send('{ "error" : "No `url` param found" }');
+  }
+
   try {
     url = validateUrl(url);
   } catch (error) {
