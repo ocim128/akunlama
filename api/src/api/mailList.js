@@ -6,20 +6,16 @@ const reader = new mailgunReader(mailgunConfig);
 
 // Function to validate and sanitize the region and key parameters
 function validateAndSanitizeParams(region, key) {
-  if (typeof region === 'undefined' || typeof key === 'undefined') {
-    throw new Error("Region or key is undefined");
+  if (!region || !key) {
+    throw new Error("Region or key is undefined or null");
   }
 
   // Remove leading/trailing whitespace
   region = region.trim();
   key = key.trim();
 
-  // Remove any characters that are not alphanumeric, underscore, or hyphen
-  region = region.replace(/[^a-zA-Z0-9._-]/g, '');
-  key = key.replace(/[^a-zA-Z0-9._-]/g, '');
-
-  // Check if the region or key is empty after sanitization
-  if (region === '' || key === '') {
+  // Validate that only allowed characters are present
+  if (!/^[a-zA-Z0-9._-]+$/.test(region) || !/^[a-zA-Z0-9._-]+$/.test(key)) {
     throw new Error("Invalid region or key");
   }
 
@@ -36,12 +32,15 @@ module.exports = function(req, res){
   let region = req.query.region;
   let key = req.query.key;
 
+  console.log("Received request with region:", region, "and key:", key);
+
   try {
     // Validate and sanitize the region and key parameters
     const validatedParams = validateAndSanitizeParams(region, key);
     region = validatedParams.region;
     key = validatedParams.key;
   } catch (error) {
+    console.error("Validation error:", error.message);
     return res.status(400).send({ error: error.message });
   }
 
