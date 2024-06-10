@@ -19,8 +19,8 @@ module.exports = function (req, res) {
         return res.status(400).send({ error: "No `recipient` param found" });
     }
 
-    // Validate recipient
-    if (!/^[a-zA-Z0-9._-]+$/.test(recipient)) {
+    // Validate recipient - it should not be a single character like '-' or '_'
+    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]*[a-zA-Z0-9])?$/.test(recipient)) {
         return res.status(400).send({ error: "Invalid recipient format" });
     }
 
