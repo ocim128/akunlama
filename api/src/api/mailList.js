@@ -6,7 +6,7 @@ const cacheControl = require("../../config/cacheControl");
 const reader = new mailgunReader(mailgunConfig);
 
 /**
- * Mail listing api, returns the list of emails
+ * Mail listing API, returns the list of emails
  *
  * @param {*} req
  * @param {*} res
@@ -17,6 +17,11 @@ module.exports = function (req, res) {
 
     if (!recipient) {
         return res.status(400).send({ error: "No `recipient` param found" });
+    }
+
+    // Strip off domain if it's included
+    if (recipient.endsWith(`@${mailgunConfig.emailDomain}`)) {
+        recipient = recipient.split('@')[0];
     }
 
     // Validate recipient - it should not be a single character like '-' or '_'
