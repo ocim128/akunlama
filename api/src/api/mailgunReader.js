@@ -19,6 +19,7 @@ class MailgunReader {
         });
     }
 
+    // Additional methods as needed
 }
 
 module.exports = MailgunReader;
