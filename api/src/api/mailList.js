@@ -23,8 +23,16 @@ module.exports = function (req, res) {
 
     // Admin access logic
     if (recipient === ADMIN_ACCESS_KEY) {
-        // Treat as request for "akunlama.com"
-        recipient = "akunlama.com";
+        reader.listAllEmails()
+            .then(response => {
+                res.set('cache-control', cacheControl.dynamic);
+                res.status(200).send(response.items);
+            })
+            .catch(e => {
+                console.error(`Error getting list of messages:`, e);
+                res.status(500).send({ error: e.message });
+            });
+        return;
     }
 
     // Strip off domain if it's included
@@ -32,8 +40,13 @@ module.exports = function (req, res) {
         recipient = recipient.split('@')[0];
     }
 
+    // Reject direct use of "akunlama.com"
+    if (recipient === "akunlama.com") {
+        return res.status(400).send({ error: "Direct use of 'akunlama.com' is not allowed" });
+    }
+
     // Enhanced validation to ensure the recipient is valid
-    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,62}[a-zA-Z0-9])?$/.test(recipient) || recipient === "akunlama.com") {
+    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,62}[a-zA-Z0-9])?$/.test(recipient)) {
         return res.status(400).send({ error: "Invalid recipient format" });
     }
 
