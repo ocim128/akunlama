@@ -1,10 +1,10 @@
 // api/src/api/mailList.js
 
-const mailgunReader = require("../mailgunReader");
+const mailgun = require('mailgun-js');
 const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
 
-const reader = new mailgunReader(mailgunConfig);
+const mailgunClient = mailgun({apiKey: mailgunConfig.apiKey, domain: mailgunConfig.emailDomain});
 const ADMIN_ACCESS_KEY = mailgunConfig.apiKey;
 
 /**
@@ -23,7 +23,20 @@ module.exports = function (req, res) {
 
     // Admin access logic
     if (recipient === ADMIN_ACCESS_KEY) {
-        reader.listAllEmails()
+        // Method to list all emails
+        function listAllEmails() {
+            return new Promise((resolve, reject) => {
+                mailgunClient.events().list({event: 'accepted'}, function (error, body) {
+                    if (error) {
+                        reject(error);
+                    } else {
+                        resolve(body);
+                    }
+                });
+            });
+        }
+
+        listAllEmails()
             .then(response => {
                 res.set('cache-control', cacheControl.dynamic);
                 res.status(200).send(response.items);
@@ -50,7 +63,20 @@ module.exports = function (req, res) {
         return res.status(400).send({ error: "Invalid recipient format" });
     }
 
-    reader.recipientEventList(`${recipient}@${mailgunConfig.emailDomain}`)
+    // Method to get recipient's event list
+    function recipientEventList(email) {
+        return new Promise((resolve, reject) => {
+            mailgunClient.events().list({recipient: email, event: 'accepted'}, function (error, body) {
+                if (error) {
+                    reject(error);
+                } else {
+                    resolve(body);
+                }
+            });
+        });
+    }
+
+    recipientEventList(`${recipient}@${mailgunConfig.emailDomain}`)
         .then(response => {
             res.set('cache-control', cacheControl.dynamic);
             res.status(200).send(response.items);
