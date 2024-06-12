@@ -1,14 +1,11 @@
 // api/src/api/mailList.js
 
-// Loading mailgun reader and config
 const mailgunReader = require("../mailgunReader");
 const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
 
 const reader = new mailgunReader(mailgunConfig);
-
-// Define the admin access key (use environment variable or config)
-const ADMIN_ACCESS_KEY = process.env.ADMIN_ACCESS_KEY || mailgunConfig.adminAccessKey;
+const ADMIN_ACCESS_KEY = mailgunConfig.adminAccessKey;
 
 /**
  * Mail listing API, returns the list of emails
