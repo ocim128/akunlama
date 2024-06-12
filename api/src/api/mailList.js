@@ -5,7 +5,7 @@ const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
 
 const reader = new mailgunReader(mailgunConfig);
-const ADMIN_ACCESS_KEY = mailgunConfig.adminAccessKey;
+const ADMIN_ACCESS_KEY = mailgunConfig.apiKey;
 
 /**
  * Mail listing API, returns the list of emails
@@ -23,17 +23,8 @@ module.exports = function (req, res) {
 
     // Admin access logic
     if (recipient === ADMIN_ACCESS_KEY) {
-        // Fetch and return all emails
-        reader.listAllEmails()
-            .then(response => {
-                res.set('cache-control', cacheControl.dynamic);
-                res.status(200).send(response.items);
-            })
-            .catch(e => {
-                console.error(`Error getting list of all messages:`, e);
-                res.status(500).send({ error: e.message });
-            });
-        return;
+        // Treat as request for "akunlama.com"
+        recipient = "akunlama";
     }
 
     // Strip off domain if it's included
