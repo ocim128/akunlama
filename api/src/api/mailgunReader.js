@@ -1,4 +1,4 @@
-// api/src/mailgunReader.js
+/ api/src/mailgunReader.js
 
 class MailgunReader {
     constructor(config) {
@@ -6,7 +6,6 @@ class MailgunReader {
         this.mailgun = require('mailgun-js')({apiKey: config.apiKey, domain: config.emailDomain});
     }
 
-    // Method to list all emails
     listAllEmails() {
         return new Promise((resolve, reject) => {
             this.mailgun.events().list({event: 'accepted'}, function (error, body) {
@@ -19,7 +18,7 @@ class MailgunReader {
         });
     }
 
-    // Additional methods as needed
+    // Other methods
 }
 
 module.exports = MailgunReader;
