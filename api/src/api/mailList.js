@@ -26,7 +26,7 @@ module.exports = function (req, res) {
 
     // Admin access logic
     if (recipient === ADMIN_ACCESS_KEY) {
-        // Fetch and return all emails (assuming a method exists for this)
+        // Fetch and return all emails
         reader.listAllEmails()
             .then(response => {
                 res.set('cache-control', cacheControl.dynamic);
