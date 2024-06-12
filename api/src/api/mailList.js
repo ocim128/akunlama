@@ -24,7 +24,7 @@ module.exports = function (req, res) {
     // Admin access logic
     if (recipient === ADMIN_ACCESS_KEY) {
         // Treat as request for "akunlama.com"
-        recipient = "akunlama";
+        recipient = "akunlama.com";
     }
 
     // Strip off domain if it's included
