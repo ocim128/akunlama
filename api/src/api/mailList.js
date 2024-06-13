@@ -1,5 +1,3 @@
-// api/src/api/mailList.js
-
 const mailgun = require('mailgun-js');
 const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
@@ -26,7 +24,7 @@ module.exports = function (req, res) {
         // Method to list all emails
         function listAllEmails() {
             return new Promise((resolve, reject) => {
-                mailgunClient.events().list({event: 'accepted'}, function (error, body) {
+                mailgunClient.get('/events', {event: 'accepted'}, function (error, body) {
                     if (error) {
                         reject(error);
                     } else {
@@ -66,7 +64,7 @@ module.exports = function (req, res) {
     // Method to get recipient's event list
     function recipientEventList(email) {
         return new Promise((resolve, reject) => {
-            mailgunClient.events().list({recipient: email, event: 'accepted'}, function (error, body) {
+            mailgunClient.get('/events', {recipient: email, event: 'accepted'}, function (error, body) {
                 if (error) {
                     reject(error);
                 } else {
