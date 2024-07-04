@@ -46,20 +46,20 @@ module.exports = function (req, res) {
         return;
     }
 
-    // Strip off domain if it's included
-    if (recipient.endsWith(`@${mailgunConfig.emailDomain}`)) {
-        recipient = recipient.split('@')[0];
-    }
+  // Strip off domain if it's included
+if (recipient.toLowerCase().endsWith(`@${mailgunConfig.emailDomain.toLowerCase()}`)) {
+    recipient = recipient.split('@')[0];
+}
 
-    // Reject direct use of "akunlama.com"
-    if (recipient === "akunlama.com") {
-        return res.status(400).send({ error: "Direct use of 'akunlama.com' is not allowed" });
-    }
+// Reject direct use of "akunlama.com" (case-insensitive)
+if (recipient.toLowerCase() === "akunlama.com") {
+    return res.status(400).send({ error: "Direct use of 'akunlama.com' is not allowed" });
+}
 
-    // Enhanced validation to ensure the recipient is valid
-    if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,62}[a-zA-Z0-9])?$/.test(recipient)) {
-        return res.status(400).send({ error: "Invalid recipient format" });
-    }
+// Enhanced validation to ensure the recipient is valid
+if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,62}[a-zA-Z0-9])?$/.test(recipient)) {
+    return res.status(400).send({ error: "Invalid recipient format" });
+}
 
     // Method to get recipient's event list
     function recipientEventList(email) {
