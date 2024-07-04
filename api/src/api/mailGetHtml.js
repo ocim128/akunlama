@@ -12,20 +12,16 @@ const reader = new mailgunReader(mailgunConfig);
  */
 function validateParams(region, key) {
     console.log("Validating parameters: region=", region, ", key=", key);
-
     if (!region || !key) {
         throw new Error("Region or key is undefined or null");
     }
-
     // Remove leading/trailing whitespace
     region = region.trim();
     key = key.trim();
-
     // Validate that only allowed characters are present
     if (!/^[a-zA-Z0-9._-]+$/.test(region) || !/^[a-zA-Z0-9._-]+$/.test(key)) {
         throw new Error("Invalid region or key");
     }
-
     return { region, key };
 }
 
@@ -38,7 +34,6 @@ function validateParams(region, key) {
 module.exports = function (req, res) {
     let region = req.query.region;
     let key = req.query.key;
-
     console.log("Received request with region:", region, "and key:", key);
 
     try {
@@ -58,14 +53,36 @@ module.exports = function (req, res) {
             if (!body) {
                 body = "The kittens found no messages :(";
             }
-            // Add JS injection to force all links to open as a new tab
-            // instead of opening inside the iframe
-            body +=
-                "<script>" +
-                'let linkArray = document.getElementsByTagName("a");' +
-                'for (let i=0; i<linkArray.length; ++i) { linkArray[i].target="_blank"; }' +
-                // eslint-disable-next-line
-                "<\\/script>";
+
+            // Modify the HTML to force all links to open in a new tab
+            body = body.replace(/<a\s+(?:[^>]*?\s+)?href="([^"]*)"([^>]*)>/gi, 
+                '<a href="$1" target="_blank" rel="noopener noreferrer"$2>');
+
+            // Add JS injection to ensure all links open in a new tab, even if added dynamically
+            body += `
+                <script>
+                (function() {
+                    function updateLinks() {
+                        var links = document.getElementsByTagName('a');
+                        for (var i = 0; i < links.length; i++) {
+                            links[i].setAttribute('target', '_blank');
+                            links[i].setAttribute('rel', 'noopener noreferrer');
+                        }
+                    }
+                    updateLinks();
+                    // Use MutationObserver to handle dynamically added links
+                    var observer = new MutationObserver(function(mutations) {
+                        mutations.forEach(function(mutation) {
+                            if (mutation.type === 'childList') {
+                                updateLinks();
+                            }
+                        });
+                    });
+                    observer.observe(document.body, { childList: true, subtree: true });
+                })();
+                </script>
+            `;
+
             res.set("cache-control", cacheControl.static);
             res.status(200).send(body);
         })
