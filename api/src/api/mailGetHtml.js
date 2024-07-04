@@ -49,52 +49,48 @@ module.exports = function (req, res) {
     reader
         .getKey({ region, key })
         .then((response) => {
-            let emailContent = response["body-html"] || response["body-plain"];
-            if (!emailContent) {
-                emailContent = "The kittens found no messages :(";
+            let body = response["body-html"] || response["body-plain"];
+            if (!body) {
+                body = "The kittens found no messages :(";
             }
 
-            // Encode the email content to safely include it in the wrapper HTML
-            const encodedEmailContent = Buffer.from(emailContent).toString('base64');
-
-            // Create a wrapper HTML that loads the email content in an iframe
-            const wrapperHTML = `
+            // Modify the HTML to handle links correctly
+            body = `
                 <!DOCTYPE html>
                 <html>
                 <head>
                     <meta charset="UTF-8">
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
                     <title>Email Content</title>
                     <style>
-                        body, html { margin: 0; padding: 0; height: 100%; }
-                        iframe { width: 100%; height: 100%; border: none; }
+                        body { font-family: Arial, sans-serif; line-height: 1.6; padding: 20px; }
+                        a { color: #0066cc; }
                     </style>
                 </head>
                 <body>
-                    <iframe id="emailContentFrame" sandbox="allow-scripts allow-popups"></iframe>
+                    ${body}
                     <script>
-                        (function() {
-                            const iframe = document.getElementById('emailContentFrame');
-                            const encodedContent = "${encodedEmailContent}";
-                            const decodedContent = atob(encodedContent);
-                            
-                            iframe.srcdoc = decodedContent;
-
-                            iframe.onload = function() {
-                                iframe.contentWindow.document.body.addEventListener('click', function(e) {
-                                    if (e.target.tagName === 'A') {
-                                        e.preventDefault();
-                                        window.open(e.target.href, '_blank');
-                                    }
-                                }, true);
-                            };
-                        })();
+                    (function() {
+                        document.body.addEventListener('click', function(e) {
+                            var target = e.target;
+                            while (target && target.tagName !== 'A') {
+                                target = target.parentNode;
+                            }
+                            if (target && target.tagName === 'A') {
+                                e.preventDefault();
+                                if (target.href) {
+                                    window.open(target.href, '_blank', 'noopener,noreferrer');
+                                }
+                            }
+                        }, false);
+                    })();
                     </script>
                 </body>
                 </html>
             `;
 
             res.set("cache-control", cacheControl.static);
-            res.status(200).send(wrapperHTML);
+            res.status(200).send(body);
         })
         .catch((e) => {
             console.error(`Error getting mail HTML for /${region}/${key}: `, e);
