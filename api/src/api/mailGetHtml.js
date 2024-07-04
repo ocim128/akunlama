@@ -49,42 +49,52 @@ module.exports = function (req, res) {
     reader
         .getKey({ region, key })
         .then((response) => {
-            let body = response["body-html"] || response["body-plain"];
-            if (!body) {
-                body = "The kittens found no messages :(";
+            let emailContent = response["body-html"] || response["body-plain"];
+            if (!emailContent) {
+                emailContent = "The kittens found no messages :(";
             }
 
-            // Modify the HTML to force all links to open in a new tab
-            body = body.replace(/<a\s+(?:[^>]*?\s+)?href="([^"]*)"([^>]*)>/gi, 
-                '<a href="$1" target="_blank" rel="noopener noreferrer"$2>');
+            // Encode the email content to safely include it in the wrapper HTML
+            const encodedEmailContent = Buffer.from(emailContent).toString('base64');
 
-            // Add JS injection to ensure all links open in a new tab, even if added dynamically
-            body += `
-                <script>
-                (function() {
-                    function updateLinks() {
-                        var links = document.getElementsByTagName('a');
-                        for (var i = 0; i < links.length; i++) {
-                            links[i].setAttribute('target', '_blank');
-                            links[i].setAttribute('rel', 'noopener noreferrer');
-                        }
-                    }
-                    updateLinks();
-                    // Use MutationObserver to handle dynamically added links
-                    var observer = new MutationObserver(function(mutations) {
-                        mutations.forEach(function(mutation) {
-                            if (mutation.type === 'childList') {
-                                updateLinks();
-                            }
-                        });
-                    });
-                    observer.observe(document.body, { childList: true, subtree: true });
-                })();
-                </script>
+            // Create a wrapper HTML that loads the email content in an iframe
+            const wrapperHTML = `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <title>Email Content</title>
+                    <style>
+                        body, html { margin: 0; padding: 0; height: 100%; }
+                        iframe { width: 100%; height: 100%; border: none; }
+                    </style>
+                </head>
+                <body>
+                    <iframe id="emailContentFrame" sandbox="allow-scripts allow-popups"></iframe>
+                    <script>
+                        (function() {
+                            const iframe = document.getElementById('emailContentFrame');
+                            const encodedContent = "${encodedEmailContent}";
+                            const decodedContent = atob(encodedContent);
+                            
+                            iframe.srcdoc = decodedContent;
+
+                            iframe.onload = function() {
+                                iframe.contentWindow.document.body.addEventListener('click', function(e) {
+                                    if (e.target.tagName === 'A') {
+                                        e.preventDefault();
+                                        window.open(e.target.href, '_blank');
+                                    }
+                                }, true);
+                            };
+                        })();
+                    </script>
+                </body>
+                </html>
             `;
 
             res.set("cache-control", cacheControl.static);
-            res.status(200).send(body);
+            res.status(200).send(wrapperHTML);
         })
         .catch((e) => {
             console.error(`Error getting mail HTML for /${region}/${key}: `, e);
