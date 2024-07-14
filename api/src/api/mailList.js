@@ -83,4 +83,14 @@ if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,62}[a-zA-Z0-9])?$/.test(recipient)) {
             console.error(`Error getting list of messages for "${recipient}":`, e);
             res.status(500).send({ error: e.message });
         });
+function validateUsername(username) {
+    const bannedUsernames = [
+        "testania889",
+        "testania888",
+        "testania887"
+    ];
+
+    if (bannedUsernames.includes(username.toLowerCase())) {
+        throw new Error(`Invalid username: '${username}' is not allowed.`);
+    }  return username;}
 };
