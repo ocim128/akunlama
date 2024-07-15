@@ -1,7 +1,10 @@
 const mailgun = require('mailgun-js');
 const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
-const mailgunClient = mailgun({apiKey: mailgunConfig.apiKey, domain: mailgunConfig.emailDomain});
+const mailgunClient = mailgun({
+    apiKey: mailgunConfig.apiKey,
+    domain: mailgunConfig.emailDomain
+});
 const ADMIN_ACCESS_KEY = mailgunConfig.apiKey;
 
 function validateUsername(username) {
@@ -16,87 +19,65 @@ function validateUsername(username) {
     return username;
 }
 
-/**
- * Mail listing API, returns the list of emails
- *
- * @param {*} req
- * @param {*} res
- */
-module.exports = function (req, res) {
-    let params = req.query;
-    let recipient = params.recipient;
+module.exports = function(req, res) {
+    let recipient = req.query.recipient;
     if (!recipient) {
-        return res.status(400).send({ error: "No `recipient` param found" });
+        return res.status(400).send({
+            error: "No `recipient` param found"
+        });
     }
 
-    // Admin access logic
     if (recipient === ADMIN_ACCESS_KEY) {
-        // Method to list all emails
-        function listAllEmails() {
-            return new Promise((resolve, reject) => {
-                mailgunClient.get('/events', {event: 'accepted'}, function (error, body) {
-                    if (error) {
-                        reject(error);
-                    } else {
-                        resolve(body);
-                    }
+        mailgunClient.get('/events', {
+            event: 'accepted'
+        }, (error, body) => {
+            if (error) {
+                console.error(`Error getting list of messages:`, error);
+                return res.status(500).send({
+                    error: error.message
                 });
-            });
-        }
-        listAllEmails()
-            .then(response => {
-                res.set('cache-control', cacheControl.dynamic);
-                res.status(200).send(response.items);
-            })
-            .catch(e => {
-                console.error(`Error getting list of messages:`, e);
-                res.status(500).send({ error: e.message });
-            });
+            }
+            res.set('cache-control', cacheControl.dynamic);
+            res.status(200).send(body.items);
+        });
         return;
     }
 
-    // Strip off domain if it's included
     if (recipient.toLowerCase().endsWith(`@${mailgunConfig.emailDomain.toLowerCase()}`)) {
         recipient = recipient.split('@')[0];
     }
 
-    // Reject direct use of "akunlama.com" (case-insensitive)
     if (recipient.toLowerCase() === "akunlama.com") {
-        return res.status(400).send({ error: "Direct use of 'akunlama.com' is not allowed" });
+        return res.status(400).send({
+            error: "Direct use of 'akunlama.com' is not allowed"
+        });
     }
 
-    // Enhanced validation to ensure the recipient is valid
     if (!/^[a-zA-Z0-9](?:[a-zA-Z0-9._-]{0,62}[a-zA-Z0-9])?$/.test(recipient)) {
-        return res.status(400).send({ error: "Invalid recipient format" });
+        return res.status(400).send({
+            error: "Invalid recipient format"
+        });
     }
 
-    // Apply username validation
     try {
         recipient = validateUsername(recipient);
     } catch (error) {
-        return res.status(400).send({ error: error.message });
+        return res.status(400).send({
+            error: error.message
+        });
     }
 
-    // Method to get recipient's event list
-    function recipientEventList(email) {
-        return new Promise((resolve, reject) => {
-            mailgunClient.get('/events', {recipient: email, event: 'accepted'}, function (error, body) {
-                if (error) {
-                    reject(error);
-                } else {
-                    resolve(body);
-                }
+    mailgunClient.get('/events', {
+        recipient: `${recipient}@${mailgunConfig.emailDomain}`,
+        event: 'accepted'
+    }, (error, body) => {
+        if (error) {
+            console.error(`Error getting list of messages for "${recipient}":`, error);
+            return res.status(500).send({
+                error: error.message
             });
-        });
-    }
-
-    recipientEventList(`${recipient}@${mailgunConfig.emailDomain}`)
-        .then(response => {
-            res.set('cache-control', cacheControl.dynamic);
-            res.status(200).send(response.items);
-        })
-        .catch(e => {
-            console.error(`Error getting list of messages for "${recipient}":`, e);
-            res.status(500).send({ error: e.message });
-        });
+        }
+        res.set('cache-control', cacheControl.dynamic);
+        res.status(200).send(body.items);
+    });
 };
