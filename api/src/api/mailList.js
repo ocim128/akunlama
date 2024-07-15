@@ -9,9 +9,19 @@ const ADMIN_ACCESS_KEY = mailgunConfig.apiKey;
 
 function validateUsername(username) {
     const bannedUsernames = [
-        "testania889",
-        "testania888",
-        "testania887"
+        "faturrasyidmuhammad07",
+        "diandikaara",
+        "hawkman7609",
+        "yogiceper25",
+        "green14fly",
+        "najman8522",
+        "faradina6986",
+        "wyizrjo2g86kclm",
+        "research-population-76",
+        "endangpurwanti0511",
+        "melanyp_andini",
+        "obeidtukhisongs",
+        "aspakpahtan21"
     ];
     if (bannedUsernames.includes(username.toLowerCase())) {
         throw new Error(`Invalid username: '${username}' is not allowed.`);
