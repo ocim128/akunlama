@@ -22,52 +22,7 @@
 		<!--<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>-->
 	</head>
 	  <script type="text/javascript">
-	    function redirectBasedOnLocation(city) {
-    city = city ? city.toLowerCase() : '';
-    console.log("Attempting to redirect based on city:", city);
-    switch (city) {
-      case 'pagaralam':
-        console.log("Redirecting to Google...");
-        window.location.href = 'https://www.nasa.gov/';
-        break;
-      case 'palembang':
-        console.log("Redirecting to example.com...");
-        window.location.href = 'https://www.nasa.gov/'; // Replace with your desired URL for Jakarta
-        break;
-      default:
-        console.log("No redirect rule for this city");
-    }
-}
-
-// Use a geolocation API to get the user's city
-console.log("Fetching location data...");
-fetch('https://ipapi.co/json/')
-    .then(response => response.json())
-    .then(data => {
-      console.log("Full API response:", data);
-      console.log("Detected city:", data.city);
-      redirectBasedOnLocation(data.city);
-    })
-    .catch(error => {
-      console.error('Error fetching location:', error);
-      // Fallback: try to get location from navigator.geolocation
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          position => {
-            console.log("Fallback: Got position", position);
-            // You'd need to reverse geocode this position to get the city
-            // For now, let's just log it
-            console.log("Latitude:", position.coords.latitude);
-            console.log("Longitude:", position.coords.longitude);
-          },
-          err => {
-            console.error("Fallback geolocation error:", err);
-          }
-        );
-      } else {
-        console.log("Geolocation is not supported by this browser.");
-      }
-    });
+	   
 	  </script>
 	<body>
 		<div id="app"></div>
