@@ -26,16 +26,14 @@ const validateUsername = (username) => {
     if (bannedUsernames.has(username.toLowerCase())) {
         throw new Error(`Invalid username: '${username}' is not allowed.`);
     }
-    if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
+    if (!/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*$/.test(username)) {
         throw new Error(`Invalid username: '${username}' contains invalid characters.`);
     }
     return username;
 }
-
 const getEvents = (recipient, res) => {
-    const recipientRegex = new RegExp(`^${recipient}$`, 'i');
     mailgunClient.get('/events', {
-        recipient: `${recipientRegex.source}@${mailgunConfig.emailDomain}`,
+        recipient: `${recipient}@${mailgunConfig.emailDomain}`,
         event: 'accepted'
     }, (error, body) => {
         if (error) {
@@ -44,14 +42,19 @@ const getEvents = (recipient, res) => {
                 error: 'Internal Server Error'
             });
         }
+        console.log(`Retrieved emails:`, body.items);
+const emails = body.items.filter(email => {
+    const recipientUsername = email.recipient.split('@')[0].toLowerCase();
+    return recipientUsername === recipient.toLowerCase();
+});
+        console.log(`Filtered emails:`, emails);
         res.set('cache-control', cacheControl.dynamic);
         res.set('Content-Security-Policy', 'default-src \'self\'');
         res.set('X-Frame-Options', 'SAMEORIGIN');
         res.set('X-XSS-Protection', '1; mode=block');
-        res.status(200).send(body.items);
+        res.status(200).send(emails);
     });
 }
-
 module.exports = (req, res) => {
     const recipient = req.query.recipient;
     if (!recipient) {
@@ -79,6 +82,6 @@ module.exports = (req, res) => {
             error: 'Invalid username'
         });
     }
-
+ console.log(`Calling getEvents with recipient:`, recipient);
     getEvents(username, res);
 }
