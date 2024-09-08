@@ -19,6 +19,7 @@ const bannedUsernames = new Set([
     "endangpurwanti0511",
     "melanyp_andini",
     "obeidtukhisongs",
+    "pedoblicke",
     "aspakpahtan21"
 ]);
 
