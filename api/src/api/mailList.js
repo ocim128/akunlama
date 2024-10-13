@@ -21,6 +21,7 @@ const bannedUsernames = new Set([
     "obeidtukhisongs",
     "pedoblicke",
     "aspakpahtan21"
+    "ardiclops"
 ]);
 
 const validateUsername = (username) => {
