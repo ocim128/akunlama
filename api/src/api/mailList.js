@@ -10,6 +10,7 @@ const bannedUsernames = new Set([
     "faturrasyidmuhammad07",
     "diandikaara",
     "hawkman7609",
+    "autenticview",
     "yogiceper25",
     "green14fly",
     "najman8522",
