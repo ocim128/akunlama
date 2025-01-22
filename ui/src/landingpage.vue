@@ -14,8 +14,7 @@
       <div class="header">
         <img class="logo" src="@/assets/inbox_kitten.png" alt="Inbox Kitten Logo" />
         <h1>
-          Open-Source
-          <span> Disposable Email</span>
+          Open-Source <span>Disposable Email</span>
         </h1>
         <h2>(Served by Serverless Kittens)</h2>
       </div>
@@ -35,7 +34,9 @@
               class="input-suffix"
               id="div-domain"
               data-clipboard-target="#email-input"
-            >@{{ domain }}</div>
+            >
+              @{{ domain }}
+            </div>
           </div>
           <div class="submit-box">
             <input type="submit" class="submit" value="Get Mail Nyow!" />
@@ -171,31 +172,28 @@ export default {
 @import 'scss/landingpage.scss';
 @import 'primer-tooltips/index.scss';
 
+/* Adjusted navigation container to be responsive and prevent overflow */
 .landing-navigation {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: 0.5rem; /* Reduced padding */
-
-  /* Remove unnecessary white space around the navigation image */
-  a {
-    display: flex;
-    align-items: center;
-    margin: 0;
-  }
+  padding: 0.5rem 1rem; /* added horizontal padding to ensure spacing */
+  overflow: visible;
 }
 
+/* Adjust the image to maintain its aspect ratio and apply a golden ratio inspired size */
 .landing-nav-main-logo {
-  max-width: 8rem;
-  width: 100%;
-  margin: 0;          /* Reset margin */
-  padding: 0;         /* Reset padding */
-  object-fit: contain; /* Ensures the image scales without extra white space */
+  display: block;
+  max-height: 80px; /* roughly suits a golden ratio if width is ~1.618 * 80px ≈ 130px */
+  width: auto;
+  margin: 0; /* Remove extra margin */
+  /* Ensure the image is not clipped */
+  object-fit: contain;
 }
 
 @media only screen and (max-width: 470px) {
   .landing-nav-main-logo {
-    max-width: 5rem;
+    max-height: 50px;
   }
 }
 
