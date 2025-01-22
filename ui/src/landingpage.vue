@@ -175,28 +175,33 @@ export default {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  width: 100%;
-  padding-top: 1rem;
+  padding: 0.5rem; /* Reduced padding */
 
-  .landing-nav-main-logo {
-    width: 8rem;
-    padding-top: 7rem;
-    padding-right: 4rem;
-    z-index: 2;
+  /* Remove unnecessary white space around the navigation image */
+  a {
+    display: flex;
+    align-items: center;
+    margin: 0;
   }
+}
 
-  @media only screen and (max-width: 470px) {
-    .landing-nav-main-logo {
-      padding-right: 4rem;
-      width: 5rem;
-      z-index: 3;
-    }
+.landing-nav-main-logo {
+  max-width: 8rem;
+  width: 100%;
+  margin: 0;          /* Reset margin */
+  padding: 0;         /* Reset padding */
+  object-fit: contain; /* Ensures the image scales without extra white space */
+}
+
+@media only screen and (max-width: 470px) {
+  .landing-nav-main-logo {
+    max-width: 5rem;
   }
 }
 
 @media only screen and (max-width: 800px) {
   .landing-navigation {
-    padding-top: 140px;
+    padding-top: 0.5rem;
   }
 }
 </style>
