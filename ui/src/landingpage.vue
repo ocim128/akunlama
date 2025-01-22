@@ -172,14 +172,13 @@ export default {
 @import 'scss/landingpage.scss';
 @import 'primer-tooltips/index.scss';
 
-/* Yellow gradient background for the header area */
+/* Updated purple gradient background for improved readability */
 .header-gradient-background {
   background: linear-gradient(
     to bottom right,
-    #fff176,
-    #ffeb3b
+    #8e44ad, /* muted purple */
+    #9b59b6  /* slightly lighter purple */
   );
-  /* Optional: add padding if needed */
   padding: 1rem 0;
 }
 
@@ -201,7 +200,7 @@ export default {
 /* Adjust the image to maintain its aspect ratio with a golden ratio inspired size */
 .landing-nav-main-logo {
   display: block;
-  max-height: 80px; /* roughly suits a golden ratio if width is ~1.618 * 80px ≈ 130px */
+  max-height: 80px; /* approximately suits a golden ratio if width is ~1.618 * 80px ≈ 130px */
   width: auto;
   margin: 0;
   object-fit: contain;
