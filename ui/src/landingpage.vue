@@ -121,7 +121,7 @@ export default {
       }
     })
 
-    this.$clipboard.on('success', (e) => {
+    this.$clipboard.on('success', () => {
       $('#email-input').select()
       $('#div-domain').addClass('tooltipped tooltipped-s')
       $('#div-domain').attr('aria-label', 'Copied!')
@@ -172,22 +172,38 @@ export default {
 @import 'scss/landingpage.scss';
 @import 'primer-tooltips/index.scss';
 
+/* Yellow gradient background for the header area */
+.header-gradient-background {
+  background: linear-gradient(
+    to bottom right,
+    #fff176,
+    #ffeb3b
+  );
+  /* Optional: add padding if needed */
+  padding: 1rem 0;
+}
+
 /* Adjusted navigation container to be responsive and prevent overflow */
 .landing-navigation {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  padding: 0.5rem 1rem; /* added horizontal padding to ensure spacing */
+  padding: 0.5rem 1rem;
   overflow: visible;
+
+  a {
+    display: flex;
+    align-items: center;
+    margin: 0;
+  }
 }
 
-/* Adjust the image to maintain its aspect ratio and apply a golden ratio inspired size */
+/* Adjust the image to maintain its aspect ratio with a golden ratio inspired size */
 .landing-nav-main-logo {
   display: block;
   max-height: 80px; /* roughly suits a golden ratio if width is ~1.618 * 80px ≈ 130px */
   width: auto;
-  margin: 0; /* Remove extra margin */
-  /* Ensure the image is not clipped */
+  margin: 0;
   object-fit: contain;
 }
 
