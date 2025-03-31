@@ -8,6 +8,8 @@ const mailgunClient = mailgun({
 
 const bannedUsernames = new Set([
     "faturrasyidmuhammad07",
+    "diani38071",
+    "theboybil",
     "diandikaara",
     "hawkman7609",
     "autenticview",
