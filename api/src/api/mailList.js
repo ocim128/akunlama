@@ -10,26 +10,11 @@ const mailgunClient = mailgun({
 const rateLimitStore = {};
 
 const bannedUsernames = new Set([
-    "faturrasyidmuhammad07",
-    "diani38071",
-    "pazaleegre",
-    "cemiloktay2",
-    "theboybil",
-    "diandikaara",
-    "hawkman7609",
-    "autenticview",
-    "yogiceper25",
-    "green14fly",
-    "najman8522",
-    "faradina6986",
-    "wyizrjo2g86kclm",
-    "research-population-76",
-    "endangpurwanti0511",
-    "melanyp_andini",
-    "obeidtukhisongs",
-    "pedoblicke",
-    "aspakpahtan21",
-    "ardiclops"
+    "faturrasyidmuhammad07", "diani38071", "pazaleegre", "cemiloktay2", "theboybil",
+    "diandikaara", "hawkman7609", "autenticview", "yogiceper25", "green14fly",
+    "najman8522", "faradina6986", "wyizrjo2g86kclm", "research-population-76",
+    "endangpurwanti0511", "melanyp_andini", "obeidtukhisongs", "pedoblicke",
+    "aspakpahtan21", "ardiclops"
 ]);
 
 const validateUsername = (username) => {
@@ -49,9 +34,7 @@ const getEvents = (recipient, res) => {
     }, (error, body) => {
         if (error) {
             console.error(`Error getting list of messages:`, error);
-            return res.status(500).send({
-                error: 'Internal Server Error'
-            });
+            return res.status(500).send({ error: 'Internal Server Error' });
         }
         console.log(`Retrieved emails:`, body.items);
         const emails = body.items.filter(email => {
@@ -68,28 +51,33 @@ const getEvents = (recipient, res) => {
 };
 
 module.exports = (req, res) => {
+    console.log('Request received');
+
     const recipient = req.query.recipient;
     if (!recipient) {
         console.log('No recipient provided');
-        return res.status(400).send({
-            error: "No `recipient` param found"
-        });
+        return res.status(400).send({ error: "No `recipient` param found" });
     }
 
-    // Rate limiting logic
-    const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
+    // Enhanced IP detection
+    let ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || 'unknown';
+    if (ip && ip.includes(',')) {
+        ip = ip.split(',')[0].trim();
+    }
     console.log(`Request from IP: ${ip}, Recipient: ${recipient}`);
-    const now = Date.now();
-    const windowMs = 60 * 1000; // 1 minute in milliseconds
-    const maxEmails = 10;
 
-    // Initialize store for this IP if not exists
+    // Rate limiting logic
+    const now = Date.now();
+    const windowMs = 60 * 1000; // 1 minute
+    const maxEmails = 10; // Limit to 10 unique emails per minute
+
+    // Initialize store for this IP if it doesn’t exist
     if (!rateLimitStore[ip]) {
         rateLimitStore[ip] = {};
         console.log(`Initialized rate limit store for IP: ${ip}`);
     }
 
-    // Clean up entries older than 1 minute
+    // Clean up old entries (older than 1 minute)
     for (const email in rateLimitStore[ip]) {
         if (rateLimitStore[ip][email] < now - windowMs) {
             console.log(`Removing expired email ${email} for IP: ${ip}`);
@@ -97,13 +85,12 @@ module.exports = (req, res) => {
         }
     }
 
-    // Normalize the recipient (local part) to lowercase
+    // Normalize recipient to lowercase
     const email = recipient.toLowerCase();
     console.log(`Normalized email: ${email}`);
 
     // Check rate limit
     if (!rateLimitStore[ip][email]) {
-        // New unique email: check limit
         const uniqueEmailCount = Object.keys(rateLimitStore[ip]).length;
         console.log(`Current unique email count for IP ${ip}: ${uniqueEmailCount}`);
         if (uniqueEmailCount >= maxEmails) {
@@ -112,17 +99,16 @@ module.exports = (req, res) => {
                 error: `Rate limit exceeded: Max ${maxEmails} unique email addresses per minute`
             });
         }
-        // Add new email with current timestamp
         rateLimitStore[ip][email] = now;
         console.log(`Added new email ${email} to store for IP: ${ip}`);
     } else {
         console.log(`Email ${email} already in store for IP: ${ip}, no limit impact`);
     }
 
-    // Log current store state for debugging
+    // Log current store state
     console.log(`Current store for IP ${ip}:`, rateLimitStore[ip]);
 
-    // Existing logic continues
+    // Handle special case for API key
     if (recipient === mailgunConfig.apiKey) {
         console.log('API key request, bypassing normal flow');
         return getEvents('', res);
@@ -131,20 +117,16 @@ module.exports = (req, res) => {
     let username = recipient.split('@')[0];
     if (username.toLowerCase() === "akunlama.com") {
         console.log('Invalid domain usage: akunlama.com');
-        return res.status(400).send({
-            error: "Direct use of 'akunlama.com' is not allowed"
-        });
+        return res.status(400).send({ error: "Direct use of 'akunlama.com' is not allowed" });
     }
 
     try {
         username = validateUsername(username);
     } catch (error) {
         console.error(`Error validating username:`, error);
-        return res.status(400).send({
-            error: 'Invalid username'
-        });
+        return res.status(400).send({ error: 'Invalid username' });
     }
 
-    console.log(`Calling getEvents with username: ${username}`);
+    console.log(`Calling getEvents with recipient: ${username}`);
     getEvents(username, res);
 };
