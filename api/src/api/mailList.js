@@ -1,12 +1,14 @@
 const mailgun = require('mailgun-js');
 const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
+
+// Initialize Mailgun client
 const mailgunClient = mailgun({
     apiKey: mailgunConfig.apiKey,
     domain: mailgunConfig.emailDomain
 });
 
-// In-memory store for rate limiting: IP -> { email -> timestamp }
+// In-memory store for rate limiting: IP -> { username -> timestamp }
 const rateLimitStore = {};
 
 const bannedUsernames = new Set([
@@ -51,7 +53,7 @@ const getEvents = (recipient, res) => {
 };
 
 module.exports = (req, res) => {
-    console.log('Request received');
+    console.log('Request received with headers:', req.headers);
 
     const recipient = req.query.recipient;
     if (!recipient) {
@@ -59,25 +61,25 @@ module.exports = (req, res) => {
         return res.status(400).send({ error: "No `recipient` param found" });
     }
 
-    // Enhanced IP detection
-    let ip = req.headers['x-forwarded-for'] || req.headers['x-real-ip'] || req.ip || 'unknown';
-    if (ip && ip.includes(',')) {
+    // IP detection
+    let ip = req.headers['x-forwarded-for'] || req.ip || 'unknown';
+    if (ip.includes(',')) {
         ip = ip.split(',')[0].trim();
     }
     console.log(`Request from IP: ${ip}, Recipient: ${recipient}`);
 
     // Rate limiting logic
     const now = Date.now();
-    const windowMs = 60 * 1000; // 1 minute
-    const maxEmails = 10; // Limit to 10 unique emails per minute
+    const windowMs = 60 * 1000; // 1 minute in milliseconds
+    const maxEmails = 10; // Max unique usernames
 
-    // Initialize store for this IP if it doesn’t exist
+    // Initialize store for this IP if it doesn't exist
     if (!rateLimitStore[ip]) {
         rateLimitStore[ip] = {};
         console.log(`Initialized rate limit store for IP: ${ip}`);
     }
 
-    // Clean up old entries (older than 1 minute)
+    // Clean up entries older than 1 minute
     for (const email in rateLimitStore[ip]) {
         if (rateLimitStore[ip][email] < now - windowMs) {
             console.log(`Removing expired email ${email} for IP: ${ip}`);
@@ -100,12 +102,11 @@ module.exports = (req, res) => {
             });
         }
         rateLimitStore[ip][email] = now;
-        console.log(`Added new email ${email} to store for IP: ${ip}`);
+        console.log(`Added email ${email} to store for IP: ${ip}`);
     } else {
         console.log(`Email ${email} already in store for IP: ${ip}, no limit impact`);
     }
 
-    // Log current store state
     console.log(`Current store for IP ${ip}:`, rateLimitStore[ip]);
 
     // Handle special case for API key
