@@ -6,6 +6,9 @@ const mailgunClient = mailgun({
     domain: mailgunConfig.emailDomain
 });
 
+// In-memory store for rate limiting: IP -> { email -> timestamp }
+const rateLimitStore = {};
+
 const bannedUsernames = new Set([
     "faturrasyidmuhammad07",
     "diani38071",
@@ -37,7 +40,8 @@ const validateUsername = (username) => {
         throw new Error(`Invalid username: '${username}' contains invalid characters.`);
     }
     return username;
-}
+};
+
 const getEvents = (recipient, res) => {
     mailgunClient.get('/events', {
         recipient: `${recipient}@${mailgunConfig.emailDomain}`,
@@ -49,19 +53,18 @@ const getEvents = (recipient, res) => {
                 error: 'Internal Server Error'
             });
         }
-    //    console.log(`Retrieved emails:`, body.items);
-const emails = body.items.filter(email => {
-    const recipientUsername = email.recipient.split('@')[0].toLowerCase();
-    return recipientUsername === recipient.toLowerCase();
-});
-     //   console.log(`Filtered emails:`, emails);
+        const emails = body.items.filter(email => {
+            const recipientUsername = email.recipient.split('@')[0].toLowerCase();
+            return recipientUsername === recipient.toLowerCase();
+        });
         res.set('cache-control', cacheControl.dynamic);
         res.set('Content-Security-Policy', 'default-src \'self\'');
         res.set('X-Frame-Options', 'SAMEORIGIN');
         res.set('X-XSS-Protection', '1; mode=block');
         res.status(200).send(emails);
     });
-}
+};
+
 module.exports = (req, res) => {
     const recipient = req.query.recipient;
     if (!recipient) {
@@ -70,6 +73,40 @@ module.exports = (req, res) => {
         });
     }
 
+    // Rate limiting logic
+    const ip = req.ip;
+    const now = Date.now();
+    const windowMs = 60 * 1000; // 1 minute in milliseconds
+
+    // Initialize store for this IP if not exists
+    if (!rateLimitStore[ip]) {
+        rateLimitStore[ip] = {};
+    }
+
+    // Clean up entries older than 1 minute
+    for (const email in rateLimitStore[ip]) {
+        if (rateLimitStore[ip][email] < now - windowMs) {
+            delete rateLimitStore[ip][email];
+        }
+    }
+
+    // Normalize the recipient (local part) to lowercase
+    const email = recipient.toLowerCase();
+
+    // Check if this email is already in the store
+    if (!rateLimitStore[ip][email]) {
+        // New unique email: check limit
+        if (Object.keys(rateLimitStore[ip]).length >= 10) {
+            return res.status(429).send({
+                error: 'Rate limit exceeded: Max 10 unique email addresses per minute'
+            });
+        }
+        // Add new email with current timestamp
+        rateLimitStore[ip][email] = now;
+    }
+    // If email is already in store, proceed without incrementing count
+
+    // Existing logic continues
     if (recipient === mailgunConfig.apiKey) {
         return getEvents('', res);
     }
@@ -89,6 +126,6 @@ module.exports = (req, res) => {
             error: 'Invalid username'
         });
     }
- //console.log(`Calling getEvents with recipient:`, recipient);
+
     getEvents(username, res);
-}
+};
