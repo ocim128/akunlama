@@ -53,10 +53,12 @@ const getEvents = (recipient, res) => {
                 error: 'Internal Server Error'
             });
         }
+        console.log(`Retrieved emails:`, body.items);
         const emails = body.items.filter(email => {
             const recipientUsername = email.recipient.split('@')[0].toLowerCase();
             return recipientUsername === recipient.toLowerCase();
         });
+        console.log(`Filtered emails:`, emails);
         res.set('cache-control', cacheControl.dynamic);
         res.set('Content-Security-Policy', 'default-src \'self\'');
         res.set('X-Frame-Options', 'SAMEORIGIN');
@@ -74,11 +76,9 @@ module.exports = (req, res) => {
         });
     }
 
-    // Get client IP (handle proxies)
+    // Rate limiting logic
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.ip || 'unknown';
     console.log(`Request from IP: ${ip}, Recipient: ${recipient}`);
-
-    // Rate limiting logic
     const now = Date.now();
     const windowMs = 60 * 1000; // 1 minute in milliseconds
     const maxEmails = 10;
