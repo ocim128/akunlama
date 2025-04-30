@@ -105,46 +105,72 @@ module.exports = (req, res) => {
         });
     }
 
-    // --- IP Rate Limiting Logic ---
+  // --- IP Rate Limiting Logic ---
     // Get IP: Prioritize x-forwarded-for (common for proxies/load balancers), fallback to remoteAddress
     const ip = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket?.remoteAddress;
 
+    // ***** DEBUGGING: Log the detected IP *****
+    console.log(`[Rate Limit Debug] Detected IP: ${ip || 'Not Found'}`);
+
     if (ip) { // Only apply rate limiting if IP is found
+        console.log(`[Rate Limit Debug] Checking IP: ${ip} for User: ${validatedUsername}`); // Log entry point
         const now = Date.now();
         const windowStart = now - RATE_LIMIT_WINDOW_MS;
 
-        // Initialize records for this IP if it's the first time seen
+        // Initialize records for this IP if it's the first time seen OR if state was lost (serverless)
         ipActivity[ip] = ipActivity[ip] || [];
+        const initialCount = ipActivity[ip].length; // How many before filtering?
 
         // Filter out records older than the time window
         ipActivity[ip] = ipActivity[ip].filter(record => record.timestamp > windowStart);
+        const afterFilterCount = ipActivity[ip].length; // How many after filtering?
 
         // Get unique usernames checked by this IP within the current window
         const uniqueUsernamesInWindow = new Set(ipActivity[ip].map(record => record.username.toLowerCase())); // Compare lowercase
+        const uniqueCount = uniqueUsernamesInWindow.size; // Current unique count
+
+        // ***** DEBUGGING: Log counts and window info *****
+        console.log(`[Rate Limit Debug] IP: ${ip}, Window Start: ${new Date(windowStart).toISOString()}, Records Before Filter: ${initialCount}, After Filter: ${afterFilterCount}, Unique Users in Window: ${uniqueCount}/${RATE_LIMIT_MAX_USERS}`);
+        const isNewUserInWindow = !uniqueUsernamesInWindow.has(validatedUsername.toLowerCase());
+        console.log(`[Rate Limit Debug] IP: ${ip}, Is '${validatedUsername.toLowerCase()}' new in window? ${isNewUserInWindow}`);
+        if (uniqueCount > 0) {
+             console.log(`[Rate Limit Debug] IP: ${ip}, Users in window: ${[...uniqueUsernamesInWindow].join(', ')}`);
+        }
+
 
         // Check if the *current* (validated) username is NEW for this IP in this window
-        if (!uniqueUsernamesInWindow.has(validatedUsername.toLowerCase())) {
+        if (isNewUserInWindow) {
+            console.log(`[Rate Limit Debug] IP: ${ip}, User '${validatedUsername}' is new in window.`);
             // If it's a new username, check if the limit of unique usernames has been reached
-            if (uniqueUsernamesInWindow.size >= RATE_LIMIT_MAX_USERS) {
-                console.warn(`Rate limit exceeded for IP: ${ip}. Tried to access ${validatedUsername}. Usernames in window: ${[...uniqueUsernamesInWindow].join(', ')}`);
+            if (uniqueCount >= RATE_LIMIT_MAX_USERS) {
+                // ***** DEBUGGING: Log blocking action *****
+                console.warn(`[Rate Limit Action] Blocking IP: ${ip}. Limit Reached (${uniqueCount}/${RATE_LIMIT_MAX_USERS}). Tried new user: ${validatedUsername}`);
                 res.setHeader('Retry-After', 60); // Inform client to wait 60 seconds
                 return res.status(429).send({
                     error: `Too many different mailboxes checked from your IP address in the last minute. Please wait before checking a new one.`
                 });
+            } else {
+                 console.log(`[Rate Limit Debug] IP: ${ip}, New user '${validatedUsername}' allowed. Unique count will become ${uniqueCount + 1}.`);
             }
-            // If the limit is not reached, we will add this access record below
+        } else {
+             console.log(`[Rate Limit Debug] IP: ${ip}, User '${validatedUsername}' already seen in window. Allowing re-check.`);
         }
 
         // Record this access (username + timestamp). This happens whether it was a new user check (below limit)
         // or a re-check of an existing user within the window.
         ipActivity[ip].push({ username: validatedUsername, timestamp: now });
+        // ***** DEBUGGING: Log record addition *****
+        console.log(`[Rate Limit Debug] IP: ${ip}, Recorded access for ${validatedUsername}. Total records now for IP: ${ipActivity[ip].length}`);
 
     } else {
         // This case should be rare, but log it if it happens.
-        // Decide if you want to block or allow requests without an identifiable IP.
-        console.warn("Could not determine client IP address for rate limiting. Allowing request.");
+        console.warn("[Rate Limit Debug] Could not determine client IP address for rate limiting. Allowing request.");
     }
     // --- End IP Rate Limiting Logic ---
+
+    // Proceed to fetch emails if not rate limited
+    console.log(`[Rate Limit Debug] Proceeding to getEvents for ${validatedUsername}`); // Add this line too
+    getEvents(validatedUsername, res); // Call the original function
 
     // Proceed to fetch emails if not rate limited
     // Use the validated username
