@@ -5,7 +5,23 @@ const mailgunClient = mailgun({
     apiKey: mailgunConfig.apiKey,
     domain: mailgunConfig.emailDomain
 });
+// Example: Very basic global rate limit (also subject to state persistence issues if in-memory!)
+let globalRequestCount = 0;
+let lastGlobalResetTime = Date.now();
+const GLOBAL_LIMIT = 500; // Max 500 requests per minute total
+const GLOBAL_WINDOW = 60000;
 
+// Inside module.exports...
+const now = Date.now();
+if (now - lastGlobalResetTime > GLOBAL_WINDOW) {
+    globalRequestCount = 0;
+    lastGlobalResetTime = now;
+}
+if (globalRequestCount >= GLOBAL_LIMIT) {
+     console.warn(`Global rate limit reached!`);
+     return res.status(429).send({ error: "Service temporarily busy, please try again shortly." });
+}
+globalRequestCount++;
 // --- Banned Usernames (Keep your existing list) ---
 const bannedUsernames = new Set([
     "faturrasyidmuhammad07", "diani38071", "pazaleegre", "cemiloktay2",
