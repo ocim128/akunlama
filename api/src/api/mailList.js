@@ -24,6 +24,7 @@ const mailgunClient = mailgun({
     "obeidtukhisongs",
     "pedoblicke",
     "aspakpahtan21",
+    "larabd12",
     "ardiclops"
 ]);const validateUsername = (username) => {
     if (bannedUsernames.has(username.toLowerCase())) {
