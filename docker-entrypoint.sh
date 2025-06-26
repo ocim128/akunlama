@@ -31,6 +31,20 @@ else
 	echo ">> Detected WEBSITE_DOMAIN env variable : $WEBSITE_DOMAIN";
 fi
 
+# Optional banned usernames
+if [ -n "$BANNED_USERNAMES" ]; then
+    echo ">> Detected BANNED_USERNAMES env variable : [redacted for security]";
+else
+    echo ">> No BANNED_USERNAMES specified (optional)";
+fi
+
+# Optional banned IP addresses
+if [ -n "$BANNED_IPS" ]; then
+    echo ">> Detected BANNED_IPS env variable : [redacted for security]";
+else
+    echo ">> No BANNED_IPS specified (optional)";
+fi
+
 #
 # End of env variable checks
 # Moving to config setups
@@ -74,4 +88,4 @@ echo ">>---------------------------------------------------------------------"
 echo ">> Starting the server"
 echo ">>---------------------------------------------------------------------"
 cd /application/api/
-npm start
+npm start 

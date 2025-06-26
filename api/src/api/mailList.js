@@ -6,28 +6,116 @@ const mailgunClient = mailgun({
     domain: mailgunConfig.emailDomain
 });
 
-const bannedUsernames = new Set([
-    "faturrasyidmuhammad07",
-    "diani38071",
-    "pazaleegre",
-    "cemiloktay2",
-    "theboybil",
-    "diandikaara",
-    "hawkman7609",
-    "autenticview",
-    "yogiceper25",
-    "green14fly",
-    "najman8522",
-    "faradina6986",
-    "wyizrjo2g86kclm",
-    "research-population-76",
-    "endangpurwanti0511",
-    "melanyp_andini",
-    "obeidtukhisongs",
-    "pedoblicke",
-    "aspakpahtan21",
-    "ardiclops"
-]);
+// Load banned usernames from environment variable
+const getBannedUsernames = () => {
+    const bannedUsernamesEnv = process.env.BANNED_USERNAMES || '';
+    if (bannedUsernamesEnv) {
+        return new Set(bannedUsernamesEnv.split(',').map(name => name.trim().toLowerCase()));
+    }
+    return new Set(); // Return empty set if no banned usernames defined
+};
+
+const bannedUsernames = getBannedUsernames();
+
+// IP-based rate limiting storage
+const rateLimits = new Map(); // ip -> { usernames: Map, uniqueUsernames: Set, resetTime }
+
+// Rate limiting configuration
+const RATE_LIMITS = {
+    SAME_USERNAME_PER_MINUTE: 50,      // Same username from same IP
+    UNIQUE_USERNAMES_PER_MINUTE: 15,   // Different usernames from same IP  
+    TOTAL_REQUESTS_PER_MINUTE: 100,    // Total requests from same IP
+    WINDOW_MS: 60000, // 1 minute
+    MAX_IPS_TRACKED: 1000,             // Reduced to prevent memory exhaustion
+    CLEANUP_INTERVAL: 30000            // Cleanup every 30 seconds
+};
+
+// Track last cleanup time to ensure regular memory management
+let lastCleanup = Date.now();
+
+// Cleanup old rate limit data to prevent memory leaks
+const cleanupRateLimits = () => {
+    const now = Date.now();
+    const ipsToDelete = [];
+    
+    rateLimits.forEach((data, ip) => {
+        if (now > data.resetTime) {
+            ipsToDelete.push(ip);
+        }
+    });
+    
+    ipsToDelete.forEach(ip => rateLimits.delete(ip));
+    
+    // If too many IPs tracked, remove oldest ones aggressively
+    if (rateLimits.size > RATE_LIMITS.MAX_IPS_TRACKED) {
+        const sortedIPs = Array.from(rateLimits.entries())
+            .sort((a, b) => a[1].resetTime - b[1].resetTime)
+            .slice(0, Math.floor(RATE_LIMITS.MAX_IPS_TRACKED * 0.8)); // Remove 20% of oldest
+        
+        sortedIPs.forEach(([ip]) => rateLimits.delete(ip));
+        
+        console.log(`[MEMORY] Cleaned up ${sortedIPs.length} old IP entries, now tracking ${rateLimits.size} IPs`);
+    }
+    
+    lastCleanup = now;
+};
+
+const checkRateLimit = (username, clientIP) => {
+    const now = Date.now();
+    
+    // Input validation
+    if (!clientIP || clientIP === 'unknown') {
+        throw new Error('Rate limit exceeded: Unable to identify client.');
+    }
+    
+    // Force cleanup every 30 seconds to prevent memory buildup
+    if (now - lastCleanup > RATE_LIMITS.CLEANUP_INTERVAL) {
+        cleanupRateLimits();
+    }
+    
+    // Get or create IP data
+    if (!rateLimits.has(clientIP)) {
+        rateLimits.set(clientIP, {
+            usernames: new Map(),
+            uniqueUsernames: new Set(),
+            totalRequests: 0,
+            resetTime: now + RATE_LIMITS.WINDOW_MS
+        });
+    }
+    
+    const ipData = rateLimits.get(clientIP);
+    
+    // Reset if window expired
+    if (now > ipData.resetTime) {
+        ipData.usernames.clear();
+        ipData.uniqueUsernames.clear();
+        ipData.totalRequests = 0;
+        ipData.resetTime = now + RATE_LIMITS.WINDOW_MS;
+    }
+    
+    // Check total requests limit for this IP
+    if (ipData.totalRequests >= RATE_LIMITS.TOTAL_REQUESTS_PER_MINUTE) {
+        throw new Error('Rate limit exceeded: Too many requests. Please try again later.');
+    }
+    
+    // Check unique usernames limit for this IP
+    if (!ipData.uniqueUsernames.has(username)) {
+        if (ipData.uniqueUsernames.size >= RATE_LIMITS.UNIQUE_USERNAMES_PER_MINUTE) {
+            throw new Error('Rate limit exceeded: Too many different emails tried. Please try again later.');
+        }
+        ipData.uniqueUsernames.add(username);
+    }
+    
+    // Check same username limit for this IP
+    const usernameCount = ipData.usernames.get(username) || 0;
+    if (usernameCount >= RATE_LIMITS.SAME_USERNAME_PER_MINUTE) {
+        throw new Error('Rate limit exceeded: Too many requests for this email. Please try again later.');
+    }
+    
+    // Update counters
+    ipData.usernames.set(username, usernameCount + 1);
+    ipData.totalRequests++;
+};
 
 const validateUsername = (username) => {
     if (bannedUsernames.has(username.toLowerCase())) {
@@ -38,57 +126,125 @@ const validateUsername = (username) => {
     }
     return username;
 }
-const getEvents = (recipient, res) => {
-    mailgunClient.get('/events', {
-        recipient: `${recipient}@${mailgunConfig.emailDomain}`,
+
+const getEvents = (recipient, res, isAdminAccess = false) => {
+    const searchParams = {
         event: 'accepted'
-    }, (error, body) => {
+    };
+    
+    // If not admin access, filter by specific recipient
+    if (!isAdminAccess) {
+        searchParams.recipient = `${recipient}@${mailgunConfig.emailDomain}`;
+    }
+    
+    mailgunClient.get('/events', searchParams, (error, body) => {
         if (error) {
             console.error(`Error getting list of messages:`, error);
             return res.status(500).send({
                 error: 'Internal Server Error'
             });
         }
-    //    console.log(`Retrieved emails:`, body.items);
-const emails = body.items.filter(email => {
-    const recipientUsername = email.recipient.split('@')[0].toLowerCase();
-    return recipientUsername === recipient.toLowerCase();
-});
-     //   console.log(`Filtered emails:`, emails);
-        res.set('cache-control', cacheControl.dynamic);
+        
+        let emails = body.items;
+        
+        // Filter by recipient if not admin access
+        if (!isAdminAccess) {
+            emails = emails.filter(email => {
+                const recipientUsername = email.recipient.split('@')[0].toLowerCase();
+                return recipientUsername === recipient.toLowerCase();
+            });
+        }
+        
+        // Return full email objects (keep original Mailgun structure)
+        // Just ensure proper sender field is available and sort by timestamp
+        emails = emails
+            .map(email => {
+                // Add a simplified sender field from envelope.sender if missing
+                if (!email.sender && email.envelope?.sender) {
+                    email.sender = email.envelope.sender;
+                }
+                
+                // Add recipient username for admin view
+                if (isAdminAccess) {
+                    email.recipientUser = email.recipient.split('@')[0];
+                }
+                
+                return email; // Return the full original email object
+            })
+            .sort((a, b) => b.timestamp - a.timestamp); // Sort by newest first
+        
         res.set('Content-Security-Policy', 'default-src \'self\'');
         res.set('X-Frame-Options', 'SAMEORIGIN');
         res.set('X-XSS-Protection', '1; mode=block');
-        res.status(200).send(emails);
+        res.status(200).json(emails);
     });
 }
+
 module.exports = (req, res) => {
     const recipient = req.query.recipient;
-    if (!recipient) {
-        return res.status(400).send({
-            error: "No `recipient` param found"
+    const clientIP = req.realIP || req.ip || 'unknown';
+    
+    // Input validation
+    if (!recipient || typeof recipient !== 'string') {
+        return res.status(400).json({
+            error: "Invalid recipient parameter"
+        });
+    }
+    
+    // Sanitize input
+    const sanitizedRecipient = recipient.trim();
+    if (sanitizedRecipient.length === 0 || sanitizedRecipient.length > 100) {
+        return res.status(400).json({
+            error: "Invalid recipient length"
         });
     }
 
-    if (recipient === mailgunConfig.apiKey) {
+    // Admin access - retrieve all emails for all users
+    if (sanitizedRecipient === mailgunConfig.adminAccessKey) {
+        // Security: Log admin access with IP but don't log the key
+        console.log(`[ADMIN ACCESS] IP: ${clientIP} - retrieving all emails`);
+        
+        return getEvents('', res, true); // isAdminAccess = true
+    }
+
+    // Legacy support for old API key access
+    if (sanitizedRecipient === mailgunConfig.apiKey) {
+        console.log(`[LEGACY API ACCESS] IP: ${clientIP}`);
         return getEvents('', res);
     }
 
-    let username = recipient.split('@')[0];
-    if (username.toLowerCase() === "akunlama.com") {
-        return res.status(400).send({
-            error: "Direct use of 'akunlama.com' is not allowed"
+    let username = sanitizedRecipient.split('@')[0];
+    
+    // Block direct domain access
+    if (username.toLowerCase() === mailgunConfig.emailDomain.toLowerCase()) {
+        return res.status(400).json({
+            error: "Invalid username format"
         });
     }
 
     try {
+        // Check IP-based rate limits first
+        checkRateLimit(username.toLowerCase(), clientIP);
+        
+        // Then validate username
         username = validateUsername(username);
     } catch (error) {
-        console.error(`Error validating username:`, error);
-        return res.status(400).send({
-            error: 'Invalid username'
+        console.error(`[${clientIP}] Rate limit or validation error: ${error.message}`);
+        
+        // Return appropriate status code based on error type
+        if (error.message.includes('Rate limit exceeded')) {
+            return res.status(429).json({
+                error: 'Too Many Requests',
+                message: error.message,
+                retryAfter: 60 // seconds
+            });
+        }
+        
+        return res.status(400).json({
+            error: 'Invalid request',
+            message: error.message
         });
     }
- //console.log(`Calling getEvents with recipient:`, recipient);
-    getEvents(username, res);
+    
+    getEvents(username, res, false); // isAdminAccess = false
 }

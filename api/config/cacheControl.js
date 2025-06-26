@@ -2,13 +2,15 @@
  * Configure the various level of cache controls
  */
 module.exports = {
-    // Frequent changing dynamic content
-    "dynamic"  : "public, max-age=1, max-stale=5, stale-while-revalidate=10, stale-if-error=86400",
+    // Frequent changing dynamic content (email lists)
+    // Short cache but allow stale serving for performance
+    "dynamic"  : "public, max-age=5, stale-while-revalidate=30, stale-if-error=300",
     
-    // Rarely changing static content
-    // with very aggressive caching
-    "static"   : "public, max-age=60, max-stale=120, stale-while-revalidate=3600, stale-if-error=86400",
+    // Static UI content (HTML, small assets)
+    // Moderate caching with background refresh
+    "static"   : "public, max-age=300, stale-while-revalidate=1800, stale-if-error=3600",
 
-    // Immutable content
-    "immutable": "public, max-age=36000, max-stale=72000, stale-while-revalidate=360000, stale-if-error=864000"
+    // Immutable content (CSS/JS with versioning)
+    // Very aggressive caching for bandwidth savings
+    "immutable": "public, max-age=31536000, immutable, stale-if-error=604800"
 }
