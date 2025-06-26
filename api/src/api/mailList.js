@@ -23,8 +23,8 @@ const rateLimits = new Map(); // ip -> { usernames: Map, uniqueUsernames: Set, r
 // Rate limiting configuration
 const RATE_LIMITS = {
     SAME_USERNAME_PER_MINUTE: 50,      // Same username from same IP
-    UNIQUE_USERNAMES_PER_MINUTE: 15,   // Different usernames from same IP  
-    TOTAL_REQUESTS_PER_MINUTE: 100,    // Total requests from same IP
+    UNIQUE_USERNAMES_PER_MINUTE: 10,   // Different usernames from same IP  
+    TOTAL_REQUESTS_PER_MINUTE: 75,    // Total requests from same IP
     WINDOW_MS: 60000, // 1 minute
     MAX_IPS_TRACKED: 1000,             // Reduced to prevent memory exhaustion
     CLEANUP_INTERVAL: 30000            // Cleanup every 30 seconds
