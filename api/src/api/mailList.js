@@ -127,9 +127,54 @@ const validateUsername = (username) => {
     return username;
 }
 
+// Email filtering system for specific senders and subjects
+const shouldFilterEmail = (email) => {
+    const fromAddress = (email.sender || email.from || email.message?.headers?.from || '').toLowerCase();
+    const subject = (email.subject || email.message?.headers?.subject || '').toLowerCase();
+    
+    // Blocked sender patterns (using contains/includes for partial matching)
+    const blockedSenderPatterns = [
+        'registration@facebook',
+        'registrations@mail.instagram.com',
+        'registration@facebookmail.com',
+        'groupupdates@facebookmail.com',
+        'reminders@facebookmail.com',
+        'friendsuggestion@facebookmail.com',
+        'pageupdates@facebookmail.com'
+    ];
+    
+    // Check if sender matches blocked patterns
+    for (const pattern of blockedSenderPatterns) {
+        if (fromAddress.includes(pattern.toLowerCase())) {
+            return true;
+        }
+    }
+    
+    // Blocked subject patterns (regex for various confirmation codes)
+    const blockedSubjectPatterns = [
+        /\d{6}.*adalah kode instagram anda/i,          // Indonesian Instagram code
+        /\d{6}.*is your threads code/i,                // Threads code
+        /\d{6}.*is your instagram code/i,              // English Instagram code
+        /\d{4,6}.*is your confirmation code/i,         // Generic confirmation code
+        /fb-\d{4,6}.*is your confirmation code/i       // Facebook confirmation code
+    ];
+    
+    // Check if subject matches blocked patterns
+    for (const pattern of blockedSubjectPatterns) {
+        if (pattern.test(subject)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+
+
 const getEvents = (recipient, res, isAdminAccess = false) => {
     const searchParams = {
-        event: 'accepted'
+        event: 'accepted',
+        limit: 300  // CRITICAL: Add limit to ensure consistent results
     };
     
     // If not admin access, filter by specific recipient
@@ -145,7 +190,7 @@ const getEvents = (recipient, res, isAdminAccess = false) => {
             });
         }
         
-        let emails = body.items;
+        let emails = body.items || [];
         
         // Filter by recipient if not admin access
         if (!isAdminAccess) {
@@ -155,9 +200,9 @@ const getEvents = (recipient, res, isAdminAccess = false) => {
             });
         }
         
-        // Return full email objects (keep original Mailgun structure)
-        // Just ensure proper sender field is available and sort by timestamp
+        // Filter out unwanted emails completely and process the rest
         emails = emails
+            .filter(email => !shouldFilterEmail(email)) // Remove filtered emails completely
             .map(email => {
                 // Add a simplified sender field from envelope.sender if missing
                 if (!email.sender && email.envelope?.sender) {

@@ -99,8 +99,8 @@ const mailGetHtml = require("./src/api/mailGetHtml");
 app.get("/api/v1/mail/list", (req, res) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/list with parameters:`, req.query);
     
-    // Set API-specific cache headers
-    res.set('Cache-Control', cacheControl.dynamic);
+    // Disable cache for email lists to prevent inconsistent results
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.set('Content-Type', 'application/json; charset=utf-8');
     
     mailList(req, res);
