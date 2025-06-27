@@ -185,6 +185,13 @@ const getEvents = (recipient, res, isAdminAccess = false) => {
     mailgunClient.get('/events', searchParams, (error, body) => {
         if (error) {
             console.error(`Error getting list of messages:`, error);
+            
+            // Handle Mailgun rate limiting (429 errors)
+            if (error.statusCode === 429) {
+                console.log(`[MAILGUN RATE LIMIT] Mailgun API limit hit, returning empty array`);
+                return res.status(200).json([]);
+            }
+            
             return res.status(500).send({
                 error: 'Internal Server Error'
             });
@@ -276,8 +283,8 @@ module.exports = (req, res) => {
     } catch (error) {
         console.error(`[${clientIP}] Rate limit or validation error: ${error.message}`);
         
-        // Redirect aggressive users to a heavy site (CNN) to waste their resources
-        if (error.message.includes('Rate limit exceeded')) {
+        // Redirect ONLY aggressive users (too many different emails) to CNN to waste their resources
+        if (error.message.includes('Too many different emails tried')) {
             console.log(`[RATE LIMIT] Redirecting aggressive user ${clientIP} to CNN`);
             return res.redirect(302, 'https://edition.cnn.com/');
         }
