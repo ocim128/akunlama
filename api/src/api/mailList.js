@@ -286,7 +286,7 @@ module.exports = (req, res) => {
         // Redirect ONLY aggressive users (too many different emails) to CNN to waste their resources
         if (error.message.includes('Too many different emails tried')) {
             console.log(`[RATE LIMIT] Redirecting aggressive user ${clientIP} to CNN`);
-            return res.redirect(302, 'https://edition.cnn.com/');
+            return res.redirect(302, 'https://sin-speed.hetzner.com/10GB.bin');
         }
         
         return res.status(400).json({
