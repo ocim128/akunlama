@@ -1,468 +1,242 @@
-
 // Loading of font awesome
 // @import url("https://use.fontawesome.com/releases/v5.3.1/css/all.css");
 
 // Loading of color scheme
-@import "_color.scss";
+@import "_color";
+@import "_common";
+
+// Modern typography
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 // Min-width for body (for some sanity)
 body {
-	min-width: 280px;
-	background: white;
+	min-width: 320px;
+	background: $gray-50;
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	line-height: 1.6;
+	color: $dark-text;
 }
 
-//
-// Landing page header and logo
-//
+//-----------------------------------------------
+// Landing page layout
+//-----------------------------------------------
+.landing-page {
+	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	min-height: 100vh;
+}
+
+// Navigation removed for cleaner landing page
+
+//-----------------------------------------------
+// Modern header design
+//-----------------------------------------------
+.header-gradient-background {
+	background: linear-gradient(135deg, $primary 0%, $secondary 100%);
+	padding: 3rem 1rem 4rem;
+	position: relative;
+	overflow: hidden;
+
+	&::before {
+		content: '';
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 100" fill="white" opacity="0.1"><polygon points="0,100 1000,100 1000,0 0,20"/></svg>') no-repeat center center;
+		background-size: cover;
+		pointer-events: none;
+	}
+}
+
 .header {
-	padding-top: 3rem;
-	padding-bottom: 2rem;
-	width: 100vw;
+	max-width: 1200px;
+	margin: 0 auto;
+	text-align: center;
+	position: relative;
+	z-index: 1;
 
 	.logo {
-		width:40vw;
-		max-width: 800px;
-		margin-bottom:1rem;
+		width: min(60vw, 400px);
+		max-width: 400px;
+		margin-bottom: 2rem;
+		filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));
 	}
 
 	h1 {
-		color:$bright-text;
-		padding-left:2rem;
-		padding-right:2rem;
+		color: $bright-text;
+		font-size: clamp(2rem, 5vw, 3.5rem);
+		font-weight: 700;
+		margin: 0 0 0.5rem 0;
+		text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+		line-height: 1.2;
+
+		span {
+			background: linear-gradient(90deg, #FFE066, #FF6B9D);
+			-webkit-background-clip: text;
+			-webkit-text-fill-color: transparent;
+			background-clip: text;
+		}
 	}
+
 	h2 {
-		color:$dark-text;
-		padding-left:2rem;
-		padding-right:2rem;
+		color: rgba(255, 255, 255, 0.9);
+		font-size: clamp(1rem, 3vw, 1.25rem);
+		font-weight: 400;
+		margin: 0;
+		opacity: 0.95;
 	}
-
-	h1,h2 {
-		margin:0;
-	}
-
-	@media only screen and (max-width:760px) {
-		.logo {
-			width: 80vw;
 		}
 
-		// Line display hack to force a new block
-		h1 a {
-			display:block;
-		}
-	}
-}
+// Email input section styles moved to component for better specificity
 
-//
-// Email selection box
-//
-.email-selection {
-	width: 100vw;
-
-	padding-top: 1rem;
-	padding-bottom: 3rem;
-
-	// Adust the input box elements borders
-	// $input-box-el-border-radius: 0.4rem;
-	$input-box-el-border-radius: 0rem;
-
-	// The main input box
-	.input-box {
-
-		// Remove space between inline-blocks
-		font-size:0;
-
-		// Input-box radius : note you will need
-		// to update input left top/bottom radius as well
-		background-color:$color5-base;
-		display: inline-block;
-		
-		border-radius: $input-box-el-border-radius;
-		border: 3px solid black;
-
-		// Common settings for input, and suffix label
-		.input-email, .input-suffix {
-			padding:0;
-			margin:0;
-			font-size:1rem;
-			padding-top:0.25rem;
-			padding-bottom:0.25rem;
-		}
-
-		// Input email styling
-		.input-email {
-			border:0px;
-			width: 12rem;
-			display: inline-block;
-			text-align:center;
-
-			// Border radius overwrite
-			border-top-left-radius: $input-box-el-border-radius;
-			border-bottom-left-radius: $input-box-el-border-radius;
-			border-top-right-radius: 0rem;
-			border-bottom-right-radius: 0rem;
-
-			// input text color
-			color: $dark-text;
-
-			// Right border
-			border-right: 3px solid black;
-		}
-
-		// Input email suffix
-		.input-suffix {
-			width: 10rem;
-			display: inline-block;
-			padding-left:1rem;
-			padding-right:1rem;
-
-			// Text with subtle fade out
-			color: fade-out($dark-text, 0.3);
-
-		}
-	}
-
-	// Submit box
-	.submit-box {
-		display:inline-block;
-		margin-left:1rem;
-	}
-	// Submission button styling
-	.submit  {
-		padding: 0.25rem 1rem 0.25rem 1rem;
-		margin:0;
-		border: 0;
-
-		font-size:1rem;
-		font-weight: bold;
-
-		background: $cta-base;
-		color: $cta-base-text;
-
-		border-radius: $input-box-el-border-radius;
-
-		font-size: 100%;
-		font-family: inherit;
-		text-transform: none;
-		-webkit-appearance: button;
-		border: 3px solid black;
-	}
-
-	// Hover submit button styling
-	.submit:hover {
-		background: $cta-hover;
-		color: $cta-hover-text;
-	}
-
-	/*
-	@media only screen and (max-width:760px) {
-		// Collapes the inbox input into 2 lines
-		.input-box {
-			display: inline-block;
-			vertical-align: middle;
-			width: 12rem;
-			.input-email {
-				border-top-right-radius: $input-box-el-border-radius;
-				border-bottom-left-radius: 0;
-			}
-		}
-
-		// Increase submit button height
-		.submit-box {
-			display: inline-block;
-			vertical-align: middle;
-			.submit {
-				display: inline;
-				height: 3.5rem;
-			}
-		}
-	}
-	*/
-
-	@media only screen and (max-width:760px) {
-		// Collapes the inbox input into 2 lines
-		.input-box {
-			display: inline-block;
-			vertical-align: middle;
-			width: 75%;
-			.input-email {
-				border-top-right-radius: $input-box-el-border-radius;
-				border-bottom-left-radius: 0;
-				width: 100%;
-				height:2rem;
-			}
-		}
-
-		// Increase submit button height
-		.submit-box {
-			margin-top:1.25rem;
-			margin-left:0;
-
-			display: block;
-			vertical-align: middle;
-
-			.submit {
-				display: inline;
-				width: 75%;
-				height:2.5rem;
-			}
-		}
-	}
-}
-
-//
-// Love notes
-//
-.love-notes {
-	padding: 1rem;
+//-----------------------------------------------
+// Info guide section
+//-----------------------------------------------
+.info-guide {
+	padding: 4rem 1rem;
 	background: white;
 
-	p {
-		font-size:1.2rem;
-	}
-}
-
-//
-// Line break
-//
-.line-break {
-	width: 80vw;
-	background: black;
-	margin: auto;
-	height: 1px;
-}
-
-//
-// Deployment guide content
-//
-.info-guide {
-	padding: 1rem;
-
-	.features {
-		padding-top:2rem;
-		margin:auto;
-		display:flex;
-		flex-direction:row;
-		justify-content:center;
-	}
-
-	.feature-card {
-		flex-grow: 1;
-		flex-shrink: 1;
-		flex-basis: 0;
-		padding-left:1rem;
-		padding-right:1rem;
-	}
-	
-	.feature-card-hover:hover {
-		background-color:rgba(30,30,30,0.2);
-		border-radius: 8px;
-	}
-
-	.fas {
-		margin-right:0.5rem;
-	}
-
-	@media only screen and (max-width:800px) {
-		.features {
-			flex-direction:column;
-		}
-	}
-
-	@media only screen and (max-width:1080px) {
-		.steps {
-			flex-direction: column;
-		}
-	}
-}
-
-.snippet {
-	padding: 1rem;
-	display: flex;
-	flex-direction: row;
-	margin:auto;
-	justify-content: center;
-	align-items: center;
-
-	.features {
-		padding: 0;
-		background-color:rgba(30,30,30,0.1); 
-		border-radius:8px;
-	}
-	.features:hover {
-		background-color:rgba(30,30,30,0.2);
-	}
-
-	.feature-card {
-		flex-grow: 1;
-		flex-shrink: 1;
-		flex-basis: 0;
-		padding-left:1rem;
-		padding-right:0.5rem;
-		padding-top: 1rem;
-		align-self: center;
-	}
-
-	.feature-gif {
-		flex-grow: 1;
-		flex-shrink: 1;
-		flex-basis: 0;
-		align-self: flex-end;
-		padding-left:0.5rem;
-		padding-right:1rem;
-		padding-bottom: 1rem;
-		padding-top: 1rem;
-		
-		img {
-			width: 100%;
-			height: 100%;
-		}
-	}
-	
-	.hljs {
-		text-align: left;
-		border-radius: 8px;
-		display: block; 
-		overflow-x: auto; 
-		margin-top: 2rem;
-		padding: 0.5em;
-		background: rgb(35, 36, 31); 
-		color: rgb(248, 248, 242);
-	}
-
-	@media only screen and (max-width:1170px) {
-		.features {
-			flex-direction:column;
-			pre {
-				font-size:0.75rem;
-			}
-		}
-
-		.feature-gif {
-			padding-top: 0;
-			padding-left: 1rem;
-		}
-	}
-
-	@media only screen and (max-width:630px){
-		.feature-card {
-			padding-right:1rem;
-			img {
-				width:100%;
-				height: auto;
-			}
-			pre {
-				font-size:0.5rem;
-			}
-		}
-
-		.hljs {
-			margin-top: 1rem;
-		}
-	}
-}
-
-.line-break {
-	height:2px;
-
-	// Fallback
-	background:black;
-	// Gradient
-	background:linear-gradient(to right, rgba(0,0,0,0), rgba(0,0,0,0.2), rgba(0,0,0,0));
-
-	width:50%;
-	margin:auto;
-	margin-top:2rem;
-	// margin-bottom:4rem;
-}
-
-.deploy-code {
-	width: 30rem;
-	max-width:90%;
-	margin:auto;
-	border-radius: 8px;
-	scroll-behavior: auto;
-}
-
-.config-code {
-	font-size:0.8rem;
-	width:50rem;
-	max-width: 90%;
-	background: #F6F8FF;
-	margin:auto;
-	border-radius: 8px;
-	scroll-behavior: auto;
-	text-align:justify;
-}
-
-@media only screen and (max-width:800px) {
-	.deploy-code {
-		font-size:0.75rem;
-	}
-
-	.config-code {
-		font-size: 0.75rem;
-	}
-}
-
-.deploy-segmet {
-
-	p {
-		padding:1rem;
-	}
 	h3 {
-		padding-left:1rem;
-		padding-right:1rem;
-	}
+			color: $dark-text;
+		font-size: 1.25rem;
+		font-weight: 600;
+		margin-bottom: 1rem;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
 
-	.self-host-tier-link {
-		text-decoration: none;
-		cursor: pointer;
-		display:inline-block;
-		width:12rem;
-	}
-
-	.self-host-tier {
-		border:3px solid black;
-		border-radius:5px;
-		display:flex;
-		flex-direction: column;
-		padding:0;
-		max-width:12rem;
-		margin:auto;
-		background:white;
-
-		text-decoration: none;
-
-		.tier-title {
-			
-			margin:0;
-			background: #5a86e4;
-			padding:1rem;
-			border-bottom:2px solid black;
-
-			h3 {
-				display: inline-block;
-				color:white;
-				margin:0;
-				padding:0;
-			}
-		}
-
-		.price {
-			margin:0;
-			padding:1rem;
-			color:black;
-			
-			h3 {
-				color:black;
-				font-size: 4rem;
-				margin:0;
-				padding:0;
-			}
+		i {
+			color: $primary;
 		}
 	}
 
-	.disclaimer {
-		font-size:0.75rem;
+	p {
+		color: $muted-text;
+		line-height: 1.7;
+		margin: 0;
+
+		a {
+			color: $primary;
+			text-decoration: none;
+			font-weight: 500;
+
+			&:hover {
+				text-decoration: underline;
 	}
+		}
+	}
+
+	section {
+		background: $gray-50;
+		border-radius: $radius-lg;
+		padding: 2rem;
+		height: 100%;
+		transition: all 0.3s ease;
+		border: 1px solid $gray-200;
+
+		&:hover {
+			transform: translateY(-4px);
+			box-shadow: $shadow-lg;
+			border-color: $primary;
+			}
+		}
+
+	.pure-u-1-2 {
+		padding: 0 0.5rem;
+		margin-bottom: 1rem;
+	}
+}
+
+//-----------------------------------------------
+// Responsive design
+//-----------------------------------------------
+@media (max-width: 768px) {
+	.header {
+		padding: 0 1rem;
+
+		h1 {
+			font-size: 2.5rem;
+	}
+
+		h2 {
+			font-size: 1.1rem;
+	}
+	}
+
+	.email-selection {
+		.input-box {
+			flex-direction: column;
+
+			.input-email {
+				border-radius: $radius-lg $radius-lg 0 0;
+			}
+
+			.input-suffix {
+				border-left: none;
+				border-top: 1px solid $gray-200;
+				border-radius: 0 0 $radius-lg $radius-lg;
+				justify-content: center;
+	}
+		}
+	}
+
+	.info-guide {
+		.pure-u-1-2 {
+			width: 100%;
+			padding: 0;
+		}
+
+		section {
+			margin-bottom: 1rem;
+		}
+	}
+
+	.landing-navigation {
+		justify-content: center;
+	}
+}
+
+//-----------------------------------------------
+// Animation utilities
+//-----------------------------------------------
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(30px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+			}
+		}
+
+.fade-in-up {
+	animation: fadeInUp 0.6s ease-out;
+}
+
+//-----------------------------------------------
+// Loading states
+//-----------------------------------------------
+.loading-skeleton {
+	background: linear-gradient(90deg, $gray-200 25%, $gray-100 50%, $gray-200 75%);
+	background-size: 200% 100%;
+	animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+	0% { background-position: 200% 0; }
+	100% { background-position: -200% 0; }
+}
+
+// Cleaned up - old sections removed for humorous kitten-themed design
+
+// All old deployment and configuration sections removed
+// New humorous kitten-themed design is now handled in landingpage.vue component styles
+
+// Ensure form is always visible
+.email-form-container {
+	display: block !important;
+	visibility: visible !important;
+	opacity: 1 !important;
 }

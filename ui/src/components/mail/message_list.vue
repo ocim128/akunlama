@@ -1,30 +1,71 @@
 <template>
     <vue-scroll :ops="vueScrollBarOps">
-      <div class="table-box advisory" style="
-          background: #fbc02d4f;
-          padding: 0.5em;
-      ">
-        <i class="fas fa-exclamation-triangle" style="margin-right:0.5em"></i><a href="https://uilicious.com/blog/psa-inboxkitten-will-be-blocking-no-reply-google/" target="_blank"><b>PSA</b>: Please use inboxkitten, for only testing, or non critical emails. See here for more details.</a>
-      </div>
-      <pulse-loader v-if="refreshing" class="loading"></pulse-loader>
-      <div class="email-list table-box" v-if="listOfMessages.length > 0">
-        <div class="email-list-item" :class="rowCls(index)" v-for="(msg, index) in listOfMessages" :key="msg.url"
-             @click="getMessage(msg)">
-
-          <div class="row-info">
-            <div class="row-name">{{extractEmail(msg.message.headers.from)}}</div>
-            <div class="row-subject">{{(msg.message.headers.subject)}}</div>
-          </div>
-
-          <div class="row-time">{{calculateTime(msg)}}</div>
+      <!-- Advisory notice -->
+      <div class="advisory-banner">
+        <div class="advisory-content">
+          <i class="fas fa-cat"></i>
+          <span>🐱 Meow! This is for fun emails only - not for banking or your secret catnip orders! Our kittens are judgmental about boring stuff.</span>
         </div>
       </div>
-      <div class="no-mails" v-if="listOfMessages.length == 0">
-        <p>
-          There for no messages for this kitten :(<br/><br/>
-          Press on the 'Refresh' button if you want to overwork the kittens...
-        </p>
-        <button class="refresh-button" @click="refreshList" v-if="!refreshing">Refresh</button>
+
+      <!-- Loading state -->
+      <div v-if="refreshing" class="loading-container">
+        <pulse-loader class="spinner"></pulse-loader>
+        <p class="loading-text">Checking for new messages...</p>
+      </div>
+
+      <!-- Email list -->
+      <div class="email-list-container" v-if="listOfMessages.length > 0 && !refreshing">
+        <div class="email-list-header">
+          <h3>
+            <i class="fas fa-inbox"></i>
+            Inbox ({{listOfMessages.length}})
+          </h3>
+          <button class="refresh-btn-inline" @click="refreshList" :disabled="refreshing">
+            <i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
+            Refresh
+          </button>
+        </div>
+        
+        <div class="email-list">
+          <div 
+            class="email-item" 
+            v-for="(msg, index) in listOfMessages" 
+            :key="msg.url"
+            @click="getMessage(msg)"
+            :class="{ 'email-item--read': msg.read }"
+          >
+            <div class="email-avatar">
+              <i class="fas fa-user-circle"></i>
+            </div>
+            
+            <div class="email-content">
+              <div class="email-header">
+                <div class="email-sender">{{extractEmail(msg.message.headers.from)}}</div>
+                <div class="email-time">{{calculateTime(msg)}}</div>
+              </div>
+              <div class="email-subject">{{msg.message.headers.subject || '(No Subject)'}}</div>
+              <div class="email-preview" v-if="msg.message.preview">{{msg.message.preview}}</div>
+            </div>
+
+            <div class="email-actions">
+              <i class="fas fa-chevron-right"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state" v-if="listOfMessages.length == 0 && !refreshing">
+        <div class="empty-state-content">
+          <i class="fas fa-cat"></i>
+          <h3>No messages yet</h3>
+          <p>Your inbox is empty. Send an email to this address to see it appear here!</p>
+          <button class="refresh-button" @click="refreshList" :disabled="refreshing">
+            <i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
+            Check for messages
+          </button>
+        </div>
       </div>
     </vue-scroll>
 </template>
@@ -44,7 +85,11 @@ export default {
       listOfMessages: [],
       vueScrollBarOps: {
         bar: {
-          background: 'darkgrey'
+          background: '#cbd5e0',
+          size: '6px',
+          hoverStyle: {
+            background: '#a0aec0'
+          }
         }
       },
       refreshing: false
@@ -57,7 +102,6 @@ export default {
     }
 
     this.getMessageList()
-
     this.retrieveMessage = window.setInterval(this.getMessageList, 10000)
 
     this.$eventHub.$on('refreshInbox', this.getMessageList)
@@ -65,39 +109,34 @@ export default {
   },
   beforeDestroy () {
     window.clearInterval(this.retrieveMessage)
-
     this.$eventHub.$off('refreshInbox', this.getMessageList)
     this.$eventHub.$off('refresh', this.getMessageList)
   },
   methods: {
     refreshList () {
       this.refreshing = true
+      this.$eventHub.$emit('refreshStart')
       this.getMessageList()
     },
+    
     getMessageList () {
       this.refreshing = true
+      this.$eventHub.$emit('refreshStart')
+      
       let email = this.$route.params.email
       axios.get(config.apiUrl + '/list?recipient=' + email)
         .then(res => {
           this.listOfMessages = res.data
           this.refreshing = false
+          this.$eventHub.$emit('refreshEnd')
         }).catch((e) => {
         this.refreshing = false
-      })
-    },
-    changeInbox () {
-      this.$router.push({
-        params: {
-          email: this.email
-        }
-      })
-      this.emailContent = {}
-      this.$eventHub.$emit('iframe_content', '')
-      this.refreshList()
+          this.$eventHub.$emit('refreshEnd')
+          console.error('Failed to fetch messages:', e)
+        })
     },
 
     getMessage (msg) {
-      
       this.$router.push({
         name: 'Message',
         params: {
@@ -105,42 +144,35 @@ export default {
           key: msg.storage.key
         }
       })
-
-      this.$eventHub.$emit('getMessage', '')
     },
-
-    //
-    // Utility Functions
-    //
 
     calculateTime (msg) {
       let now = moment()
       let theDate = moment(msg.timestamp * 1000)
       let diff = now.diff(theDate, 'day')
+      
       if (diff === 0) {
-        return theDate.format('hh:mm a')
-      } else if (diff > 0) {
+        let hoursDiff = now.diff(theDate, 'hour')
+        if (hoursDiff < 1) {
+          let minutesDiff = now.diff(theDate, 'minute')
+          return minutesDiff < 1 ? 'Just now' : `${minutesDiff}m ago`
+        }
+        return `${hoursDiff}h ago`
+      } else if (diff === 1) {
+        return 'Yesterday'
+      } else if (diff < 7) {
+        return `${diff} days ago`
+      } else {
         return theDate.format('DD MMM')
       }
     },
 
     extractEmail (sender) {
       let emails = sender.match(/[^@<\s]+@[^@\s>]+/g)
-
-      // If there are any email in the matching, take the first and return
       if (emails) {
         return emails[0]
       }
-
-      // Sender does not contain any formatted name, do not format them
       return sender
-    },
-
-    rowCls (index) {
-      if (index % 2 === 0) {
-        return 'table-row even'
-      }
-      return 'table-row odd'
     }
   },
   components: {
@@ -153,124 +185,337 @@ export default {
 <style lang="scss" rel="stylesheet/scss">
   @import '@/scss/_color.scss';
 
-  .table-box {
-    width: 100%;
-    height: auto;
-    .table-row {
+  .advisory-banner {
+    background: linear-gradient(135deg, #FEF3C7, #FCD34D);
+    border: 1px solid #F59E0B;
+    border-radius: $radius-lg;
+    margin: 1rem;
+    padding: 1rem;
+
+    .advisory-content {
       display: flex;
-      flex-direction: row;
-      /*justify-content: space-evenly;*/
-      justify-content: flex-start;
-      border: 3px solid white;
-      border-bottom: 3px solid #20a0ff;
+      align-items: center;
+      justify-content: center;
+      gap: 0.75rem;
+      color: #92400E;
+      font-size: 0.9rem;
+      text-align: center;
 
-      .row-info {
-        width: 85%;
+      i {
+        color: #F59E0B;
+        font-size: 1.1rem;
+        flex-shrink: 0;
+      }
 
-        .row-name {
-          font-weight: bold;
-          text-align: left;
-        }
+      span {
+        flex: 1;
       }
     }
   }
 
-  .table-row:hover {
-    border: 3px solid black;
-    background-color: $cta-hover;
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    text-align: center;
+
+    .spinner {
+      margin-bottom: 1rem;
+    }
+
+    .loading-text {
+      color: $muted-text;
+      margin: 0;
+    }
   }
 
-  .no-mails {
-    text-align: center;
-    vertical-align: center;
-    overflow: auto;
-    margin-top: 2rem;
-    z-index: 10;
+  .email-list-container {
+    margin: 1rem;
+  }
+
+  .email-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid $gray-200;
+    margin-bottom: 1rem;
+
+    h3 {
+      margin: 0;
+      color: $dark-text;
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      i {
+        color: $primary;
+      }
+  }
+
+    .refresh-btn-inline {
+      background: $gray-100;
+      border: 1px solid $gray-300;
+      color: $gray-700;
+      padding: 0.5rem 1rem;
+      border-radius: $radius;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      &:hover:not(:disabled) {
+        background: $gray-200;
+        color: $gray-800;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+  }
+
+      .fa-spin {
+        animation-duration: 1s;
+      }
+    }
+  }
+
+  .email-list {
+    background: white;
+    border-radius: $radius-lg;
+    box-shadow: $shadow;
+    overflow: hidden;
+  }
+
+  .email-item {
+    display: flex;
+    align-items: center;
+      padding: 1rem;
+    border-bottom: 1px solid $gray-100;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover {
+      background: $gray-50;
+      transform: translateX(4px);
+      box-shadow: $shadow-sm;
+    }
+
+    &--read {
+      opacity: 0.7;
+    }
+  }
+
+  .email-avatar {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    background: $primary;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+
+    i {
+      font-size: 1.5rem;
+    }
+  }
+
+  .email-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .email-header {
+      display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.25rem;
+  }
+
+  .email-sender {
+    font-weight: 600;
+    color: $dark-text;
+    font-size: 0.9rem;
+  }
+
+  .email-time {
+    color: $muted-text;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    margin-left: 1rem;
+  }
+
+  .email-subject {
+    font-weight: 500;
+    color: $dark-text;
+    margin-bottom: 0.25rem;
+    overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+  }
+
+  .email-preview {
+    color: $muted-text;
+    font-size: 0.85rem;
+    line-height: 1.4;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+  }
+
+  .email-actions {
+    flex-shrink: 0;
+    color: $gray-400;
+    margin-left: 1rem;
+    transition: color 0.2s ease;
+
+    .email-item:hover & {
+      color: $primary;
+        }
+      }
+
+  .empty-state {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    padding: 2rem;
+  }
+
+  .empty-state-content {
+        text-align: center;
+    max-width: 400px;
+
+    i {
+      font-size: 4rem;
+      color: $gray-300;
+      margin-bottom: 1.5rem;
+    }
+
+    h3 {
+      color: $dark-text;
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin: 0 0 1rem 0;
+    }
+
+    p {
+      color: $muted-text;
+      line-height: 1.6;
+      margin: 0 0 2rem 0;
+    }
   }
 
   .refresh-button {
-    border: 3px solid black;
-    background-color: $cta-base;
-    color: $cta-base-text;
+    background: $primary;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: $radius-lg;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &:hover:not(:disabled) {
+      background: $primary-dark;
+      transform: translateY(-1px);
+      box-shadow: $shadow;
+    }
+
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .fa-spin {
+      animation-duration: 1s;
+    }
   }
 
-  .refresh-button:hover {
-    background-color: $cta-hover;
-    color: $cta-hover-text;
+  // Mobile optimizations
+  @media (max-width: 768px) {
+    .email-list-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 1rem;
+
+      .refresh-btn-inline {
+        align-self: center;
+      }
+    }
+
+    .email-item {
+      padding: 0.75rem;
+    }
+
+    .email-avatar {
+      width: 36px;
+      height: 36px;
+      margin-right: 0.75rem;
+
+      i {
+        font-size: 1.25rem;
+      }
+    }
+
+    .email-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.25rem;
+    }
+
+    .email-time {
+      margin-left: 0;
+      align-self: flex-start;
+    }
+
+    .advisory-banner {
+      margin: 0.5rem;
+      padding: 0.75rem;
+
+      .advisory-content {
+        gap: 0.5rem;
+        font-size: 0.8rem;
+      }
+    }
   }
 
-  .loading {
-    z-index:9;
-    position:absolute;
-    padding-top: 5rem;
-    left:50%;
-  }
+  @media (max-width: 480px) {
+    .email-list-container {
+      margin: 0.5rem;
+    }
 
-  @media (min-width: 760px) {
-    .table-row {
+    .empty-state-content {
       padding: 1rem;
-      .row-info {
-        display: flex;
-        flex-direction: row;
-        justify-content: flex-start;
-        .row-name {
-          margin-right: 1em;
-          width: 35%;
-          min-width: 35%;
-          max-width: 35%;
-        }
-      }
-      border-bottom: 1px solid #20a0ff;
-    }
-  }
 
-  @media (max-width: 760px) {
-    .table-row {
-      display: flex;
-      flex-direction: row;
-      width: 98vw;
-      margin: auto;
-      background-color: white;
-      border-bottom: 1px solid #20a0ff;
-
-      .row-info {
-        text-align: left;
-        padding-left: 0.5rem;
-        .row-name {
-          font-size: 1rem;
-          font-weight: bold;
-          padding: 0.5rem;
-          /*background: #06FFAB;*/
-          width: 100%;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          overflow: hidden;
-        }
-        .row-subject {
-          /*background-color: coral;*/
-          width: 100%;
-          padding-left: 0.5rem;
-          padding-bottom: 0.5rem;
-          font-size: 0.75rem;
-          font-weight: bold;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-          overflow: hidden;
-        }
+      i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
       }
 
-      .row-time {
-        width: 20%;
-        font-size: 12px;
-        text-align: center;
-        vertical-align: middle;
-        padding: 0.5rem;
-        padding-left: 0;
+      h3 {
+        font-size: 1.25rem;
       }
-    }
 
-    .loading{
-      left:40%;
+      p {
+        font-size: 0.9rem;
+      }
     }
   }
 </style>
