@@ -276,13 +276,10 @@ module.exports = (req, res) => {
     } catch (error) {
         console.error(`[${clientIP}] Rate limit or validation error: ${error.message}`);
         
-        // Return appropriate status code based on error type
+        // Redirect aggressive users to a heavy site (CNN) to waste their resources
         if (error.message.includes('Rate limit exceeded')) {
-            return res.status(429).json({
-                error: 'Too Many Requests',
-                message: error.message,
-                retryAfter: 60 // seconds
-            });
+            console.log(`[RATE LIMIT] Redirecting aggressive user ${clientIP} to CNN`);
+            return res.redirect(302, 'https://edition.cnn.com/');
         }
         
         return res.status(400).json({
