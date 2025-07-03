@@ -7,11 +7,10 @@
 #
 #-------------------------------------------------------
 
-# Does basic node, and runtime dependencies
-FROM node:14-alpine AS baseimage
-RUN apk add --no-cache gettext
-RUN mkdir -p /application/
-# WORKDIR /application/
+# Use newer Node.js version with Alpine for smaller size
+FROM node:18-alpine AS base
+RUN apk add --no-cache gettext && \
+    mkdir -p /application/
 
 #-------------------------------------------------------
 #
@@ -20,7 +19,7 @@ RUN mkdir -p /application/
 #-------------------------------------------------------
 
 # Install dependencies for some NPM modules
-FROM baseimage AS codebuilder
+FROM base AS codebuilder
 # RUN apk add --no-cache make gcc g++ python
 
 #-------------------------------------------------------
@@ -32,55 +31,44 @@ FROM baseimage AS codebuilder
 #
 #-------------------------------------------------------
 
-# Build the API
-# with reseted node_modules
-FROM codebuilder AS apibuilder
-# copy and download dependencies
-COPY api/package.json /application/api-mods/package.json
-RUN cd /application/api-mods/ && npm install
-# copy source code
-COPY api /application/api/
-RUN rm -rf /application/api/node_modules
-# merge in dependnecies
-RUN cp -r /application/api-mods/node_modules /application/api/node_modules
-RUN ls /application/api/
+# Build API dependencies
+FROM base AS api-deps
+WORKDIR /application/api
+# Use deterministic install and skip dev dependencies for faster, reliable layer caching
+COPY api/package*.json ./
+RUN npm ci --omit=dev --legacy-peer-deps && \
+    npm cache clean --force
 
-# Build the UI
-# with reseted node_modules
-FROM codebuilder AS uibuilder
-# copy and reset the code
-COPY ui  /application/ui/
-RUN rm -rf /application/ui/node_modules
-RUN rm -rf /application/ui/dist
-RUN cd /application/ui  && ls && npm install
-# Lets do the UI build
-RUN cp /application/ui/config/apiconfig.sample.js /application/ui/config/apiconfig.js
-RUN cd /application/ui && npm run build
-
-# Entry script 
-# & Permission reset
-FROM codebuilder AS entrypointbuilder
-COPY docker-entrypoint.sh  /application/docker-entrypoint.sh
-RUN chmod +x /application/docker-entrypoint.sh
+# Build UI
+FROM base AS ui-builder
+WORKDIR /application/ui
+COPY ui/package*.json ./
+RUN npm ci --legacy-peer-deps
+COPY ui/ ./
+RUN cp config/apiconfig.sample.js config/apiconfig.js && \
+    npm run build && \
+    npm cache clean --force
 
 #-------------------------------------------------------
 #
 # Full Docker application
 #
 #-------------------------------------------------------
-FROM baseimage as inboxkitten
+FROM base AS production
+WORKDIR /application
 
-# Copy over the built files
-COPY --from=apibuilder        /application/api                  /application/api
-COPY --from=uibuilder         /application/ui/dist              /application/ui-dist
-COPY --from=entrypointbuilder /application/docker-entrypoint.sh /application/docker-entrypoint.sh
+# Copy API with dependencies
+COPY --from=api-deps /application/api/node_modules ./api/node_modules
+COPY api/ ./api/
 
-# Debugging logging
-# RUN ls /application/./
-# RUN ls /application/ui-dist
-# RUN ls /application/api
+# Copy built UI
+COPY --from=ui-builder /application/ui/dist ./ui-dist/
 
-# Expose the server port
+# Copy and setup entrypoint
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
+# Expose port
 EXPOSE 8000
 
 #
@@ -90,9 +78,6 @@ ENV MAILGUN_EMAIL_DOMAIN=""
 ENV MAILGUN_API_KEY=""
 ENV WEBSITE_DOMAIN=""
 
-# Setup the workdir
-WORKDIR "/application/"
-
-# Setup the entrypoint
-ENTRYPOINT [ "/application/docker-entrypoint.sh" ]
+# Run the application
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD []

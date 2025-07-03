@@ -43,17 +43,26 @@
 						<i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
 						<span>Refresh</span>
 					</button>
+					<button class="action-btn" @click="toggleFullscreen" title="Toggle fullscreen">
+						<i class="fas fa-expand" v-if="!isFullscreen"></i>
+						<i class="fas fa-compress" v-else></i>
+						<span>{{ isFullscreen ? 'Exit' : 'Fullscreen' }}</span>
+					</button>
 				</div>
 			</div>
 
 			<!-- Message content -->
-			<div class="message-body">
+			<div class="message-body" :class="{ 'fullscreen': isFullscreen }">
+				<div v-if="notFound" class="error-body" v-html="catHtml"></div>
 				<iframe 
+					v-else
 					id="message-content" 
+					ref="emailIframe"
 					:src="src" 
 					@load="onIframeLoad"
+					@error="onIframeError"
 					scrolling="yes"
-					sandbox="allow-same-origin allow-scripts"
+					sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation"
 				></iframe>
 			</div>
 		</div>
@@ -61,7 +70,6 @@
 </template>
 
 <script>
-	import 'normalize.css'
 	import config from '@/../config/apiconfig.js'
 	import axios from 'axios'
 	import moment from 'moment'
@@ -73,7 +81,11 @@
 				emailContent: {},
 				src: '',
 				loading: true,
-				refreshing: false
+				refreshing: false,
+				isFullscreen: false,
+				zoomLevel: 1,
+				notFound: false,
+				catHtml: ''
 			}
 		},
 		mounted () {
@@ -95,47 +107,77 @@
 				let region = this.$route.params.region
 				let key = this.$route.params.key
 				
-				this.src = `${config.apiUrl}/getHtml?region=${region}&key=${key}`
-				
+				// First check if email exists via getKey, then set iframe source
 				axios.get(`${config.apiUrl}/getKey?region=${region}&key=${key}`)
 					.then(res => {
-						this.emailContent = res.data
+						let data = res.data
+						// Patch: flatten nested fields if present
+						if (data.message && data.message.headers) {
+							data.subject = data.message.headers.subject || data.subject
+							data.name = data.message.headers.from ? data.message.headers.from.split('<')[0].replace(/"/g, '').trim() : data.name
+							data.emailAddress = data.message.headers.from ? data.message.headers.from.split('<')[1]?.replace('>', '').trim() : data.emailAddress
+							data.recipients = data.message.headers.to || data.recipients
+							data.Date = data.timestamp ? new Date(data.timestamp * 1000).toISOString() : (data.Date || null)
+						}
+						this.emailContent = data
+						
+						// Only set iframe source if email metadata loaded successfully
+						this.src = `${config.apiUrl}/getHtml?region=${region}&key=${key}`
 						this.loading = false
+						this.notFound = false;
+						this.catHtml = '';
 					}).catch((e) => {
 						console.error('Failed to load message:', e)
-						this.emailContent = {
-							name: 'Error',
-							emailAddress: 'system@akunlama.com',
-							recipients: this.$route.params.email || 'Unknown',
-							subject: 'Message could not be loaded',
-							Date: new Date().toISOString()
-						}
 						
-						// Show error message in iframe
-						this.src = 'data:text/html;charset=utf-8,' + encodeURI(`
-							<html>
-								<head>
-									<style>
-										body { 
-											font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-											padding: 2rem; 
-											text-align: center; 
-											color: #6B7280;
-											background: #F9FAFB;
-										}
-										.error { 
-											color: #EF4444; 
-											font-size: 1.2rem; 
-											margin-bottom: 1rem; 
-										}
-									</style>
-								</head>
-								<body>
-									<div class="error">⚠️ Message Not Found</div>
-									<p>This message could not be loaded. It may have been deleted or expired.</p>
-								</body>
-							</html>
-						`)
+						// Check if this is a 404 error (expired email)
+						const is404 = e.response && e.response.status === 404;
+						
+						if (is404) {
+							// Show the humorous cat error page for expired emails
+							this.emailContent = {
+								name: 'Expired Email',
+								emailAddress: 'kittens@akunlama.com',
+								recipients: this.$route.params.email || 'Unknown',
+								subject: 'The kittens ate your email!',
+								Date: new Date().toISOString()
+							}
+							this.showIframeError();
+						} else {
+							// Show generic error for other issues
+							this.emailContent = {
+								name: 'Error',
+								emailAddress: 'system@akunlama.com',
+								recipients: this.$route.params.email || 'Unknown',
+								subject: 'Message could not be loaded',
+								Date: new Date().toISOString()
+							}
+							
+							// Show generic error message in iframe
+							this.src = 'data:text/html;charset=utf-8,' + encodeURI(`
+								<html>
+									<head>
+										<style>
+											body { 
+												font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+												padding: 2rem; 
+												text-align: center; 
+												color: #6B7280;
+												background: #F9FAFB;
+											}
+											.error { 
+												color: #EF4444; 
+												font-size: 1.2rem; 
+												margin-bottom: 1rem; 
+											}
+										</style>
+									</head>
+									<body>
+										<div class="error">⚠️ Message Not Found</div>
+										<p>This message could not be loaded. It may have been deleted or expired.</p>
+									</body>
+								</html>
+							`)
+						}
 						this.loading = false
 					})
 			},
@@ -149,7 +191,87 @@
 			},
 
 			onIframeLoad() {
-				// Optional: Add any iframe load handling here
+				// Check if iframe loaded successfully, if not show error page
+				const iframe = this.$refs.emailIframe;
+				if (iframe) {
+					try {
+						// Try to access iframe content to detect if it loaded properly
+						setTimeout(() => {
+							// For 404/400 errors, the iframe may load but show our error page
+							// We can't access iframe content due to CORS, but we can detect loading issues
+							// by checking if the src still points to our API and iframe is loaded
+							if (iframe.contentDocument === null && this.src.includes('/api/v1/mail/getHtml')) {
+								this.showIframeError();
+							}
+						}, 1000);
+					} catch (e) {
+						// Cross-origin access blocked - this is normal, don't show error
+					}
+				}
+			},
+
+			onIframeError() {
+				// Called when iframe fails to load
+				this.showIframeError();
+			},
+
+			showIframeError() {
+				const htmlString = `
+					<style>
+						.container {
+							background: white;
+							border-radius: 20px;
+							padding: 2rem;
+							box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+							max-width: 500px;
+							width: 100%;
+						}
+						.cat-emoji { 
+							font-size: 4rem; 
+							margin-bottom: 1rem; 
+							animation: bounce 2s infinite;
+						}
+						.title { 
+							color: #EF4444; 
+							font-size: 1.5rem; 
+							margin-bottom: 1rem; 
+							font-weight: bold;
+						}
+						.message {
+							font-size: 1.1rem;
+							line-height: 1.6;
+							margin-bottom: 1.5rem;
+						}
+						.reason {
+							background: #F3F4F6;
+							border-radius: 10px;
+							padding: 1rem;
+							font-size: 0.9rem;
+							color: #6B7280;
+							border-left: 4px solid #EF4444;
+						}
+						@keyframes bounce {
+							0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+							40% { transform: translateY(-10px); }
+							60% { transform: translateY(-5px); }
+						}
+					</style>
+					<div class="container">
+						<div class="cat-emoji">🙀</div>
+						<div class="title">The kittens ate your email!</div>
+						<div class="message">
+							This email has wandered off into the digital void. Our disposal kittens work fast! 🐱
+						</div>
+						<div class="reason">
+							<strong>Why did this happen?</strong><br>
+							• Email expired due to Mailgun's retention policy<br>
+							• The email was already disposed of<br>
+							• Our kittens were extra hungry today
+						</div>
+					</div>
+				`;
+				this.notFound = true;
+				this.catHtml = htmlString;
 			},
 
 			goBack() {
@@ -163,6 +285,26 @@
 				} else {
 					this.$router.go(-1)
 				}
+			},
+
+			toggleFullscreen() {
+				this.isFullscreen = !this.isFullscreen
+			},
+
+			zoomIn() {
+				if (this.zoomLevel < 2) {
+					this.zoomLevel += 0.1
+				}
+			},
+
+			zoomOut() {
+				if (this.zoomLevel > 0.5) {
+					this.zoomLevel -= 0.1
+				}
+			},
+
+			resetZoom() {
+				this.zoomLevel = 1
 			},
 
 			extractName(email) {
@@ -370,6 +512,18 @@
 		border-radius: $radius-lg;
 		box-shadow: $shadow;
 		overflow: hidden;
+		position: relative;
+
+		&.fullscreen {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+			z-index: 9999;
+			margin: 0;
+			border-radius: 0;
+		}
 	}
 
 	#message-content {
@@ -377,6 +531,17 @@
 		height: 100%;
 		border: none;
 		background: white;
+	}
+
+	.error-body {
+		width: 100%;
+		height: 100%;
+		display: flex;
+		align-items: flex-start;
+		justify-content: center;
+		padding: 2rem;
+		overflow: auto;
+		background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 	}
 
 	// Mobile optimizations
@@ -432,6 +597,17 @@
 
 		.message-body {
 			margin: 0 0.5rem 0.5rem;
+		}
+
+		.message-toolbar {
+			padding: 0.5rem;
+			flex-direction: column;
+			gap: 0.5rem;
+			align-items: stretch;
+
+			.toolbar-actions {
+				justify-content: center;
+			}
 		}
 	}
 

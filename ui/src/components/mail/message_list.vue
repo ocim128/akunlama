@@ -72,7 +72,6 @@
 
 <script>
 import NavBar from '../NavBar.vue'
-import 'normalize.css'
 import config from '@/../config/apiconfig.js'
 import axios from 'axios'
 import moment from 'moment'

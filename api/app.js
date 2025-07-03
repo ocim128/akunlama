@@ -97,7 +97,7 @@ const mailGetInfo = require("./src/api/mailGetInfo");
 const mailGetHtml = require("./src/api/mailGetHtml");
 
 app.get("/api/v1/mail/list", (req, res) => {
-    console.log(`[${req.realIP}] Received /api/v1/mail/list with parameters:`, req.query);
+    if(process.env.LOG_LEVEL !== 'silent') console.log(`[${req.realIP}] /list`, req.query);
     
     // Increased cache to reduce Mailgun API calls: 60s cache + background refresh
     res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
@@ -107,7 +107,7 @@ app.get("/api/v1/mail/list", (req, res) => {
 });
 
 app.get("/api/v1/mail/getInfo", (req, res) => {
-    console.log(`[${req.realIP}] Received /api/v1/mail/getInfo with parameters:`, req.query);
+    if(process.env.LOG_LEVEL !== 'silent') console.log(`[${req.realIP}] /getInfo`, req.query);
     
     // Email info can be cached a bit longer
     res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
@@ -117,12 +117,23 @@ app.get("/api/v1/mail/getInfo", (req, res) => {
 });
 
 app.get("/api/v1/mail/getHtml", (req, res) => {
-    console.log(`[${req.realIP}] Received /api/v1/mail/getHtml with parameters:`, req.query);
+    if(process.env.LOG_LEVEL !== 'silent') console.log(`[${req.realIP}] /getHtml`, req.query);
     
     // HTML content can be cached longer
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
     
     mailGetHtml(req, res);
+});
+
+// Add the missing getKey route that the frontend needs for email details
+app.get("/api/v1/mail/getKey", (req, res) => {
+    if(process.env.LOG_LEVEL !== 'silent') console.log(`[${req.realIP}] /getKey`, req.query);
+    
+    // Email details can be cached a bit longer
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    res.set('Content-Type', 'application/json; charset=utf-8');
+    
+    mailGetInfo(req, res);
 });
 
 // Improved static regex for better file type detection
@@ -173,28 +184,14 @@ var server = app.listen(8000, function () {
     console.log("Bandwidth optimization enabled: compression, caching, and performance headers");
     console.log("Security features: IP-based rate limiting, input validation, secure headers");
     
-    // Memory monitoring for production debugging
-    setInterval(() => {
-        const memUsage = process.memoryUsage();
-        const memMB = {
-            rss: Math.round(memUsage.rss / 1024 / 1024),
-            heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-            heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-            external: Math.round(memUsage.external / 1024 / 1024)
-        };
-        
-        // Log memory usage every 5 minutes and if memory exceeds 200MB
-        if (memMB.heapUsed > 200) {
-            console.log(`[MEMORY WARNING] High memory usage: RSS=${memMB.rss}MB, Heap=${memMB.heapUsed}/${memMB.heapTotal}MB, External=${memMB.external}MB`);
-        }
-    }, 300000); // Every 5 minutes
-    
-    // Log basic memory info every minute
-    setInterval(() => {
-        const memUsage = process.memoryUsage();
-        const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-        console.log(`[MEMORY] Heap usage: ${heapUsedMB}MB`);
-    }, 60000); // Every minute
+    // Optional regular memory log only in debug mode
+    if(process.env.LOG_LEVEL === 'debug') {
+        setInterval(() => {
+            const memUsage = process.memoryUsage();
+            const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+            console.log(`[MEMORY] Heap: ${heapUsedMB}MB`);
+        }, 300000); // Every 5 minutes
+    }
 });
 
 // Optimize server settings for high traffic
