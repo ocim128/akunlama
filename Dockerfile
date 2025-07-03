@@ -36,8 +36,7 @@ FROM base AS api-deps
 WORKDIR /application/api
 # Use deterministic install and skip dev dependencies for faster, reliable layer caching
 COPY api/package*.json ./
-RUN npm ci --legacy-peer-deps && \
-    npm prune --omit=dev && \
+RUN npm install --only=production --legacy-peer-deps && \
     npm cache clean --force
 
 # Build UI
