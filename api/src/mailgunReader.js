@@ -1,21 +1,61 @@
 // AXIOS dependencies
 const axios = require("axios");
 
+// Create optimized axios instance with better defaults
+const httpClient = axios.create({
+	timeout: 10000, // 10 second timeout
+	maxRedirects: 3,
+	validateStatus: function (status) {
+		return status >= 200 && status < 300; // default
+	},
+	headers: {
+		'User-Agent': 'InboxKitten/1.0',
+		'Accept': 'application/json',
+		'Connection': 'keep-alive'
+	}
+});
+
+// Simple response cache to reduce duplicate API calls
+const responseCache = new Map();
+const CACHE_DURATION = 30000; // 30 seconds
+
 /**
-* Simple axois get, with response data
+* Simple axois get, with response data and caching
 * @param {String} urlWithParams
 * @param {Object} options
 */
 var axiosGet = function(urlWithParams, options){
 	return new Promise(function(resolve, reject){
-		// console.log(urlWithParams);
-		axios.get(urlWithParams, options).then(response => {
-			resolve(response.data)
+		// Check cache first for GET requests
+		const cacheKey = urlWithParams + JSON.stringify(options);
+		const cached = responseCache.get(cacheKey);
+		
+		if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+			return resolve(cached.data);
+		}
+		
+		httpClient.get(urlWithParams, options).then(response => {
+			// Cache successful responses
+			responseCache.set(cacheKey, {
+				data: response.data,
+				timestamp: Date.now()
+			});
+			
+			// Cleanup old cache entries periodically
+			if (responseCache.size > 100) {
+				const cutoff = Date.now() - CACHE_DURATION;
+				for (const [key, value] of responseCache.entries()) {
+					if (value.timestamp < cutoff) {
+						responseCache.delete(key);
+					}
+				}
+			}
+			
+			resolve(response.data);
 		}).catch(e => {
-			// console.log(e);
-			reject(e)
-		})
-	})
+			reject(e);
+		});
+	});
 }
 
 /**
@@ -142,14 +182,14 @@ module.exports = mailgunReader;
  * @param {String} email
  */
 mailgunReader.prototype.validateEmail = function validateEmail(email) {
-  // Remove leading/trailing whitespace
-  email = email.trim();
+	// Remove leading/trailing whitespace
+	email = email.trim();
 
-  // Validate that the email contains only allowed characters
-  const allowedCharacters = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}$/;
-  if (!allowedCharacters.test(email)) {
-    throw new Error("Invalid email format");
-  }
+	// Validate that the email contains only allowed characters
+	const allowedCharacters = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}$/;
+	if (!allowedCharacters.test(email)) {
+		throw new Error("Invalid email format");
+	}
 
-  return email;
+	return email;
 };

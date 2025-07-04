@@ -91,7 +91,8 @@ export default {
           }
         }
       },
-      refreshing: false
+      refreshing: false,
+      refreshTimeout: null
     }
   },
   mounted () {
@@ -113,9 +114,16 @@ export default {
   },
   methods: {
     refreshList () {
-      this.refreshing = true
-      this.$eventHub.$emit('refreshStart')
-      this.getMessageList()
+      // Debounce refresh to prevent multiple rapid calls
+      if (this.refreshTimeout) {
+        clearTimeout(this.refreshTimeout)
+      }
+      
+      this.refreshTimeout = setTimeout(() => {
+        this.refreshing = true
+        this.$eventHub.$emit('refreshStart')
+        this.getMessageList()
+      }, 300)
     },
     
     getMessageList () {
@@ -136,6 +144,8 @@ export default {
     },
 
     getMessage (msg) {
+      // Mark message as read for better UX
+      msg.read = true
       this.$router.push({
         name: 'Message',
         params: {

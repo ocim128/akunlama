@@ -17,6 +17,27 @@ const getBannedUsernames = () => {
 
 const bannedUsernames = getBannedUsernames();
 
+// Pre-compile regex patterns for better performance
+const USERNAME_VALIDATION_REGEX = /^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*$/;
+const BLOCKED_SUBJECT_PATTERNS = [
+    /\d{6}.*adalah kode instagram anda/i,          // Indonesian Instagram code
+    /\d{6}.*is your threads code/i,                // Threads code
+    /\d{6}.*is your instagram code/i,              // English Instagram code
+    /\d{4,6}.*is your confirmation code/i,         // Generic confirmation code
+    /fb-\d{4,6}.*is your confirmation code/i       // Facebook confirmation code
+];
+
+// Pre-compile blocked sender patterns for faster lookup
+const BLOCKED_SENDER_PATTERNS = [
+    'registration@facebook',
+    'registrations@mail.instagram.com',
+    'registration@facebookmail.com',
+    'groupupdates@facebookmail.com',
+    'reminders@facebookmail.com',
+    'friendsuggestion@facebookmail.com',
+    'pageupdates@facebookmail.com'
+];
+
 // IP-based rate limiting storage
 const rateLimits = new Map(); // ip -> { usernames: Map, uniqueUsernames: Set, resetTime }
 
@@ -54,7 +75,9 @@ const cleanupRateLimits = () => {
         
         sortedIPs.forEach(([ip]) => rateLimits.delete(ip));
         
-        console.log(`[MEMORY] Cleaned up ${sortedIPs.length} old IP entries, now tracking ${rateLimits.size} IPs`);
+        if(process.env.LOG_LEVEL !== 'silent') {
+            console.log(`[MEMORY] Cleaned up ${sortedIPs.length} old IP entries, now tracking ${rateLimits.size} IPs`);
+        }
     }
     
     lastCleanup = now;
@@ -121,55 +144,33 @@ const validateUsername = (username) => {
     if (bannedUsernames.has(username.toLowerCase())) {
         throw new Error(`Invalid username: '${username}' is not allowed.`);
     }
-    if (!/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*$/.test(username)) {
+    if (!USERNAME_VALIDATION_REGEX.test(username)) {
         throw new Error(`Invalid username: '${username}' contains invalid characters.`);
     }
     return username;
 }
 
-// Email filtering system for specific senders and subjects
+// Optimized email filtering system
 const shouldFilterEmail = (email) => {
+    // Cache string operations - extract once
     const fromAddress = (email.sender || email.from || email.message?.headers?.from || '').toLowerCase();
     const subject = (email.subject || email.message?.headers?.subject || '').toLowerCase();
     
-    // Blocked sender patterns (using contains/includes for partial matching)
-    const blockedSenderPatterns = [
-        'registration@facebook',
-        'registrations@mail.instagram.com',
-        'registration@facebookmail.com',
-        'groupupdates@facebookmail.com',
-        'reminders@facebookmail.com',
-        'friendsuggestion@facebookmail.com',
-        'pageupdates@facebookmail.com'
-    ];
+    // Fast exit if empty
+    if (!fromAddress && !subject) return false;
     
-    // Check if sender matches blocked patterns
-    for (const pattern of blockedSenderPatterns) {
-        if (fromAddress.includes(pattern.toLowerCase())) {
-            return true;
-        }
+    // Check sender patterns - use some() for early exit
+    if (fromAddress && BLOCKED_SENDER_PATTERNS.some(pattern => fromAddress.includes(pattern))) {
+        return true;
     }
     
-    // Blocked subject patterns (regex for various confirmation codes)
-    const blockedSubjectPatterns = [
-        /\d{6}.*adalah kode instagram anda/i,          // Indonesian Instagram code
-        /\d{6}.*is your threads code/i,                // Threads code
-        /\d{6}.*is your instagram code/i,              // English Instagram code
-        /\d{4,6}.*is your confirmation code/i,         // Generic confirmation code
-        /fb-\d{4,6}.*is your confirmation code/i       // Facebook confirmation code
-    ];
-    
-    // Check if subject matches blocked patterns
-    for (const pattern of blockedSubjectPatterns) {
-        if (pattern.test(subject)) {
-            return true;
-        }
+    // Check subject patterns - use some() for early exit  
+    if (subject && BLOCKED_SUBJECT_PATTERNS.some(pattern => pattern.test(subject))) {
+        return true;
     }
     
     return false;
 }
-
-
 
 const getEvents = (recipient, res, isAdminAccess = false) => {
     const searchParams = {

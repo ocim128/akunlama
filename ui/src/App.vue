@@ -41,7 +41,6 @@ export default {
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
-	@import url("https://unpkg.com/purecss@1.0.0/build/pure-min.css");
 	@import "scss/_producthunt.scss";
 	@import "scss/_common.scss";
 

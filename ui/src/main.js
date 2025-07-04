@@ -2,6 +2,7 @@
 // (runtime-only or standalone) has been set in webpack.base.conf with an alias.
 import Vue from 'vue'
 import 'normalize.css'
+import 'purecss/build/pure-min.css'
 import App from "./App.vue"
 import router from './router'
 

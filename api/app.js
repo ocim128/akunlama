@@ -30,7 +30,7 @@ app.use(compression({
         return compression.filter(req, res);
     },
     level: 6, // Compression level (1-9, 6 is good balance)
-    threshold: 1024, // Only compress responses > 1KB
+    threshold: 512, // Only compress responses > 512B (reduced from 1KB)
     chunkSize: 1024 // Process data in 1KB chunks
 }));
 
@@ -97,7 +97,7 @@ const mailGetInfo = require("./src/api/mailGetInfo");
 const mailGetHtml = require("./src/api/mailGetHtml");
 
 app.get("/api/v1/mail/list", (req, res) => {
-    if(process.env.LOG_LEVEL !== 'silent') console.log(`[${req.realIP}] /list`, req.query);
+    if(process.env.LOG_LEVEL === 'debug') console.log(`[${req.realIP}] /list`, req.query);
     
     // Increased cache to reduce Mailgun API calls: 60s cache + background refresh
     res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
@@ -107,7 +107,7 @@ app.get("/api/v1/mail/list", (req, res) => {
 });
 
 app.get("/api/v1/mail/getInfo", (req, res) => {
-    if(process.env.LOG_LEVEL !== 'silent') console.log(`[${req.realIP}] /getInfo`, req.query);
+    if(process.env.LOG_LEVEL === 'debug') console.log(`[${req.realIP}] /getInfo`, req.query);
     
     // Email info can be cached a bit longer
     res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
@@ -117,7 +117,7 @@ app.get("/api/v1/mail/getInfo", (req, res) => {
 });
 
 app.get("/api/v1/mail/getHtml", (req, res) => {
-    if(process.env.LOG_LEVEL !== 'silent') console.log(`[${req.realIP}] /getHtml`, req.query);
+    if(process.env.LOG_LEVEL === 'debug') console.log(`[${req.realIP}] /getHtml`, req.query);
     
     // HTML content can be cached longer
     res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
@@ -127,7 +127,7 @@ app.get("/api/v1/mail/getHtml", (req, res) => {
 
 // Add the missing getKey route that the frontend needs for email details
 app.get("/api/v1/mail/getKey", (req, res) => {
-    if(process.env.LOG_LEVEL !== 'silent') console.log(`[${req.realIP}] /getKey`, req.query);
+    if(process.env.LOG_LEVEL === 'debug') console.log(`[${req.realIP}] /getKey`, req.query);
     
     // Email details can be cached a bit longer
     res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');

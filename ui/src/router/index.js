@@ -3,9 +3,9 @@ import Vuex from 'vuex'
 import Router from 'vue-router'
 import LandingPage from '@/landingpage.vue'
 import KittenRouter from '@/kittenrouter.vue'
-const Inbox = () => import(/* webpackChunkName: "inbox" */ '@/components/mail/inbox.vue')
-const MessageDetail = () => import(/* webpackChunkName: "message-detail" */ '@/components/mail/message_detail.vue')
-const MessageList = () => import(/* webpackChunkName: "message-list" */ '@/components/mail/message_list.vue')
+const Inbox = () => import(/* webpackChunkName: "inbox", webpackPrefetch: true */ '@/components/mail/inbox.vue')
+const MessageDetail = () => import(/* webpackChunkName: "message-detail", webpackPrefetch: true */ '@/components/mail/message_detail.vue')
+const MessageList = () => import(/* webpackChunkName: "message-list", webpackPrefetch: true */ '@/components/mail/message_list.vue')
 import vuescroll from 'vuescroll'
 import 'vuescroll/dist/vuescroll.css'
 
