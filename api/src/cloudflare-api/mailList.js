@@ -31,7 +31,14 @@ module.exports = async function(url) {
 	};
 
 	try {
-		const postData = await fetchGet("https://api.mailgun.net/v3/" + config.emailDomain + "/events?recipient="+recipient+"@"+config.emailDomain, _authOption);
+		// Sanitize recipient for query to prevent wildcard-like behavior.
+	       // A trailing '_' can sometimes be interpreted broadly by APIs.
+	       // We remove it for the query.
+	       let queryRecipient = recipient;
+	       if (queryRecipient.endsWith('_')) {
+	           queryRecipient = queryRecipient.slice(0, -1);
+	       }
+		const postData = await fetchGet("https://api.mailgun.net/v3/" + config.emailDomain + "/events?recipient="+queryRecipient+"@"+config.emailDomain, _authOption);
 		let responseInit = {
 			headers: {
 				"Content-Type": "application/json"
@@ -42,7 +49,7 @@ module.exports = async function(url) {
 		return new Response("{error: '"+err+"'}",
 			{ status: 400, statusText: 'INVALID_PARAMETER', headers: {
 				"Content-Type": "application/json"
-			} 
+			}
 		});
 	}
 }

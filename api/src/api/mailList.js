@@ -121,7 +121,10 @@ const validateUsername = (username) => {
     if (bannedUsernames.has(username.toLowerCase())) {
         throw new Error(`Invalid username: '${username}' is not allowed.`);
     }
-    if (!/^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*$/.test(username)) {
+    // Updated regex to allow usernames ending with ., _, or -
+    // and to simplify the pattern matching.
+    const regex = /^[a-zA-Z0-9]+[a-zA-Z0-9._-]*$/;
+    if (!regex.test(username)) {
         throw new Error(`Invalid username: '${username}' contains invalid characters.`);
     }
     return username;
@@ -179,7 +182,14 @@ const getEvents = (recipient, res, isAdminAccess = false) => {
     
     // If not admin access, filter by specific recipient
     if (!isAdminAccess) {
-        searchParams.recipient = `${recipient}@${mailgunConfig.emailDomain}`;
+        // Sanitize recipient for query to prevent wildcard-like behavior.
+        // A trailing '_' can sometimes be interpreted broadly by APIs.
+        // We remove it for the query but keep it for the final client-side filter.
+        let queryRecipient = recipient;
+        if (queryRecipient.endsWith('_')) {
+            queryRecipient = queryRecipient.slice(0, -1);
+        }
+        searchParams.recipient = `${queryRecipient}@${mailgunConfig.emailDomain}`;
     }
     
     mailgunClient.get('/events', searchParams, (error, body) => {

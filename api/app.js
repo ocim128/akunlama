@@ -99,8 +99,8 @@ const mailGetHtml = require("./src/api/mailGetHtml");
 app.get("/api/v1/mail/list", (req, res) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/list with parameters:`, req.query);
     
-    // Increased cache to reduce Mailgun API calls: 60s cache + background refresh
-    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120');
+    // Reduced cache time for faster email appearance: 30s cache + background refresh
+    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
     res.set('Content-Type', 'application/json; charset=utf-8');
     
     mailList(req, res);

@@ -4,7 +4,7 @@
 module.exports = {
     // Frequent changing dynamic content (email lists)
     // Short cache but allow stale serving for performance
-    "dynamic"  : "public, max-age=5, stale-while-revalidate=30, stale-if-error=300",
+    "dynamic"  : "public, max-age=2, stale-while-revalidate=15, stale-if-error=150",
     
     // Static UI content (HTML, small assets)
     // Moderate caching with background refresh
