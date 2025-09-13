@@ -99,9 +99,10 @@ const mailGetHtml = require("./src/api/mailGetHtml");
 app.get("/api/v1/mail/list", (req, res) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/list with parameters:`, req.query);
     
-    // Reduced cache time for faster email appearance: 30s cache + background refresh
-    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    // Optimized cache headers with longer stale-while-revalidate for better performance
+    res.set('Cache-Control', 'public, max-age=15, stale-while-revalidate=45, stale-if-error=120');
     res.set('Content-Type', 'application/json; charset=utf-8');
+    res.set('Vary', 'Accept-Encoding');
     
     mailList(req, res);
 });
@@ -109,9 +110,10 @@ app.get("/api/v1/mail/list", (req, res) => {
 app.get("/api/v1/mail/getInfo", (req, res) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/getInfo with parameters:`, req.query);
     
-    // Email info can be cached a bit longer
-    res.set('Cache-Control', 'public, max-age=30, stale-while-revalidate=60');
+    // Email info metadata doesn't change often - can be cached longer
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120, stale-if-error=300');
     res.set('Content-Type', 'application/json; charset=utf-8');
+    res.set('Vary', 'Accept-Encoding');
     
     mailGetInfo(req, res);
 });
@@ -119,8 +121,9 @@ app.get("/api/v1/mail/getInfo", (req, res) => {
 app.get("/api/v1/mail/getHtml", (req, res) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/getHtml with parameters:`, req.query);
     
-    // HTML content can be cached longer
-    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
+    // HTML content is static once delivered - can be cached much longer
+    res.set('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800, stale-if-error=3600');
+    res.set('Vary', 'Accept-Encoding');
     
     mailGetHtml(req, res);
 });
@@ -173,28 +176,29 @@ var server = app.listen(8000, function () {
     console.log("Bandwidth optimization enabled: compression, caching, and performance headers");
     console.log("Security features: IP-based rate limiting, input validation, secure headers");
     
-    // Memory monitoring for production debugging
+    // Optimized memory monitoring with reduced frequency and overhead
     setInterval(() => {
         const memUsage = process.memoryUsage();
-        const memMB = {
-            rss: Math.round(memUsage.rss / 1024 / 1024),
-            heapUsed: Math.round(memUsage.heapUsed / 1024 / 1024),
-            heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-            external: Math.round(memUsage.external / 1024 / 1024)
-        };
+        const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
         
-        // Log memory usage every 5 minutes and if memory exceeds 200MB
-        if (memMB.heapUsed > 200) {
+        // Only log if memory exceeds threshold (reduced from 200MB to 150MB for earlier detection)
+        if (heapUsedMB > 150) {
+            const memMB = {
+                rss: Math.round(memUsage.rss / 1024 / 1024),
+                heapUsed: heapUsedMB,
+                heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+                external: Math.round(memUsage.external / 1024 / 1024)
+            };
             console.log(`[MEMORY WARNING] High memory usage: RSS=${memMB.rss}MB, Heap=${memMB.heapUsed}/${memMB.heapTotal}MB, External=${memMB.external}MB`);
         }
     }, 300000); // Every 5 minutes
     
-    // Log basic memory info every minute
+    // Reduced frequency memory logging - only every 5 minutes instead of every minute
     setInterval(() => {
         const memUsage = process.memoryUsage();
         const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
         console.log(`[MEMORY] Heap usage: ${heapUsedMB}MB`);
-    }, 60000); // Every minute
+    }, 300000); // Changed from 60000 to 300000
 });
 
 // Optimize server settings for high traffic

@@ -1,15 +1,33 @@
 // AXIOS dependencies
 const axios = require("axios");
 
+// Create a reusable axios instance with connection pooling
+const axiosInstance = axios.create({
+    timeout: 10000, // 10 second timeout
+    maxRedirects: 5,
+    httpAgent: new require('http').Agent({
+        keepAlive: true,
+        keepAliveMsecs: 30000,
+        maxSockets: 50,
+        maxFreeSockets: 10
+    }),
+    httpsAgent: new require('https').Agent({
+        keepAlive: true,
+        keepAliveMsecs: 30000,
+        maxSockets: 50,
+        maxFreeSockets: 10
+    })
+});
+
 /**
-* Simple axois get, with response data
+* Optimized axios get with connection pooling and response data
 * @param {String} urlWithParams
 * @param {Object} options
 */
 var axiosGet = function(urlWithParams, options){
 	return new Promise(function(resolve, reject){
 		// console.log(urlWithParams);
-		axios.get(urlWithParams, options).then(response => {
+		axiosInstance.get(urlWithParams, options).then(response => {
 			resolve(response.data)
 		}).catch(e => {
 			// console.log(e);
