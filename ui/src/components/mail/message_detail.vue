@@ -61,136 +61,152 @@
 </template>
 
 <script>
-	import 'normalize.css'
-	import config from '@/../config/apiconfig.js'
-	import axios from 'axios'
-	import moment from 'moment'
+import 'normalize.css'
+import config from '@/../config/apiconfig.js'
+import axios from 'axios'
+import moment from 'moment'
+import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
-	export default {
-		name: 'MessageDetail',
-		data: () => {
-			return {
-				emailContent: {},
-				src: '',
-				loading: true,
-				refreshing: false
+export default {
+	name: 'MessageDetail',
+	setup() {
+		const route = useRoute()
+		const router = useRouter()
+		const emailContent = ref({})
+		const src = ref('')
+		const loading = ref(true)
+		const refreshing = ref(false)
+
+		const getMessage = () => {
+			loading.value = true
+			const region = route.params.region
+			const key = route.params.key
+
+			src.value = `${config.apiUrl}/getHtml?region=${region}&key=${key}`
+
+			axios.get(`${config.apiUrl}/getKey?region=${region}&key=${key}`)
+				.then(res => {
+					emailContent.value = res.data
+					loading.value = false
+				}).catch((e) => {
+					console.error('Failed to load message:', e)
+					emailContent.value = {
+						name: 'Error',
+						emailAddress: 'system@akunlama.com',
+						recipients: route.params.email || 'Unknown',
+						subject: 'Message could not be loaded',
+						Date: new Date().toISOString()
+					}
+
+					// Show error message in iframe
+					src.value = 'data:text/html;charset=utf-8,' + encodeURI(`
+						<html>
+							<head>
+								<style>
+									body {
+										font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+										padding: 2rem;
+										text-align: center;
+										color: #6B7280;
+										background: #F9FAFB;
+									}
+									.error {
+										color: #EF4444;
+										font-size: 1.2rem;
+										margin-bottom: 1rem;
+									}
+								</style>
+							</head>
+							<body>
+								<div class="error">⚠️ Message Not Found</div>
+								<p>This message could not be loaded. It may have been deleted or expired.</p>
+							</body>
+						</html>
+					`)
+					loading.value = false
+				})
+		}
+
+		const refreshMessage = () => {
+			refreshing.value = true
+			setTimeout(() => {
+				getMessage()
+				refreshing.value = false
+			}, 500)
+		}
+
+		const onIframeLoad = () => {
+			// Optional: Add any iframe load handling here
+		}
+
+		const goBack = () => {
+			if (route.params.email) {
+				router.push({
+					name: 'List',
+					params: {
+						email: route.params.email
+					}
+				})
+			} else {
+				router.go(-1)
 			}
-		},
-		mounted () {
-			if (this.$route.params.key === undefined) {
-				this.$router.push({
+		}
+
+		const extractName = (email) => {
+			if (!email) return 'Unknown'
+			const parts = email.split('@')
+			return parts[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+		}
+
+		const formatDate = (dateString) => {
+			if (!dateString) return 'Unknown time'
+			const date = moment(dateString)
+			if (!date.isValid()) return 'Unknown time'
+
+			const now = moment()
+			const diff = now.diff(date, 'days')
+
+			if (diff === 0) {
+				return `Today, ${date.format('h:mm A')}`
+			} else if (diff === 1) {
+				return `Yesterday, ${date.format('h:mm A')}`
+			} else if (diff < 7) {
+				return date.format('dddd, h:mm A')
+			} else {
+				return date.format('MMM DD, YYYY [at] h:mm A')
+			}
+		}
+
+		onMounted(() => {
+			if (route.params.key === undefined) {
+				router.push({
 					name: 'Kitten Land'
 				})
 			}
 
-			this.getMessage()
-			this.$eventHub.$on('refresh', this.refreshMessage)
-		},
-		beforeDestroy () {
-			this.$eventHub.$off('refresh', this.refreshMessage)
-		},
-		methods: {
-			getMessage () {
-				this.loading = true
-				let region = this.$route.params.region
-				let key = this.$route.params.key
-				
-				this.src = `${config.apiUrl}/getHtml?region=${region}&key=${key}`
-				
-				axios.get(`${config.apiUrl}/getKey?region=${region}&key=${key}`)
-					.then(res => {
-						this.emailContent = res.data
-						this.loading = false
-					}).catch((e) => {
-						console.error('Failed to load message:', e)
-						this.emailContent = {
-							name: 'Error',
-							emailAddress: 'system@akunlama.com',
-							recipients: this.$route.params.email || 'Unknown',
-							subject: 'Message could not be loaded',
-							Date: new Date().toISOString()
-						}
-						
-						// Show error message in iframe
-						this.src = 'data:text/html;charset=utf-8,' + encodeURI(`
-							<html>
-								<head>
-									<style>
-										body { 
-											font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-											padding: 2rem; 
-											text-align: center; 
-											color: #6B7280;
-											background: #F9FAFB;
-										}
-										.error { 
-											color: #EF4444; 
-											font-size: 1.2rem; 
-											margin-bottom: 1rem; 
-										}
-									</style>
-								</head>
-								<body>
-									<div class="error">⚠️ Message Not Found</div>
-									<p>This message could not be loaded. It may have been deleted or expired.</p>
-								</body>
-							</html>
-						`)
-						this.loading = false
-					})
-			},
+			getMessage()
+			window.$eventHub.$on('refresh', refreshMessage)
+		})
 
-			refreshMessage() {
-				this.refreshing = true
-				setTimeout(() => {
-					this.getMessage()
-					this.refreshing = false
-				}, 500)
-			},
+		onBeforeUnmount(() => {
+			window.$eventHub.$off('refresh', refreshMessage)
+		})
 
-			onIframeLoad() {
-				// Optional: Add any iframe load handling here
-			},
-
-			goBack() {
-				if (this.$route.params.email) {
-					this.$router.push({
-						name: 'List',
-						params: {
-							email: this.$route.params.email
-						}
-					})
-				} else {
-					this.$router.go(-1)
-				}
-			},
-
-			extractName(email) {
-				if (!email) return 'Unknown'
-				let parts = email.split('@')
-				return parts[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-			},
-
-			formatDate(dateString) {
-				if (!dateString) return 'Unknown time'
-				let date = moment(dateString)
-				if (!date.isValid()) return 'Unknown time'
-				
-				let now = moment()
-				let diff = now.diff(date, 'days')
-				
-				if (diff === 0) {
-					return `Today, ${date.format('h:mm A')}`
-				} else if (diff === 1) {
-					return `Yesterday, ${date.format('h:mm A')}`
-				} else if (diff < 7) {
-					return date.format('dddd, h:mm A')
-				} else {
-					return date.format('MMM DD, YYYY [at] h:mm A')
-				}
-			}
+		return {
+			emailContent,
+			src,
+			loading,
+			refreshing,
+			getMessage,
+			refreshMessage,
+			onIframeLoad,
+			goBack,
+			extractName,
+			formatDate
 		}
 	}
+}
 </script>
 
 <style lang="scss" rel="stylesheet/scss">

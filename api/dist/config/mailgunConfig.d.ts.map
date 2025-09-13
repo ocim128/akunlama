@@ -1,0 +1,1 @@
+{"version":3,"file":"mailgunConfig.d.ts","sourceRoot":"","sources":["../../config/mailgunConfig.ts"],"names":[],"mappings":"AAKA,UAAU,aAAa;IACrB,MAAM,EAAE,MAAM,CAAC;IACf,WAAW,EAAE,MAAM,CAAC;IACpB,cAAc,EAAE,MAAM,CAAC;IACvB,UAAU,CAAC,EAAE,MAAM,CAAC;CACrB;AAED,QAAA,MAAM,MAAM,EAAE,aAKb,CAAC;AAeF,eAAe,MAAM,CAAC"}

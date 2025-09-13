@@ -1,13 +1,23 @@
-const express = require('express');
-const compression = require('compression');
-const cacheControl = require("./config/cacheControl");
-const app = express();
+import express, { Request, Response, NextFunction, Application } from 'express';
+import compression from 'compression';
+import cacheControl from "./config/cacheControl";
+import mailList from "./src/api/mailList";
+import mailGetInfo from "./src/api/mailGetInfo";
+import mailGetHtml from "./src/api/mailGetHtml";
+
+declare module 'express' {
+  interface Request {
+    realIP: string;
+  }
+}
+
+const app: Application = express();
 
 // Trust proxy headers for IP detection (important for production)
 app.set('trust proxy', true);
 
 // Load banned IP addresses from environment variable
-const getBannedIPs = () => {
+const getBannedIPs = (): Set<string> => {
     const bannedIPsEnv = process.env.BANNED_IPS || '';
     if (bannedIPsEnv) {
         const ips = bannedIPsEnv.split(',').map(ip => ip.trim()).filter(ip => ip.length > 0);
@@ -17,11 +27,11 @@ const getBannedIPs = () => {
     return new Set();
 };
 
-const bannedIPs = getBannedIPs();
+const bannedIPs: Set<string> = getBannedIPs();
 
 // Enable gzip compression for all responses
 app.use(compression({
-    filter: (req, res) => {
+    filter: (req: Request, res: Response) => {
         // Don't compress responses with this request header
         if (req.headers['x-no-compression']) {
             return false;
@@ -35,11 +45,12 @@ app.use(compression({
 }));
 
 // IP extraction and security middleware
-app.use((req, res, next) => {
+app.use((req: any, res: Response, next: NextFunction) => {
     // Extract real IP address
+    const xForwardedFor = req.headers['x-forwarded-for'];
     req.realIP = req.ip || 
-                req.connection.remoteAddress || 
-                req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
+                req.connection?.remoteAddress || 
+                (Array.isArray(xForwardedFor) ? xForwardedFor[0] : xForwardedFor)?.split(',')[0]?.trim() ||
                 req.headers['x-real-ip'] ||
                 'unknown';
     
@@ -48,10 +59,11 @@ app.use((req, res, next) => {
         console.log(`[BANNED IP] Blocked request from: ${req.realIP}`);
         
         // For API endpoints, return empty array to look like no emails
-        if (req.path.startsWith('/api/')) {
+        if (req.path?.startsWith('/api/')) {
             res.set('Content-Type', 'application/json; charset=utf-8');
             res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-            return res.status(200).json([]);
+            res.status(200).json([]);
+            return;
         }
         
         // For other requests (like static files), continue normally
@@ -74,14 +86,15 @@ app.use((req, res, next) => {
 });
 
 // Input validation middleware
-app.use((req, res, next) => {
+app.use((req: any, res: Response, next: NextFunction) => {
     // Limit query parameter sizes to prevent DoS
     for (const [key, value] of Object.entries(req.query)) {
         if (typeof value === 'string' && value.length > 100) {
-            return res.status(400).json({
+            res.status(400).json({
                 error: 'Invalid request',
                 message: 'Parameter too long'
             });
+            return;
         }
     }
     next();
@@ -92,11 +105,8 @@ app.set('json spaces', 0); // Minimize JSON output
 app.set('json replacer', null); // Don't replace anything
 
 // Setup the routes with optimized responses
-const mailList = require("./src/api/mailList");
-const mailGetInfo = require("./src/api/mailGetInfo");
-const mailGetHtml = require("./src/api/mailGetHtml");
 
-app.get("/api/v1/mail/list", (req, res) => {
+app.get("/api/v1/mail/list", (req: any, res: Response) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/list with parameters:`, req.query);
     
     // Optimized cache headers with longer stale-while-revalidate for better performance
@@ -107,7 +117,7 @@ app.get("/api/v1/mail/list", (req, res) => {
     mailList(req, res);
 });
 
-app.get("/api/v1/mail/getInfo", (req, res) => {
+app.get("/api/v1/mail/getInfo", (req: any, res: Response) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/getInfo with parameters:`, req.query);
     
     // Email info metadata doesn't change often - can be cached longer
@@ -118,7 +128,7 @@ app.get("/api/v1/mail/getInfo", (req, res) => {
     mailGetInfo(req, res);
 });
 
-app.get("/api/v1/mail/getHtml", (req, res) => {
+app.get("/api/v1/mail/getHtml", (req: any, res: Response) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/getHtml with parameters:`, req.query);
     
     // HTML content is static once delivered - can be cached much longer
@@ -137,7 +147,7 @@ app.use(express.static("public", {
     etag: true,
     lastModified: true,
     maxAge: 0, // We set cache-control manually for better control
-    setHeaders: function (res, path, stat) {
+    setHeaders: function (res: Response, path: string, stat: any) {
         const ext = path.toLowerCase();
         
         // Set appropriate cache headers based on file type
@@ -164,15 +174,16 @@ app.use(express.static("public", {
 }));
 
 // Custom 404 handling - use index.html with appropriate headers
-app.use(function (req, res) {
+app.use(function (req: any, res: Response) {
     res.set('Cache-Control', cacheControl.static);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.sendFile(__dirname + '/public/index.html');
 });
 
 // Setup the server with optimized settings
-var server = app.listen(8000, function () {
-    console.log("app running on port.", server.address().port);
+const server = app.listen(8000, function () {
+    const address = server.address();
+    console.log("app running on port.", address && typeof address === 'object' ? address.port : address);
     console.log("Bandwidth optimization enabled: compression, caching, and performance headers");
     console.log("Security features: IP-based rate limiting, input validation, secure headers");
     

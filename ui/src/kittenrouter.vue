@@ -137,6 +137,7 @@
 
 <script>
 import shareConfig from '@/../config/shareConfig.js'
+import { onMounted, ref } from 'vue'
 
 // import CarbonAds from './components/CarbonAds.vue'
 
@@ -150,8 +151,10 @@ export default {
 			mainURL: shareConfig.mainURL
 		}
     },
-    mounted () {
-        document.getElementsByClassName('github-corner')[0].href = 'https://github.com/uilicious/kittenrouter'
+	setup() {
+		onMounted(() => {
+			document.getElementsByClassName('github-corner')[0].href = 'https://github.com/uilicious/kittenrouter'
+		})
 	},
 	methods: {
 		goToMainPage () {

@@ -1,5 +1,5 @@
 <template>
-    <vue-scroll :ops="vueScrollBarOps">
+    <div class="scroll-container">
       <!-- Advisory notice -->
       <div class="advisory-banner">
         <div class="advisory-content">
@@ -10,7 +10,7 @@
 
       <!-- Loading state -->
       <div v-if="refreshing" class="loading-container">
-        <pulse-loader class="spinner"></pulse-loader>
+        <div class="css-spinner"></div>
         <p class="loading-text">Checking for new messages...</p>
       </div>
 
@@ -67,7 +67,7 @@
           </button>
         </div>
       </div>
-    </vue-scroll>
+    </div>
 </template>
 
 <script>
@@ -76,85 +76,62 @@ import 'normalize.css'
 import config from '@/../config/apiconfig.js'
 import axios from 'axios'
 import moment from 'moment'
-import PulseLoader from 'vue-spinner/src/PulseLoader.vue'
+// PulseLoader replaced with CSS spinner for Vue 3 compatibility
+import { onMounted, onBeforeUnmount, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 
 export default {
   name: 'MessageList',
-  data: () => {
-    return {
-      listOfMessages: [],
-      vueScrollBarOps: {
-        bar: {
-          background: '#cbd5e0',
-          size: '6px',
-          hoverStyle: {
-            background: '#a0aec0'
-          }
-        }
-      },
-      refreshing: false
-    }
-  },
-  mounted () {
-    let currentEmail = this.$route.params.email
-    if (currentEmail === '') {
-      this.$router.push({name: 'Kitten Land'})
+  // Data moved to setup() for Vue 3 compatibility
+  setup() {
+    const route = useRoute()
+    const router = useRouter()
+    const listOfMessages = ref([])
+    const refreshing = ref(false)
+    let retrieveMessage = null
+
+    const refreshList = () => {
+      refreshing.value = true
+      window.$eventHub.$emit('refreshStart')
+      getMessageList()
     }
 
-    this.getMessageList()
-    this.retrieveMessage = window.setInterval(this.getMessageList, 10000)
+    const getMessageList = () => {
+      refreshing.value = true
+      window.$eventHub.$emit('refreshStart')
 
-    this.$eventHub.$on('refreshInbox', this.getMessageList)
-    this.$eventHub.$on('refresh', this.getMessageList)
-  },
-  beforeDestroy () {
-    window.clearInterval(this.retrieveMessage)
-    this.$eventHub.$off('refreshInbox', this.getMessageList)
-    this.$eventHub.$off('refresh', this.getMessageList)
-  },
-  methods: {
-    refreshList () {
-      this.refreshing = true
-      this.$eventHub.$emit('refreshStart')
-      this.getMessageList()
-    },
-    
-    getMessageList () {
-      this.refreshing = true
-      this.$eventHub.$emit('refreshStart')
-      
-      let email = this.$route.params.email
+      const email = route.params.email
       axios.get(config.apiUrl + '/list?recipient=' + email)
         .then(res => {
-          this.listOfMessages = res.data
-          this.refreshing = false
-          this.$eventHub.$emit('refreshEnd')
+          listOfMessages.value = res.data
+          refreshing.value = false
+          window.$eventHub.$emit('refreshEnd')
         }).catch((e) => {
-        this.refreshing = false
-          this.$eventHub.$emit('refreshEnd')
+          refreshing.value = false
+          window.$eventHub.$emit('refreshEnd')
           console.error('Failed to fetch messages:', e)
         })
-    },
+    }
 
-    getMessage (msg) {
-      this.$router.push({
+    const getMessage = (msg) => {
+      router.push({
         name: 'Message',
         params: {
           region: msg.storage.region,
           key: msg.storage.key
         }
       })
-    },
+    }
 
-    calculateTime (msg) {
-      let now = moment()
-      let theDate = moment(msg.timestamp * 1000)
-      let diff = now.diff(theDate, 'day')
-      
+    const calculateTime = (msg) => {
+      const now = moment()
+      const theDate = moment(msg.timestamp * 1000)
+      const diff = now.diff(theDate, 'day')
+
       if (diff === 0) {
-        let hoursDiff = now.diff(theDate, 'hour')
+        const hoursDiff = now.diff(theDate, 'hour')
         if (hoursDiff < 1) {
-          let minutesDiff = now.diff(theDate, 'minute')
+          const minutesDiff = now.diff(theDate, 'minute')
           return minutesDiff < 1 ? 'Just now' : `${minutesDiff}m ago`
         }
         return `${hoursDiff}h ago`
@@ -165,25 +142,59 @@ export default {
       } else {
         return theDate.format('DD MMM')
       }
-    },
+    }
 
-    extractEmail (sender) {
-      let emails = sender.match(/[^@<\s]+@[^@\s>]+/g)
+    const extractEmail = (sender) => {
+      const emails = sender.match(/[^@<\s]+@[^@\s>]+/g)
       if (emails) {
         return emails[0]
       }
       return sender
     }
+
+    onMounted(() => {
+      const currentEmail = route.params.email
+      if (currentEmail === '') {
+        router.push({name: 'Kitten Land'})
+      }
+
+      getMessageList()
+      retrieveMessage = window.setInterval(getMessageList, 10000)
+
+      window.$eventHub.$on('refreshInbox', getMessageList)
+      window.$eventHub.$on('refresh', getMessageList)
+    })
+
+    onBeforeUnmount(() => {
+      window.clearInterval(retrieveMessage)
+      window.$eventHub.$off('refreshInbox', getMessageList)
+      window.$eventHub.$off('refresh', getMessageList)
+    })
+
+    return {
+      listOfMessages,
+      refreshing,
+      refreshList,
+      getMessageList,
+      getMessage,
+      calculateTime,
+      extractEmail
+    }
   },
   components: {
-    NavBar: NavBar,
-    PulseLoader: PulseLoader
+    NavBar: NavBar
   }
 }
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
   @import '@/scss/_color.scss';
+
+  .scroll-container {
+    height: 100vh;
+    overflow-y: auto;
+    background: $gray-50;
+  }
 
   .advisory-banner {
     background: linear-gradient(135deg, #FEF3C7, #FCD34D);
@@ -223,6 +234,21 @@ export default {
 
     .spinner {
       margin-bottom: 1rem;
+    }
+
+    .css-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid $gray-200;
+      border-top: 4px solid $primary;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
     .loading-text {
