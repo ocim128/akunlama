@@ -57,8 +57,9 @@ RUN cd /application/ui-mods/ && npm install
 COPY ui  /application/ui/
 RUN rm -rf /application/ui/node_modules
 RUN rm -rf /application/ui/dist
-# merge in dependencies
+# merge in dependencies and package.json
 RUN cp -r /application/ui-mods/node_modules /application/ui/node_modules
+RUN cp /application/ui-mods/package.json /application/ui/package.json
 # Lets do the UI build
 RUN cp /application/ui/config/apiconfig.sample.js /application/ui/config/apiconfig.js
 RUN cd /application/ui && npm run build
