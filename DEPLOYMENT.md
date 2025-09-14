@@ -16,16 +16,16 @@ Set these environment variables in your Render.com dashboard:
 ### Required Variables
 - `MAILGUN_API_KEY`: Your Mailgun API key
 - `MAILGUN_EMAIL_DOMAIN`: Your Mailgun domain (e.g., akunlama.com)
+- `VITE_MAILGUN_EMAIL_DOMAIN`: Frontend Mailgun domain (for Vite build)
 - `ADMIN_ACCESS_KEY`: Admin access key
 - `WEBSITE_DOMAIN`: Your Render.com app URL (e.g., akunlama.onrender.com)
+- `VITE_WEBSITE_DOMAIN`: Frontend website domain (for Vite build)
 - `BANNED_USERNAMES`: Comma-separated list of banned usernames
 
 ### Optional Variables
 - `BANNED_IPS`: Comma-separated list of banned IPs
 - `HOST`: Server host (default: 0.0.0.0)
 - `PORT`: Server port (default: 8000)
-- `MAILGUN_EMAIL_DOMAIN`: Frontend Mailgun domain (for Vite build)
-- `WEBSITE_DOMAIN`: Frontend website domain (for Vite build)
 
 ## Deployment Methods
 
@@ -49,8 +49,10 @@ Set these environment variables in your Render.com dashboard:
      ```
      MAILGUN_API_KEY=your_actual_api_key
      MAILGUN_EMAIL_DOMAIN=your_domain.com
+     VITE_MAILGUN_EMAIL_DOMAIN=your_domain.com
      ADMIN_ACCESS_KEY=your_admin_key
      WEBSITE_DOMAIN=akunlama.onrender.com
+     VITE_WEBSITE_DOMAIN=akunlama.onrender.com
      BANNED_USERNAMES=faturrasyidmuhammad07,diani38071,pazaleegre,cemiloktay2,theboybil,diandikaara,hawkman7609,autenticview,yogiceper25,green14fly,najman8522,faradina6986,wyizrjo2g86kclm,research-population-76,endangpurwanti0511,melanyp_andini,obeidblicke,aspakpahtan21,ardiclops,sevvalkapci
      ```
 
@@ -74,16 +76,16 @@ services:
         value: your_mailgun_api_key
       - key: MAILGUN_EMAIL_DOMAIN
         value: your_domain.com
+      - key: VITE_MAILGUN_EMAIL_DOMAIN
+        value: your_domain.com
       - key: ADMIN_ACCESS_KEY
         value: your_admin_key
       - key: WEBSITE_DOMAIN
         value: akunlama.onrender.com
+      - key: VITE_WEBSITE_DOMAIN
+        value: akunlama.onrender.com
       - key: BANNED_USERNAMES
         value: faturrasyidmuhammad07,diani38071,pazaleegre,cemiloktay2,theboybil,diandikaara,hawkman7609,autenticview,yogiceper25,green14fly,najman8522,faradina6986,wyizrjo2g86kclm,research-population-76,endangpurwanti0511,melanyp_andini,obeidblicke,aspakpahtan21,ardiclops,sevvalkapci
-      - key: MAILGUN_EMAIL_DOMAIN
-        value: your_domain.com
-      - key: WEBSITE_DOMAIN
-        value: akunlama.onrender.com
       - key: NODE_ENV
         value: production
 ```

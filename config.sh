@@ -48,6 +48,10 @@ if [ -z "$WEBSITE_DOMAIN" ]; then
 	exit 1;
 fi
 
+# Set VITE_ environment variables for frontend
+export VITE_MAILGUN_EMAIL_DOMAIN="$MAILGUN_EMAIL_DOMAIN"
+export VITE_WEBSITE_DOMAIN="$WEBSITE_DOMAIN"
+
 if [ -z "$MAILGUN_API_KEY" ]; then
 	echo ">> ERROR: MAILGUN_API_KEY is not set. Please set it in your .env file or environment."
 	exit 1;
@@ -64,6 +68,8 @@ fi
 echo ">> Configuration loaded:"
 echo "   MAILGUN_EMAIL_DOMAIN: $MAILGUN_EMAIL_DOMAIN"
 echo "   WEBSITE_DOMAIN: $WEBSITE_DOMAIN"
+echo "   VITE_MAILGUN_EMAIL_DOMAIN: $VITE_MAILGUN_EMAIL_DOMAIN"
+echo "   VITE_WEBSITE_DOMAIN: $VITE_WEBSITE_DOMAIN"
 echo "   MAILGUN_API_KEY: [REDACTED]"
 echo "   ADMIN_ACCESS_KEY: [REDACTED]"
 
