@@ -2,103 +2,71 @@
 #
 # Base alpine images with all the runtime os dependencies
 #
-# Note that the node-sass is broken with node 12
-# https://github.com/nodejs/docker-node/issues/1028
-#
 #-------------------------------------------------------
 
 # Does basic node, and runtime dependencies
-FROM node:14-alpine AS baseimage
+FROM node:18-alpine AS baseimage
 RUN apk add --no-cache gettext
 RUN mkdir -p /application/
-# WORKDIR /application/
 
 #-------------------------------------------------------
 #
-# code builders (used by dockerbuilders)
+# Dependency installation stage
 #
 #-------------------------------------------------------
 
-# Install dependencies for some NPM modules
-FROM baseimage AS codebuilder
-# RUN apk add --no-cache make gcc g++ python
+FROM baseimage AS deps
+# copy package files
+COPY package.json /application/package.json
+COPY package-lock.json /application/package-lock.json
+WORKDIR /application
+# install dependencies
+RUN npm ci
 
 #-------------------------------------------------------
 #
-# Docker builders (also resets node_modules)
-#
-# Note each major dependency is compiled seperately
-# so as to isolate the impact of each code change
+# Build stage
 #
 #-------------------------------------------------------
 
-# Build the API
-# with reseted node_modules
-FROM codebuilder AS apibuilder
-# copy and download dependencies (using root package.json since api doesn't have its own)
-COPY package.json /application/api-mods/package.json
-COPY package-lock.json /application/api-mods/package-lock.json
-RUN cd /application/api-mods/ && npm install
+FROM deps AS builder
 # copy source code
 COPY api /application/api/
-RUN rm -rf /application/api/node_modules
-# merge in dependnecies
-RUN cp -r /application/api-mods/node_modules /application/api/node_modules
-RUN ls /application/api/
-
-# Build the UI
-# with reseted node_modules
-FROM codebuilder AS uibuilder
-# copy dependencies first (using root package.json since ui doesn't have its own)
-COPY package.json /application/ui-mods/package.json
-COPY package-lock.json /application/ui-mods/package-lock.json
-RUN cd /application/ui-mods/ && npm install
-# copy and reset the code
-COPY ui  /application/ui/
-RUN rm -rf /application/ui/node_modules
-RUN rm -rf /application/ui/dist
-# merge in dependencies and package.json
-RUN cp -r /application/ui-mods/node_modules /application/ui/node_modules
-RUN cp /application/ui-mods/package.json /application/ui/package.json
-# Lets do the UI build
+COPY ui /application/ui/
+COPY docker-entrypoint.sh /application/docker-entrypoint.sh
+# copy config files
 RUN cp /application/ui/config/apiconfig.sample.js /application/ui/config/apiconfig.js
-RUN cd /application/ui && npm run build
+# build the project
+RUN npm run build
 
-# Entry script 
-# & Permission reset
-FROM codebuilder AS entrypointbuilder
-COPY docker-entrypoint.sh  /application/docker-entrypoint.sh
+#-------------------------------------------------------
+#
+# Production stage
+#
+#-------------------------------------------------------
+
+FROM baseimage AS production
+# copy package files
+COPY package.json /application/package.json
+COPY package-lock.json /application/package-lock.json
+WORKDIR /application
+# install only production dependencies
+RUN npm ci --only=production
+# copy built files and dependencies
+COPY --from=builder /application/api /application/api/
+COPY --from=builder /application/ui/dist /application/ui-dist/
+COPY --from=builder /application/docker-entrypoint.sh /application/docker-entrypoint.sh
+# copy node modules from deps stage for dev dependencies needed for runtime
+COPY --from=deps /application/node_modules /application/node_modules/
 RUN chmod +x /application/docker-entrypoint.sh
-
-#-------------------------------------------------------
-#
-# Full Docker application
-#
-#-------------------------------------------------------
-FROM baseimage as inboxkitten
-
-# Copy over the built files
-COPY --from=apibuilder        /application/api                  /application/api
-COPY --from=uibuilder         /application/ui/dist              /application/ui-dist
-COPY --from=entrypointbuilder /application/docker-entrypoint.sh /application/docker-entrypoint.sh
-
-# Debugging logging
-# RUN ls /application/./
-# RUN ls /application/ui-dist
-# RUN ls /application/api
 
 # Expose the server port
 EXPOSE 8000
 
-#
 # Configurable environment variable
-#
 ENV MAILGUN_EMAIL_DOMAIN=""
 ENV MAILGUN_API_KEY=""
 ENV WEBSITE_DOMAIN=""
-
-# Setup the workdir
-WORKDIR "/application/"
 
 # Setup the entrypoint
 ENTRYPOINT [ "/application/docker-entrypoint.sh" ]
