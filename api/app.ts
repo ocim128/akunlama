@@ -191,7 +191,7 @@ const server = app.listen(8000, function () {
     setInterval(() => {
         const memUsage = process.memoryUsage();
         const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-        
+
         // Only log if memory exceeds threshold (reduced from 200MB to 150MB for earlier detection)
         if (heapUsedMB > 150) {
             const memMB = {
@@ -203,7 +203,7 @@ const server = app.listen(8000, function () {
             console.log(`[MEMORY WARNING] High memory usage: RSS=${memMB.rss}MB, Heap=${memMB.heapUsed}/${memMB.heapTotal}MB, External=${memMB.external}MB`);
         }
     }, 300000); // Every 5 minutes
-    
+
     // Reduced frequency memory logging - only every 5 minutes instead of every minute
     setInterval(() => {
         const memUsage = process.memoryUsage();

@@ -44,17 +44,17 @@ const getCachedEmails = (recipient: string, isAdminAccess: boolean): EmailEvent[
 
 const cacheEmails = (recipient: string, isAdminAccess: boolean, emails: EmailEvent[]): void => {
     const cacheKey = getCacheKey(recipient, isAdminAccess);
-    
+
     // Prevent cache from growing too large
     if (emailCache.size >= MAX_CACHE_SIZE) {
         // Remove oldest 20% of entries
         const entriesToRemove = Array.from(emailCache.entries())
             .sort((a, b) => a[1].timestamp - b[1].timestamp)
             .slice(0, Math.floor(MAX_CACHE_SIZE * 0.2));
-        
+
         entriesToRemove.forEach(([key]) => emailCache.delete(key));
     }
-    
+
     emailCache.set(cacheKey, {
         emails,
         timestamp: Date.now()
@@ -92,26 +92,26 @@ let lastCleanup = Date.now();
 const cleanupRateLimits = (): void => {
     const now = Date.now();
     const ipsToDelete: string[] = [];
-    
+
     rateLimits.forEach((data, ip) => {
         if (now > data.resetTime) {
             ipsToDelete.push(ip);
         }
     });
-    
+
     ipsToDelete.forEach(ip => rateLimits.delete(ip));
-    
+
     // Aggressive LRU cleanup if approaching memory limit
     if (rateLimits.size > RATE_LIMITS.MAX_IPS_TRACKED) {
         const sortedIPs = Array.from(rateLimits.entries())
             .sort((a, b) => a[1].resetTime - b[1].resetTime)
             .slice(0, Math.floor(RATE_LIMITS.MAX_IPS_TRACKED * 0.7)); // Remove 30% of oldest
-        
+
         sortedIPs.forEach(([ip]) => rateLimits.delete(ip));
-        
+
         console.log(`[MEMORY] Cleaned up ${sortedIPs.length} old IP entries, now tracking ${rateLimits.size} IPs`);
     }
-    
+
     lastCleanup = now;
 };
 

@@ -14,7 +14,11 @@
     "test": "mocha",
     "type-check": "npm run type-check:api && npm run type-check:ui",
     "type-check:api": "cd api && tsc --noEmit",
-    "type-check:ui": "cd ui && tsc --noEmit"
+    "type-check:ui": "cd ui && tsc --noEmit",
+    "docker:build": "docker build -f Dockerfile.memory-efficient -t akunlama .",
+    "docker:run": "docker run -p 8000:8000 --env-file ./.env akunlama",
+    "docker:build:memory": "docker build -f Dockerfile.memory-efficient -t akunlama-memory .",
+    "docker:run:memory": "docker run -p 8000:8000 --env-file ./.env akunlama-memory"
   },
   "dependencies": {
     "axios": "^1.6.0",

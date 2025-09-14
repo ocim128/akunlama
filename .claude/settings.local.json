@@ -26,7 +26,8 @@
       "Bash(vite build:*)",
       "Bash(npx vite build:*)",
       "Bash(VITE_MAILGUN_EMAIL_DOMAIN=akunlama.com VITE_WEBSITE_DOMAIN=akunlama.onrender.com npx vite build)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Read(//c/Users/user/Documents/Repo/akunlama1/akunlama/**)"
     ],
     "deny": [],
     "ask": []
