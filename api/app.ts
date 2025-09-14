@@ -143,7 +143,7 @@ const staticRegex = /\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico)$/i;
 const immutableRegex = /\.(css|js)$/i;
 
 // Static folder hosting with optimized cache control
-app.use(express.static("public", {
+app.use(express.static(__dirname + "/public", {
     etag: true,
     lastModified: true,
     maxAge: 0, // We set cache-control manually for better control

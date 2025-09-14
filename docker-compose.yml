@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"  # API port
+      - "5173:5173"  # UI port
+    env_file:
+      - .env
+    restart: unless-stopped
+
+  # Production-ready service
+  app-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    ports:
+      - "8000:8000"  # API port only
+    env_file:
+      - .env
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    profiles:
+      - prod
+
+  # Development service with hot reload
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8001:8000"  # API port (different to avoid conflict)
+      - "5174:5173"  # UI port (different to avoid conflict)
+    env_file:
+      - .env
+    environment:
+      - WEBSITE_DOMAIN=localhost:8001
+      - VITE_WEBSITE_DOMAIN=localhost:8001
+    restart: unless-stopped
+    profiles:
+      - dev

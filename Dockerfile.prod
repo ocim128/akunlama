@@ -1,0 +1,43 @@
+# Production Dockerfile for Render.com
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install all dependencies (needed for build)
+RUN npm ci
+
+# Copy the entire project
+COPY . .
+
+# Copy package.json to UI directory (fix for build)
+COPY package.json ./ui/
+
+# Build the application
+RUN npm run build
+
+# Clean up development dependencies after build
+RUN npm prune --omit=dev && npm install concurrently
+
+# Expose port 8000 for API (Render.com will use this)
+EXPOSE 8000
+
+# Set default environment variables (will be overridden by Render.com)
+ENV HOST=0.0.0.0
+ENV PORT=8000
+ENV NODE_ENV=production
+
+# Create a simple script to handle environment variables
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'echo "Starting application with environment variables..."' >> /app/start.sh && \
+    echo 'echo "MAILGUN_EMAIL_DOMAIN: ${MAILGUN_EMAIL_DOMAIN:-not set}"' >> /app/start.sh && \
+    echo 'echo "WEBSITE_DOMAIN: ${WEBSITE_DOMAIN:-not set}"' >> /app/start.sh && \
+    echo 'echo "NODE_ENV: ${NODE_ENV:-development}"' >> /app/start.sh && \
+    echo 'exec npm start' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Start the application
+CMD ["/app/start.sh"]

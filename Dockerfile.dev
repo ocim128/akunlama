@@ -1,0 +1,32 @@
+# Development Dockerfile
+FROM node:18-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json
+COPY package*.json ./
+
+# Install all dependencies (including dev dependencies)
+RUN npm ci
+
+# Copy the entire project
+COPY . .
+
+# Copy package.json to UI directory (fix for build)
+COPY package.json ./ui/
+
+# Expose ports
+EXPOSE 8000
+EXPOSE 5173
+
+# Set environment variables for development
+ENV MAILGUN_EMAIL_DOMAIN=akunlama.com
+ENV WEBSITE_DOMAIN=localhost:8000
+ENV HOST=0.0.0.0
+ENV PORT=8000
+ENV VITE_MAILGUN_EMAIL_DOMAIN=akunlama.com
+ENV VITE_WEBSITE_DOMAIN=localhost:8000
+
+# Start the development server
+CMD ["npm", "start"]

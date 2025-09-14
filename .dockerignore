@@ -1,23 +1,23 @@
 # Dependencies
-node_modules/
+node_modules
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
 # Build outputs
-dist/
-build/
-*.tsbuildinfo
+dist
+build
+ui/dist
+api/dist
 
-# Environment variables
+# Environment files
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
 
 # Logs
 *.log
+logs/
 
 # Runtime data
 pids
@@ -27,17 +27,12 @@ pids
 
 # Coverage directory used by tools like istanbul
 coverage/
-*.lcov
 
-# nyc test coverage
-.nyc_output
-
-# IDE and editor files
+# IDE files
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 
 # OS generated files
 .DS_Store
@@ -48,38 +43,28 @@ coverage/
 ehthumbs.db
 Thumbs.db
 
-# Temporary files
-tmp/
-temp/
-
-# Cache
-.cache/
-.parcel-cache/
-
-# Testing
-.coverage/
-
 # Git
-.git/
+.git
 .gitignore
 
-# Claude
-.claude/
-
-# Docker
+# Docker files
 Dockerfile
-docker-debug.bat
-docker-notes.md
-# docker-entrypoint.sh is needed for the build
+Dockerfile.dev
+docker-compose.yml
+.dockerignore
 
-# Build scripts
-build.sh
-config.sh
-debug.bat
-docker-dev-build.sh
+# Documentation
+README.md
+*.md
 
-# Deployment
-deploy/
+# Temporary files
+.tmp
+.temp
 
-# Assets (will be copied during build)
-assets/
+# Test files
+test/
+tests/
+*.test.js
+*.test.ts
+*.spec.js
+*.spec.ts

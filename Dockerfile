@@ -1,73 +1,42 @@
-#-------------------------------------------------------
-#
-# Base alpine images with all the runtime os dependencies
-#
-#-------------------------------------------------------
+# Use Node.js 18 as the base image
+FROM node:18-alpine
 
-# Does basic node, and runtime dependencies
-FROM node:18-alpine AS baseimage
-RUN apk add --no-cache gettext
-RUN mkdir -p /application/
+# Set working directory
+WORKDIR /app
 
-#-------------------------------------------------------
-#
-# Dependency installation stage
-#
-#-------------------------------------------------------
+# Copy package.json and package-lock.json
+COPY package*.json ./
 
-FROM baseimage AS deps
-# copy package files
-COPY package.json /application/package.json
-COPY package-lock.json /application/package-lock.json
-WORKDIR /application
-# install dependencies
+# Install all dependencies (needed for build)
 RUN npm ci
 
-#-------------------------------------------------------
-#
-# Build stage
-#
-#-------------------------------------------------------
+# Copy the entire project
+COPY . .
 
-FROM deps AS builder
-# copy source code
-COPY api /application/api/
-COPY ui /application/ui/
-COPY docker-entrypoint.sh /application/docker-entrypoint.sh
-# copy config files
-RUN cp /application/ui/config/apiconfig.sample.js /application/ui/config/apiconfig.js
-# build the project
+# Copy package.json to UI directory (fix for build)
+COPY package.json ./ui/
+
+# Build the application
 RUN npm run build
 
-#-------------------------------------------------------
-#
-# Production stage
-#
-#-------------------------------------------------------
+# Clean up development dependencies but keep concurrently
+RUN npm prune --omit=dev && npm install concurrently
 
-FROM baseimage AS production
-# copy package files
-COPY package.json /application/package.json
-COPY package-lock.json /application/package-lock.json
-WORKDIR /application
-# install only production dependencies
-RUN npm ci --only=production
-# copy built files and dependencies
-COPY --from=builder /application/api /application/api/
-COPY --from=builder /application/ui/dist /application/ui-dist/
-COPY --from=builder /application/docker-entrypoint.sh /application/docker-entrypoint.sh
-# copy node modules from deps stage for dev dependencies needed for runtime
-COPY --from=deps /application/node_modules /application/node_modules/
-RUN chmod +x /application/docker-entrypoint.sh
-
-# Expose the server port
+# Expose port 8000 for API
 EXPOSE 8000
 
-# Configurable environment variable
-ENV MAILGUN_EMAIL_DOMAIN=""
-ENV MAILGUN_API_KEY=""
-ENV WEBSITE_DOMAIN=""
+# Expose port 5173 for UI (for development)
+EXPOSE 5173
 
-# Setup the entrypoint
-ENTRYPOINT [ "/application/docker-entrypoint.sh" ]
-CMD []
+# Set default environment variables (can be overridden)
+ENV HOST=0.0.0.0
+ENV PORT=8000
+ENV NODE_ENV=production
+
+# For development: copy .env file (will be overridden by production env vars)
+# Production environment variables should be set via Docker run command or Render.com
+COPY .env.example .env
+RUN cp .env ./ui/.env
+
+# Start the application
+CMD ["npm", "start"]
