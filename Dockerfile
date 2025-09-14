@@ -35,8 +35,9 @@ FROM baseimage AS codebuilder
 # Build the API
 # with reseted node_modules
 FROM codebuilder AS apibuilder
-# copy and download dependencies
-COPY api/package.json /application/api-mods/package.json
+# copy and download dependencies (using root package.json since api doesn't have its own)
+COPY package.json /application/api-mods/package.json
+COPY package-lock.json /application/api-mods/package-lock.json
 RUN cd /application/api-mods/ && npm install
 # copy source code
 COPY api /application/api/
@@ -48,11 +49,16 @@ RUN ls /application/api/
 # Build the UI
 # with reseted node_modules
 FROM codebuilder AS uibuilder
+# copy dependencies first (using root package.json since ui doesn't have its own)
+COPY package.json /application/ui-mods/package.json
+COPY package-lock.json /application/ui-mods/package-lock.json
+RUN cd /application/ui-mods/ && npm install
 # copy and reset the code
 COPY ui  /application/ui/
 RUN rm -rf /application/ui/node_modules
 RUN rm -rf /application/ui/dist
-RUN cd /application/ui  && ls && npm install
+# merge in dependencies
+RUN cp -r /application/ui-mods/node_modules /application/ui/node_modules
 # Lets do the UI build
 RUN cp /application/ui/config/apiconfig.sample.js /application/ui/config/apiconfig.js
 RUN cd /application/ui && npm run build
