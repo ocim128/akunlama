@@ -21,7 +21,12 @@
       "Bash(docker exec:*)",
       "Bash(docker stop:*)",
       "Bash(docker rm:*)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "Bash(npx tsc:*)",
+      "Bash(vite build:*)",
+      "Bash(npx vite build:*)",
+      "Bash(VITE_MAILGUN_EMAIL_DOMAIN=akunlama.com VITE_WEBSITE_DOMAIN=akunlama.onrender.com npx vite build)",
+      "Bash(cat:*)"
     ],
     "deny": [],
     "ask": []

@@ -2,7 +2,7 @@
   "compilerOptions": {
     "target": "ES2020",
     "module": "ESNext",
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "lib": ["ES2020", "DOM", "DOM.Iterable", "ES2021"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"]
@@ -32,7 +32,8 @@
   },
   "include": [
     "src/**/*",
-    "config/**/*"
+    "config/**/*",
+    "vite-env.d.ts"
   ],
   "exclude": [
     "node_modules",

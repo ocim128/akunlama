@@ -74,11 +74,10 @@ echo ">> Installing dependencies"
 npm install
 
 #
-# Export Vite-specific environment variables for frontend
-# (Vite requires VITE_ prefix for frontend access)
+# Environment variables for frontend
+# Vite will now use the regular environment variables directly
+# (No need for VITE_ prefix with our updated configuration)
 #
-export VITE_MAILGUN_EMAIL_DOMAIN="$MAILGUN_EMAIL_DOMAIN"
-export VITE_WEBSITE_DOMAIN="$WEBSITE_DOMAIN"
 
 #
 # Applying the configuration (using envsubst for frontend variables)
@@ -86,4 +85,4 @@ export VITE_WEBSITE_DOMAIN="$WEBSITE_DOMAIN"
 echo ">> Applying config settings"
 # API config already uses process.env, no substitution needed
 # UI config needs substitution for Vite
-cat "$projectDir/ui/config/apiconfig.js" | envsubst > "$projectDir/ui/config/apiconfig.tmp.js" && mv "$projectDir/ui/config/apiconfig.tmp.js" "$projectDir/ui/config/apiconfig.js"
+# UI config now uses import.meta.env, no substitution needed

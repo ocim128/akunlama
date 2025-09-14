@@ -24,8 +24,8 @@ Set these environment variables in your Render.com dashboard:
 - `BANNED_IPS`: Comma-separated list of banned IPs
 - `HOST`: Server host (default: 0.0.0.0)
 - `PORT`: Server port (default: 8000)
-- `VITE_MAILGUN_EMAIL_DOMAIN`: Frontend Mailgun domain
-- `VITE_WEBSITE_DOMAIN`: Frontend website domain
+- `MAILGUN_EMAIL_DOMAIN`: Frontend Mailgun domain (for Vite build)
+- `WEBSITE_DOMAIN`: Frontend website domain (for Vite build)
 
 ## Deployment Methods
 
@@ -80,9 +80,9 @@ services:
         value: akunlama.onrender.com
       - key: BANNED_USERNAMES
         value: faturrasyidmuhammad07,diani38071,pazaleegre,cemiloktay2,theboybil,diandikaara,hawkman7609,autenticview,yogiceper25,green14fly,najman8522,faradina6986,wyizrjo2g86kclm,research-population-76,endangpurwanti0511,melanyp_andini,obeidblicke,aspakpahtan21,ardiclops,sevvalkapci
-      - key: VITE_MAILGUN_EMAIL_DOMAIN
+      - key: MAILGUN_EMAIL_DOMAIN
         value: your_domain.com
-      - key: VITE_WEBSITE_DOMAIN
+      - key: WEBSITE_DOMAIN
         value: akunlama.onrender.com
       - key: NODE_ENV
         value: production
@@ -155,7 +155,7 @@ docker-compose --profile prod up app-prod
    - Review email sending logs
 
 4. **Frontend not loading**
-   - Check VITE_ environment variables
+   - Check MAILGUN_EMAIL_DOMAIN and WEBSITE_DOMAIN environment variables
    - Ensure CORS is properly configured
    - Check browser console for errors
 

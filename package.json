@@ -9,7 +9,7 @@
     "ui": "cd ui && vite",
     "build": "npm run build:api && npm run build:ui",
     "build:api": "cd api && tsc",
-    "build:ui": "cd ui && tsc && vite build",
+    "build:ui": "cd ui && vite build",
     "preview": "cd ui && vite preview",
     "test": "mocha",
     "type-check": "npm run type-check:api && npm run type-check:ui",

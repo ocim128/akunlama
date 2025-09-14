@@ -25,18 +25,21 @@ RUN npm prune --omit=dev && npm install concurrently
 # Expose port 8000 for API
 EXPOSE 8000
 
-# Expose port 5173 for UI (for development)
-EXPOSE 5173
-
 # Set default environment variables (can be overridden)
 ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV NODE_ENV=production
 
-# For development: copy .env file (will be overridden by production env vars)
-# Production environment variables should be set via Docker run command or Render.com
+# Set Vite environment variables for build time
+# Render.com will override these with actual values from environment
+ARG MAILGUN_EMAIL_DOMAIN=akunlama.com
+ARG WEBSITE_DOMAIN=localhost:8000
+
+ENV MAILGUN_EMAIL_DOMAIN=$MAILGUN_EMAIL_DOMAIN
+ENV WEBSITE_DOMAIN=$WEBSITE_DOMAIN
+
+# Copy .env.example for reference
 COPY .env.example .env
-RUN cp .env ./ui/.env
 
 # Start the application
 CMD ["npm", "start"]

@@ -39,7 +39,6 @@ services:
       - .env
     environment:
       - WEBSITE_DOMAIN=localhost:8001
-      - VITE_WEBSITE_DOMAIN=localhost:8001
     restart: unless-stopped
     profiles:
       - dev

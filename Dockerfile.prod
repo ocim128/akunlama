@@ -30,6 +30,14 @@ ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV NODE_ENV=production
 
+# Set Vite environment variables for build time
+# Render.com will override these with actual values from environment
+ARG MAILGUN_EMAIL_DOMAIN=akunlama.com
+ARG WEBSITE_DOMAIN=localhost:8000
+
+ENV MAILGUN_EMAIL_DOMAIN=$MAILGUN_EMAIL_DOMAIN
+ENV WEBSITE_DOMAIN=$WEBSITE_DOMAIN
+
 # Create a simple script to handle environment variables
 RUN echo '#!/bin/sh' > /app/start.sh && \
     echo 'echo "Starting application with environment variables..."' >> /app/start.sh && \
