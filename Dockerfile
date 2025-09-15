@@ -1,4 +1,6 @@
-# Use Node.js 18 as the base image
+# Single-process Dockerfile for memory efficiency
+# Based on old version architecture that achieved 6% memory usage
+
 FROM node:18-alpine
 
 # Set working directory
@@ -16,34 +18,38 @@ COPY . .
 # Copy package.json to UI directory (fix for build)
 COPY package.json ./ui/
 
-# Build the application
-RUN npm run build
+# Build the API
+RUN cd api && npm run build
 
-# Clean up development dependencies but keep concurrently
-RUN npm prune --omit=dev && npm install concurrently
+# Build the UI only
+RUN cd ui && npx vite build
 
-# Expose port 8000 for API
+# Copy built UI files to API public directory
+RUN mkdir -p api/public && cp -r ui/dist/* api/public/
+
+# Install only production dependencies for API
+RUN cd api && npm ci --only=production
+
+# Clean up unnecessary files
+RUN rm -rf ui/node_modules ui/dist node_modules
+
+# Expose port 8000
 EXPOSE 8000
 
-# Expose port 5173 for UI (for development)
-EXPOSE 5173
-
-
-# Set default environment variables (can be overridden)
+# Set environment variables
 ENV HOST=0.0.0.0
 ENV PORT=8000
 ENV NODE_ENV=production
 
 # Set Vite environment variables for build time
-# Render.com will override these with actual values from environment
 ARG VITE_MAILGUN_EMAIL_DOMAIN=$MAILGUN_EMAIL_DOMAIN
 ARG VITE_WEBSITE_DOMAIN=$WEBSITE_DOMAIN
 
 ENV VITE_MAILGUN_EMAIL_DOMAIN=$VITE_MAILGUN_EMAIL_DOMAIN
 ENV VITE_WEBSITE_DOMAIN=$VITE_WEBSITE_DOMAIN
 
-# Copy .env.example for reference
-COPY .env.example .env
+# Work in API directory
+WORKDIR /app/api
 
-# Start the application
-CMD ["npm", "start"]
+# Start only the API server (which serves UI files statically)
+CMD ["node", "dist/app.js"]

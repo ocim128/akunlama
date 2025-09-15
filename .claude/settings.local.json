@@ -27,7 +27,10 @@
       "Bash(npx vite build:*)",
       "Bash(VITE_MAILGUN_EMAIL_DOMAIN=akunlama.com VITE_WEBSITE_DOMAIN=akunlama.onrender.com npx vite build)",
       "Bash(cat:*)",
-      "Read(//c/Users/user/Documents/Repo/akunlama1/akunlama/**)"
+      "Read(//c/Users/user/Documents/Repo/akunlama1/akunlama/**)",
+      "Bash(npm run docker:build:memory:*)",
+      "Bash(npm run docker:build:single:*)",
+      "Bash(npm run docker:build:*)"
     ],
     "deny": [],
     "ask": []
