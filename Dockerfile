@@ -57,7 +57,7 @@ RUN cd /application/ui  && ls && npm install
 RUN cp /application/ui/config/apiconfig.sample.js /application/ui/config/apiconfig.js
 RUN cd /application/ui && npm run build
 
-# Entry script 
+# Entry script
 # & Permission reset
 FROM codebuilder AS entrypointbuilder
 COPY docker-entrypoint.sh  /application/docker-entrypoint.sh
