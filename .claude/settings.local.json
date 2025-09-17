@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm start)",
+      "Bash(wmic:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(dos2unix:*)",
+      "Bash(docker stats:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Bash(docker inspect:*)",
+      "Bash(docker images:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(git merge:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)",
+      "Bash(git restore:*)",
+      "Bash(gh pr create:*)",
+      "Bash(docker logs:*)",
+      "Bash(curl:*)",
+      "Bash(docker-compose:*)",
+      "Bash(docker build:*)",
+      "Bash(docker run:*)",
+      "Bash(docker stop:*)",
+      "Bash(docker rm:*)",
+      "Bash(del:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
