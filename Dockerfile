@@ -43,8 +43,6 @@ COPY api /application/api/
 RUN rm -rf /application/api/node_modules
 # merge in dependnecies
 RUN cp -r /application/api-mods/node_modules /application/api/node_modules
-# OPTIMIZATION: npm dedupe to reduce duplicate dependencies
-RUN cd /application/api && npm dedupe
 RUN ls /application/api/
 
 # Build the UI
@@ -55,13 +53,9 @@ COPY ui  /application/ui/
 RUN rm -rf /application/ui/node_modules
 RUN rm -rf /application/ui/dist
 RUN cd /application/ui  && ls && npm install
-# OPTIMIZATION: npm dedupe to reduce duplicate dependencies
-RUN cd /application/ui && npm dedupe
 # Lets do the UI build
 RUN cp /application/ui/config/apiconfig.sample.js /application/ui/config/apiconfig.js
 RUN cd /application/ui && npm run build
-# OPTIMIZATION: npm prune --production to remove dev dependencies after build
-RUN cd /application/ui && npm prune --production
 
 # Entry script
 # & Permission reset

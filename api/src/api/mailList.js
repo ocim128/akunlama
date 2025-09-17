@@ -8,7 +8,7 @@ const mailgunClient = mailgun({
 
 // Simple in-memory cache for email lists to reduce API calls
 const emailCache = new Map();
-const CACHE_TTL = 30000; // 30 seconds cache
+const CACHE_TTL = 5000; // 5 seconds cache
 const MAX_CACHE_SIZE = 1000; // Prevent memory exhaustion
 
 // Cache management functions
