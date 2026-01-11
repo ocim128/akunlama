@@ -244,8 +244,10 @@ if (require.main === module) {
         }, 300000); // Changed from 60000 to 300000
     });
 
-    // Optimize server settings for high traffic
     server.keepAliveTimeout = 5000;
     server.headersTimeout = 6000;
+} else {
+    // Export for Vercel Serverless
+    module.exports = app;
 }
 

@@ -2,8 +2,13 @@
     "version": 2,
     "builds": [
         {
-            "src": "api/app.js",
-            "use": "@vercel/node"
+            "src": "backend/app.js",
+            "use": "@vercel/node",
+            "config": {
+                "includeFiles": [
+                    "backend/**"
+                ]
+            }
         },
         {
             "src": "ui/package.json",
@@ -16,7 +21,7 @@
     "rewrites": [
         {
             "source": "/api/(.*)",
-            "destination": "api/app.js"
+            "destination": "backend/app.js"
         },
         {
             "source": "/(.*)",
