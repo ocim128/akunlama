@@ -182,39 +182,44 @@ app.use(function (req, res) {
 });
 
 // Setup the server with optimized settings
-var server = app.listen(8000, function () {
-    console.log("===========================================");
-    console.log(`🚀 API RUNNING ON PORT ${server.address().port}`);
-    console.log(`📧 Backend: ${mailConfig}`);
-    console.log("===========================================");
-    console.log("Bandwidth optimization enabled: compression, caching");
-    console.log("Security features: IP-based rate limiting, input validation");
+if (process.env.NODE_ENV !== 'test' && !process.env.VERCEL) {
+    var server = app.listen(8000, function () {
+        console.log("===========================================");
+        console.log(`🚀 API RUNNING ON PORT ${server.address().port}`);
+        console.log(`📧 Backend: ${mailConfig}`);
+        console.log("===========================================");
+        console.log("Bandwidth optimization enabled: compression, caching");
+        console.log("Security features: IP-based rate limiting, input validation");
 
-    // Optimized memory monitoring with reduced frequency and overhead
-    setInterval(() => {
-        const memUsage = process.memoryUsage();
-        const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+        // Optimized memory monitoring with reduced frequency and overhead
+        setInterval(() => {
+            const memUsage = process.memoryUsage();
+            const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
 
-        // Only log if memory exceeds threshold (reduced from 200MB to 150MB for earlier detection)
-        if (heapUsedMB > 150) {
-            const memMB = {
-                rss: Math.round(memUsage.rss / 1024 / 1024),
-                heapUsed: heapUsedMB,
-                heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-                external: Math.round(memUsage.external / 1024 / 1024)
-            };
-            console.log(`[MEMORY WARNING] High memory usage: RSS=${memMB.rss}MB, Heap=${memMB.heapUsed}/${memMB.heapTotal}MB, External=${memMB.external}MB`);
-        }
-    }, 300000); // Every 5 minutes
+            // Only log if memory exceeds threshold (reduced from 200MB to 150MB for earlier detection)
+            if (heapUsedMB > 150) {
+                const memMB = {
+                    rss: Math.round(memUsage.rss / 1024 / 1024),
+                    heapUsed: heapUsedMB,
+                    heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
+                    external: Math.round(memUsage.external / 1024 / 1024)
+                };
+                console.log(`[MEMORY WARNING] High memory usage: RSS=${memMB.rss}MB, Heap=${memMB.heapUsed}/${memMB.heapTotal}MB, External=${memMB.external}MB`);
+            }
+        }, 300000); // Every 5 minutes
 
-    // Reduced frequency memory logging - only every 5 minutes instead of every minute
-    setInterval(() => {
-        const memUsage = process.memoryUsage();
-        const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-        console.log(`[MEMORY] Heap usage: ${heapUsedMB}MB`);
-    }, 300000); // Changed from 60000 to 300000
-});
+        // Reduced frequency memory logging - only every 5 minutes instead of every minute
+        setInterval(() => {
+            const memUsage = process.memoryUsage();
+            const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+            console.log(`[MEMORY] Heap usage: ${heapUsedMB}MB`);
+        }, 300000); // Changed from 60000 to 300000
+    });
 
-// Optimize server settings for high traffic
-server.keepAliveTimeout = 5000;
-server.headersTimeout = 6000;
+    // Optimize server settings for high traffic
+    server.keepAliveTimeout = 5000;
+    server.headersTimeout = 6000;
+}
+
+// Export the app for Vercel
+module.exports = app;

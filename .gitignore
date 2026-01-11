@@ -38,8 +38,9 @@ node_modules
 
 # Config
 /ui/config/apiconfig.js
-/api/config/kittenRouterConfig.js
-/api/config/mailgunConfig.js
+# /api/config/kittenRouterConfig.js
+# /api/config/mailgunConfig.js
+# /api/config/cloudflareConfig.js
 
 # Local development scripts
 docker-debug.bat
