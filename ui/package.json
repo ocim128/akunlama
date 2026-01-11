@@ -11,7 +11,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel-build": "cp config/apiconfig.vercel.js config/apiconfig.js && vite build",
+    "prebuild": "cp config/apiconfig.vercel.js config/apiconfig.js"
   },
   "dependencies": {
     "axios": "^1.6.0",
