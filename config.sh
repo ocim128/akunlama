@@ -12,6 +12,15 @@ projectDir="`pwd`"
 # Scanning and installing dependencies
 # (Assuming a mac)
 #
+if [ -z "$(which envsubst)" ]; then
+	if [ -z "$(which brew)" ]; then
+		echo ">> envsubst not detected : please install =["
+	else
+		echo ">> envsubst not detected : using brew to install"
+		brew install gettext
+		brew link --force gettext 
+	fi
+fi
 if [ -z "$(which npm)" ]; then
 	echo ">> NPM not detected : please install =["
 	exit 1;
@@ -26,69 +35,40 @@ if [ -z "$(which go)" ]; then
 fi
 
 #
-# Load environment variables from .env file if it exists
-#
-if [ -f "$projectDir/.env" ]; then
-    echo ">> Loading environment variables from .env file"
-    export $(cat "$projectDir/.env" | grep -v '^#' | xargs)
-else
-    echo ">> Warning: .env file not found. Using existing environment variables."
-fi
-
-#
-# Check required environment variables
+# Getting the various configuration settings from command line / environment variable
 #
 if [ -z "$MAILGUN_EMAIL_DOMAIN" ]; then
-	echo ">> ERROR: MAILGUN_EMAIL_DOMAIN is not set. Please set it in your .env file or environment."
-	exit 1;
+	echo ">> Please type in your MAILGUN_EMAIL_DOMAIN (eg: inboxkitten.com)";
+	read -p '>> MAILGUN_EMAIL_DOMAIN : ' MAILGUN_EMAIL_DOMAIN;
+else
+	echo ">> Detected MAILGUN_EMAIL_DOMAIN env variable : $MAILGUN_EMAIL_DOMAIN";
 fi
 
 if [ -z "$WEBSITE_DOMAIN" ]; then
-	echo ">> ERROR: WEBSITE_DOMAIN is not set. Please set it in your .env file or environment."
-	exit 1;
+	echo ">> Please type in your WEBSITE_DOMAIN (eg: inboxkitten.com)";
+	read -p '>> WEBSITE_DOMAIN : ' WEBSITE_DOMAIN;
+else
+	echo ">> Detected WEBSITE_DOMAIN env variable : $WEBSITE_DOMAIN";
 fi
-
-# Set VITE_ environment variables for frontend
-export VITE_MAILGUN_EMAIL_DOMAIN="$MAILGUN_EMAIL_DOMAIN"
-export VITE_WEBSITE_DOMAIN="$WEBSITE_DOMAIN"
 
 if [ -z "$MAILGUN_API_KEY" ]; then
-	echo ">> ERROR: MAILGUN_API_KEY is not set. Please set it in your .env file or environment."
-	exit 1;
+	echo ">> Please type in your MAILGUN_API_KEY";
+	read -sp '>> MAILGUN_API_KEY : ' MAILGUN_API_KEY;
+	echo "";
+else
+	echo ">> Detected MAILGUN_API_KEY env variable : [intentionally redacted]";
 fi
 
-if [ -z "$ADMIN_ACCESS_KEY" ]; then
-	echo ">> ERROR: ADMIN_ACCESS_KEY is not set. Please set it in your .env file or environment."
-	exit 1;
-fi
+#
+# Exporting variables, for envsubst support
+#
+export MAILGUN_EMAIL_DOMAIN="$MAILGUN_EMAIL_DOMAIN"
+export MAILGUN_API_KEY="$MAILGUN_API_KEY"
+export WEBSITE_DOMAIN="$WEBSITE_DOMAIN"
 
 #
-# Display configuration (without sensitive data)
-#
-echo ">> Configuration loaded:"
-echo "   MAILGUN_EMAIL_DOMAIN: $MAILGUN_EMAIL_DOMAIN"
-echo "   WEBSITE_DOMAIN: $WEBSITE_DOMAIN"
-echo "   VITE_MAILGUN_EMAIL_DOMAIN: $VITE_MAILGUN_EMAIL_DOMAIN"
-echo "   VITE_WEBSITE_DOMAIN: $VITE_WEBSITE_DOMAIN"
-echo "   MAILGUN_API_KEY: [REDACTED]"
-echo "   ADMIN_ACCESS_KEY: [REDACTED]"
-
-#
-# Install dependencies
-#
-echo ">> Installing dependencies"
-npm install
-
-#
-# Environment variables for frontend
-# Vite will now use the regular environment variables directly
-# (No need for VITE_ prefix with our updated configuration)
-#
-
-#
-# Applying the configuration (using envsubst for frontend variables)
+# Applying the configuration
 #
 echo ">> Applying config settings"
-# API config already uses process.env, no substitution needed
-# UI config needs substitution for Vite
-# UI config now uses import.meta.env, no substitution needed
+cat "$projectDir/api/config/mailgunConfig.sample.js" | envsubst > "$projectDir/api/config/mailgunConfig.js"
+cat "$projectDir/ui/config/apiconfig.sample.js" | envsubst > "$projectDir/ui/config/apiconfig.js"

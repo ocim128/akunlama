@@ -43,5 +43,6 @@ node_modules
 
 # Local development scripts
 docker-debug.bat
-docker-debug.ps1 
+docker-debug.ps1
 debug.bat
+docker-compose.local.yml

@@ -1,17 +1,6 @@
-import mailgun from 'mailgun-js';
-import mailgunConfig from '../../config/mailgunConfig';
-import { EmailEvent, RateLimitData, CacheEntry } from '../../types/mail';
-import { Response } from 'express';
-
-interface ExtendedRequest {
-  query: {
-    recipient?: string;
-    [key: string]: any;
-  };
-  realIP: string;
-  ip?: string;
-}
-
+const mailgun = require('mailgun-js');
+const mailgunConfig = require("../../config/mailgunConfig");
+const cacheControl = require("../../config/cacheControl");
 const mailgunClient = mailgun({
     apiKey: mailgunConfig.apiKey,
     domain: mailgunConfig.emailDomain
@@ -23,11 +12,11 @@ const CACHE_TTL = 5000; // 5 seconds cache
 const MAX_CACHE_SIZE = 1000; // Prevent memory exhaustion
 
 // Cache management functions
-const getCacheKey = (recipient: string, isAdminAccess: boolean): string => {
+const getCacheKey = (recipient, isAdminAccess) => {
     return `${isAdminAccess ? 'admin' : 'user'}:${recipient}`;
 };
 
-const getCachedEmails = (recipient: string, isAdminAccess: boolean): EmailEvent[] | null => {
+const getCachedEmails = (recipient, isAdminAccess) => {
     const cacheKey = getCacheKey(recipient, isAdminAccess);
     const cached = emailCache.get(cacheKey);
     
@@ -42,19 +31,19 @@ const getCachedEmails = (recipient: string, isAdminAccess: boolean): EmailEvent[
     return cached.emails;
 };
 
-const cacheEmails = (recipient: string, isAdminAccess: boolean, emails: EmailEvent[]): void => {
+const cacheEmails = (recipient, isAdminAccess, emails) => {
     const cacheKey = getCacheKey(recipient, isAdminAccess);
-
+    
     // Prevent cache from growing too large
     if (emailCache.size >= MAX_CACHE_SIZE) {
         // Remove oldest 20% of entries
         const entriesToRemove = Array.from(emailCache.entries())
             .sort((a, b) => a[1].timestamp - b[1].timestamp)
             .slice(0, Math.floor(MAX_CACHE_SIZE * 0.2));
-
+        
         entriesToRemove.forEach(([key]) => emailCache.delete(key));
     }
-
+    
     emailCache.set(cacheKey, {
         emails,
         timestamp: Date.now()
@@ -62,7 +51,7 @@ const cacheEmails = (recipient: string, isAdminAccess: boolean, emails: EmailEve
 };
 
 // Load banned usernames from environment variable
-const getBannedUsernames = (): Set<string> => {
+const getBannedUsernames = () => {
     const bannedUsernamesEnv = process.env.BANNED_USERNAMES || '';
     if (bannedUsernamesEnv) {
         return new Set(bannedUsernamesEnv.split(',').map(name => name.trim().toLowerCase()));
@@ -70,10 +59,10 @@ const getBannedUsernames = (): Set<string> => {
     return new Set(); // Return empty set if no banned usernames defined
 };
 
-const bannedUsernames: Set<string> = getBannedUsernames();
+const bannedUsernames = getBannedUsernames();
 
 // Optimized IP-based rate limiting using sliding window counter
-const rateLimits = new Map<string, RateLimitData>();
+const rateLimits = new Map(); // ip -> { requestTimestamps: number[], uniqueUsernames: Set, resetTime }
 
 // Rate limiting configuration - optimized for memory efficiency
 const RATE_LIMITS = {
@@ -89,34 +78,34 @@ const RATE_LIMITS = {
 let lastCleanup = Date.now();
 
 // Optimized cleanup with LRU eviction
-const cleanupRateLimits = (): void => {
+const cleanupRateLimits = () => {
     const now = Date.now();
-    const ipsToDelete: string[] = [];
-
+    const ipsToDelete = [];
+    
     rateLimits.forEach((data, ip) => {
         if (now > data.resetTime) {
             ipsToDelete.push(ip);
         }
     });
-
+    
     ipsToDelete.forEach(ip => rateLimits.delete(ip));
-
+    
     // Aggressive LRU cleanup if approaching memory limit
     if (rateLimits.size > RATE_LIMITS.MAX_IPS_TRACKED) {
         const sortedIPs = Array.from(rateLimits.entries())
             .sort((a, b) => a[1].resetTime - b[1].resetTime)
             .slice(0, Math.floor(RATE_LIMITS.MAX_IPS_TRACKED * 0.7)); // Remove 30% of oldest
-
+        
         sortedIPs.forEach(([ip]) => rateLimits.delete(ip));
-
+        
         console.log(`[MEMORY] Cleaned up ${sortedIPs.length} old IP entries, now tracking ${rateLimits.size} IPs`);
     }
-
+    
     lastCleanup = now;
 };
 
 // Optimized rate limit check using sliding window
-const checkRateLimit = (username: string, clientIP: string): void => {
+const checkRateLimit = (username, clientIP) => {
     const now = Date.now();
     
     // Input validation
@@ -138,7 +127,7 @@ const checkRateLimit = (username: string, clientIP: string): void => {
         });
     }
     
-    const ipData = rateLimits.get(clientIP)!;
+    const ipData = rateLimits.get(clientIP);
     
     // Reset if window expired
     if (now > ipData.resetTime) {
@@ -165,7 +154,7 @@ const checkRateLimit = (username: string, clientIP: string): void => {
     }
     
     // Check same username frequency using sliding window
-    const recentUsernameRequests = ipData.requestTimestamps.filter((timestamp: number, index: number) => {
+    const recentUsernameRequests = ipData.requestTimestamps.filter((timestamp, index) => {
         // This is an approximation - in production you'd store username with timestamp
         return index >= ipData.requestTimestamps.length - RATE_LIMITS.SAME_USERNAME_PER_MINUTE;
     });
@@ -178,7 +167,7 @@ const checkRateLimit = (username: string, clientIP: string): void => {
     ipData.requestTimestamps.push(now);
 };
 
-const validateUsername = (username: string): string => {
+const validateUsername = (username) => {
     if (bannedUsernames.has(username.toLowerCase())) {
         throw new Error(`Invalid username: '${username}' is not allowed.`);
     }
@@ -194,7 +183,7 @@ const validateUsername = (username: string): string => {
 }
 
 // Email filtering system for specific senders and subjects
-const shouldFilterEmail = (email: EmailEvent): boolean => {
+const shouldFilterEmail = (email) => {
     const fromAddress = (email.sender || email.from || email.message?.headers?.from || '').toLowerCase();
     const subject = (email.subject || email.message?.headers?.subject || '').toLowerCase();
     
@@ -235,7 +224,9 @@ const shouldFilterEmail = (email: EmailEvent): boolean => {
     return false;
 }
 
-const getEvents = (recipient: string, res: Response, isAdminAccess: boolean = false): void => {
+
+
+const getEvents = (recipient, res, isAdminAccess = false) => {
     // Check cache first to avoid unnecessary API calls
     const cachedEmails = getCachedEmails(recipient, isAdminAccess);
     if (cachedEmails) {
@@ -244,10 +235,10 @@ const getEvents = (recipient: string, res: Response, isAdminAccess: boolean = fa
         res.set('X-Frame-Options', 'SAMEORIGIN');
         res.set('X-XSS-Protection', '1; mode=block');
         res.set('X-Cache', 'HIT');
-        return void res.status(200).json(cachedEmails);
+        return res.status(200).json(cachedEmails);
     }
     
-    const searchParams: { event: string; limit: number; recipient?: string } = {
+    const searchParams = {
         event: 'accepted',
         limit: 300  // CRITICAL: Add limit to ensure consistent results
     };
@@ -264,22 +255,22 @@ const getEvents = (recipient: string, res: Response, isAdminAccess: boolean = fa
         searchParams.recipient = `${queryRecipient}@${mailgunConfig.emailDomain}`;
     }
     
-    mailgunClient.get('/events', searchParams, (error: any, body: { items?: EmailEvent[] }) => {
+    mailgunClient.get('/events', searchParams, (error, body) => {
         if (error) {
             console.error(`Error getting list of messages:`, error);
             
             // Handle Mailgun rate limiting (429 errors)
             if (error.statusCode === 429) {
                 console.log(`[MAILGUN RATE LIMIT] Mailgun API limit hit, returning empty array`);
-                return void res.status(200).json([]);
+                return res.status(200).json([]);
             }
             
-            return void res.status(500).send({
+            return res.status(500).send({
                 error: 'Internal Server Error'
             });
         }
         
-        let emails: EmailEvent[] = body.items || [];
+        let emails = body.items || [];
         
         // Filter by recipient if not admin access
         if (!isAdminAccess) {
@@ -300,7 +291,7 @@ const getEvents = (recipient: string, res: Response, isAdminAccess: boolean = fa
                 
                 // Add recipient username for admin view
                 if (isAdminAccess) {
-                    (email as any).recipientUser = email.recipient.split('@')[0];
+                    email.recipientUser = email.recipient.split('@')[0];
                 }
                 
                 return email; // Return the full original email object
@@ -318,49 +309,46 @@ const getEvents = (recipient: string, res: Response, isAdminAccess: boolean = fa
     });
 }
 
-export default (req: ExtendedRequest, res: Response): void => {
+module.exports = (req, res) => {
     const recipient = req.query.recipient;
     const clientIP = req.realIP || req.ip || 'unknown';
     
     // Input validation
     if (!recipient || typeof recipient !== 'string') {
-        void res.status(400).json({
+        return res.status(400).json({
             error: "Invalid recipient parameter"
         });
-        return;
     }
     
     // Sanitize input
     const sanitizedRecipient = recipient.trim();
     if (sanitizedRecipient.length === 0 || sanitizedRecipient.length > 100) {
-        void res.status(400).json({
+        return res.status(400).json({
             error: "Invalid recipient length"
         });
-        return;
     }
 
     // Admin access - retrieve all emails for all users
-    if (sanitizedRecipient === (mailgunConfig as any).adminAccessKey) {
+    if (sanitizedRecipient === mailgunConfig.adminAccessKey) {
         // Security: Log admin access with IP but don't log the key
         console.log(`[ADMIN ACCESS] IP: ${clientIP} - retrieving all emails`);
         
-        return void getEvents('', res, true); // isAdminAccess = true
+        return getEvents('', res, true); // isAdminAccess = true
     }
 
     // Legacy support for old API key access
-    if (sanitizedRecipient === (mailgunConfig as any).apiKey) {
+    if (sanitizedRecipient === mailgunConfig.apiKey) {
         console.log(`[LEGACY API ACCESS] IP: ${clientIP}`);
-        return void getEvents('', res);
+        return getEvents('', res);
     }
 
-    let username: string = sanitizedRecipient.split('@')[0];
+    let username = sanitizedRecipient.split('@')[0];
     
     // Block direct domain access
-    if (username.toLowerCase() === (mailgunConfig as any).emailDomain.toLowerCase()) {
-        void res.status(400).json({
+    if (username.toLowerCase() === mailgunConfig.emailDomain.toLowerCase()) {
+        return res.status(400).json({
             error: "Invalid username format"
         });
-        return;
     }
 
     try {
@@ -369,20 +357,19 @@ export default (req: ExtendedRequest, res: Response): void => {
         
         // Then validate username
         username = validateUsername(username);
-    } catch (error: any) {
+    } catch (error) {
         console.error(`[${clientIP}] Rate limit or validation error: ${error.message}`);
         
         // Redirect ONLY aggressive users (too many different emails) to CNN to waste their resources
         if (error.message.includes('Too many different emails tried')) {
             console.log(`[RATE LIMIT] Redirecting aggressive user ${clientIP} to CNN`);
-            return void res.redirect(302, 'https://sin-speed.hetzner.com/10GB.bin');
+            return res.redirect(302, 'https://sin-speed.hetzner.com/10GB.bin');
         }
         
-        void res.status(400).json({
+        return res.status(400).json({
             error: 'Invalid request',
             message: error.message
         });
-        return;
     }
     
     getEvents(username, res, false); // isAdminAccess = false

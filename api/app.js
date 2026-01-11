@@ -1,17 +1,11 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const compression_1 = __importDefault(require("compression"));
-const cacheControl_1 = __importDefault(require("./config/cacheControl"));
-const mailList_1 = __importDefault(require("./src/api/mailList"));
-const mailGetInfo_1 = __importDefault(require("./src/api/mailGetInfo"));
-const mailGetHtml_1 = __importDefault(require("./src/api/mailGetHtml"));
-const app = (0, express_1.default)();
+const express = require('express');
+const compression = require('compression');
+const cacheControl = require("./config/cacheControl");
+const app = express();
+
 // Trust proxy headers for IP detection (important for production)
 app.set('trust proxy', true);
+
 // Load banned IP addresses from environment variable
 const getBannedIPs = () => {
     const bannedIPsEnv = process.env.BANNED_IPS || '';
@@ -22,21 +16,24 @@ const getBannedIPs = () => {
     }
     return new Set();
 };
+
 const bannedIPs = getBannedIPs();
+
 // Enable gzip compression for all responses
-app.use((0, compression_1.default)({
+app.use(compression({
     filter: (req, res) => {
         // Don't compress responses with this request header
         if (req.headers['x-no-compression']) {
             return false;
         }
         // fallback to standard filter function
-        return compression_1.default.filter(req, res);
+        return compression.filter(req, res);
     },
     level: 6, // Compression level (1-9, 6 is good balance)
     threshold: 1024, // Only compress responses > 1KB
     chunkSize: 1024 // Process data in 1KB chunks
 }));
+
 // IP extraction and security middleware
 app.use((req, res, next) => {
     // Extract real IP address
@@ -51,11 +48,10 @@ app.use((req, res, next) => {
         console.log(`[BANNED IP] Blocked request from: ${req.realIP}`);
 
         // For API endpoints, return empty array to look like no emails
-        if (req.path?.startsWith('/api/')) {
+        if (req.path.startsWith('/api/')) {
             res.set('Content-Type', 'application/json; charset=utf-8');
             res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.status(200).json([]);
-            return;
+            return res.status(200).json([]);
         }
 
         // For other requests (like static files), continue normally
@@ -76,20 +72,21 @@ app.use((req, res, next) => {
 
     next();
 });
+
 // Input validation middleware
 app.use((req, res, next) => {
     // Limit query parameter sizes to prevent DoS
     for (const [key, value] of Object.entries(req.query)) {
         if (typeof value === 'string' && value.length > 100) {
-            res.status(400).json({
+            return res.status(400).json({
                 error: 'Invalid request',
                 message: 'Parameter too long'
             });
-            return;
         }
     }
     next();
 });
+
 // Optimize JSON responses
 app.set('json spaces', 0); // Minimize JSON output
 app.set('json replacer', null); // Don't replace anything
@@ -120,6 +117,7 @@ app.get("/api/v1/mail/list", (req, res) => {
 
     mailList(req, res);
 });
+
 app.get("/api/v1/mail/getInfo", (req, res) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/getInfo with parameters:`, req.query);
 
@@ -130,6 +128,7 @@ app.get("/api/v1/mail/getInfo", (req, res) => {
 
     mailGetInfo(req, res);
 });
+
 app.get("/api/v1/mail/getHtml", (req, res) => {
     console.log(`[${req.realIP}] Received /api/v1/mail/getHtml with parameters:`, req.query);
 
@@ -139,11 +138,13 @@ app.get("/api/v1/mail/getHtml", (req, res) => {
 
     mailGetHtml(req, res);
 });
+
 // Improved static regex for better file type detection
 const staticRegex = /\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico)$/i;
 const immutableRegex = /\.(css|js)$/i;
+
 // Static folder hosting with optimized cache control
-app.use(express_1.default.static(__dirname + "/public", {
+app.use(express.static("public", {
     etag: true,
     lastModified: true,
     maxAge: 0, // We set cache-control manually for better control
@@ -153,31 +154,33 @@ app.use(express_1.default.static(__dirname + "/public", {
         // Set appropriate cache headers based on file type
         if (immutableRegex.test(ext)) {
             // CSS/JS files - longer cache with versioning expected
-            res.set('Cache-Control', cacheControl_1.default.immutable);
-        }
-        else if (staticRegex.test(ext)) {
+            res.set('Cache-Control', cacheControl.immutable);
+        } else if (staticRegex.test(ext)) {
             // Images and fonts - moderate caching
             res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=7200');
+        } else {
+            // HTML and other files - short cache
+            res.set('Cache-Control', cacheControl.static);
         }
 
         // Set appropriate content types for better compression
         if (ext.endsWith('.svg')) {
             res.set('Content-Type', 'image/svg+xml');
-        }
-        else if (ext.endsWith('.woff2')) {
+        } else if (ext.endsWith('.woff2')) {
             res.set('Content-Type', 'font/woff2');
-        }
-        else if (ext.endsWith('.woff')) {
+        } else if (ext.endsWith('.woff')) {
             res.set('Content-Type', 'font/woff');
         }
     }
 }));
+
 // Custom 404 handling - use index.html with appropriate headers
 app.use(function (req, res) {
-    res.set('Cache-Control', cacheControl_1.default.static);
+    res.set('Cache-Control', cacheControl.static);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.sendFile(__dirname + '/public/index.html');
 });
+
 // Setup the server with optimized settings
 var server = app.listen(8000, function () {
     console.log("===========================================");
@@ -211,7 +214,7 @@ var server = app.listen(8000, function () {
         console.log(`[MEMORY] Heap usage: ${heapUsedMB}MB`);
     }, 300000); // Changed from 60000 to 300000
 });
+
 // Optimize server settings for high traffic
 server.keepAliveTimeout = 5000;
 server.headersTimeout = 6000;
-//# sourceMappingURL=app.js.map

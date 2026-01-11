@@ -25,7 +25,12 @@
 					<h3>Find next available server</h3>
 					<p>With the list of configured servers, KittenRouter can help you redirect the request to the next available server.</p>
 				</div>
+				<div class="feature-card">
+                    <img class="logo" src="@/assets/cloudflare.png" style="width:10rem"/>
+					<h3>Deploy it on Cloudflare</h3>
+					<p>Kitten Router is built for Cloudflare Workers script!</p>
 				</div>
+			</div>
 		</div>
 		<div class="info-guide">
 			<div class="deploy-segmet">
@@ -79,8 +84,21 @@
 		</div>
 		<div class="info-guide">
 			<div class="features steps">
-				<div class="feature-card">
-				<h2>Using Kitten Router via NPM</h2>
+			<div class="feature-card">
+				<h2>Option 1: Using Kitten Router manually</h2>
+				<div class="code deploy-code">
+					<div style="text-align:justify">
+						1. Copy the configuration<br/>
+						2. Copy the index.js file in Github <br/>
+						&nbsp;&nbsp;&nbsp;into your Cloudflare Worker script<br/>
+						3. Initialize KittenRouter variable in your script<br/>
+						&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;let router = new KittenRouter(config)<br/>
+						4. Use it to route all your desires
+					</div>
+				</div>
+			</div>
+			<div class="feature-card">
+				<h2>Option 2: Using Kitten Router via NPM</h2>
 				<div class="code deploy-code">
 					<div style="text-align:justify">
 						1. Copy the configuration<br/>
@@ -119,7 +137,6 @@
 
 <script>
 import shareConfig from '@/../config/shareConfig.js'
-import { onMounted, ref } from 'vue'
 
 // import CarbonAds from './components/CarbonAds.vue'
 
@@ -133,10 +150,8 @@ export default {
 			mainURL: shareConfig.mainURL
 		}
     },
-	setup() {
-		onMounted(() => {
-			document.getElementsByClassName('github-corner')[0].href = 'https://github.com/uilicious/kittenrouter'
-		})
+    mounted () {
+        document.getElementsByClassName('github-corner')[0].href = 'https://github.com/uilicious/kittenrouter'
 	},
 	methods: {
 		goToMainPage () {

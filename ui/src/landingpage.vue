@@ -118,25 +118,36 @@ import $ from 'jquery'
 import config from '@/../config/apiconfig.js'
 import 'normalize.css'
 import ClipboardJS from 'clipboard'
-import { onMounted, onBeforeUnmount, ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 
 export default {
   name: 'LandingPage',
-  setup() {
-    const router = useRouter()
-    const randomName = ref('')
-    let clipboard = null
-
-    const domain = computed(() => config.domain)
-    const fullEmailAddress = computed(() => {
-      if (randomName.value.includes(`@${config.domain}`)) {
-        return randomName.value
+  data() {
+    return {
+      randomName: ''
+    }
+  },
+  mounted() {
+    // Keep randomName empty by default - user can generate name with shuffle button
+    this.initClipboard()
+  },
+  beforeDestroy() {
+    if (this.$clipboard) {
+      this.$clipboard.destroy()
+    }
+  },
+  computed: {
+    domain() {
+      return config.domain
+    },
+    fullEmailAddress() {
+      if (this.randomName.includes(`@${config.domain}`)) {
+        return this.randomName
       }
-      return `${randomName.value}@${config.domain}`
-    })
-
-    const generateRandomName = () => {
+      return `${this.randomName}@${config.domain}`
+    }
+  },
+  methods: {
+    generateRandomName() {
       // Expanded fun, readable combinations with dashes
       const adjectives = [
         'sleepy', 'fluffy', 'sneaky', 'bouncy', 'fuzzy', 'lazy', 'happy', 'silly',
@@ -152,7 +163,7 @@ export default {
         'stormy', 'sunny', 'cloudy', 'misty', 'frosty', 'snowy', 'rainy', 'windy',
         'peppy', 'zippy', 'snappy', 'perky', 'quirky', 'funky', 'groovy', 'trendy'
       ]
-
+      
       const nouns = [
         'kitten', 'cat', 'tiger', 'lion', 'panda', 'fox', 'wolf', 'bear',
         'rabbit', 'mouse', 'bird', 'fish', 'frog', 'bee', 'butterfly', 'owl',
@@ -176,50 +187,50 @@ export default {
         'mountain', 'valley', 'river', 'ocean', 'lake', 'forest', 'desert', 'island',
         'castle', 'tower', 'bridge', 'garden', 'park', 'beach', 'cave', 'waterfall'
       ]
-
+      
       const numbers = Math.floor(Math.random() * 999) + 1
       const adjective = adjectives[Math.floor(Math.random() * adjectives.length)]
       const noun = nouns[Math.floor(Math.random() * nouns.length)]
-
+      
       return `${adjective}-${noun}-${numbers}`
-    }
+    },
 
-    const generateNewName = () => {
-      randomName.value = generateRandomName()
-    }
+    generateNewName() {
+      this.randomName = this.generateRandomName()
+    },
 
-    const initClipboard = () => {
-      clipboard = new ClipboardJS('.domain-display, .preview-email', {
-        text: () => fullEmailAddress.value
+    initClipboard() {
+      this.$clipboard = new ClipboardJS('.domain-display, .preview-email', {
+        text: () => this.fullEmailAddress
       })
 
-      clipboard.on('success', () => {
-        showCopySuccess()
+      this.$clipboard.on('success', () => {
+        this.showCopySuccess()
       })
-    }
+    },
 
-    const copyEmail = () => {
-      navigator.clipboard.writeText(fullEmailAddress.value).then(() => {
-        showCopySuccess()
+    copyEmail() {
+      navigator.clipboard.writeText(this.fullEmailAddress).then(() => {
+        this.showCopySuccess()
       }).catch(() => {
         // Fallback for browsers that don't support clipboard API
-        showCopySuccess()
+        this.showCopySuccess()
       })
-    }
+    },
 
-    const showCopySuccess = () => {
+    showCopySuccess() {
       // Create a temporary visual feedback for the new domain-display class
       const domainEl = document.querySelector('.domain-display')
       if (domainEl) {
         const originalText = domainEl.textContent
         const originalBg = domainEl.style.background || '#f8fafc'
         const originalColor = domainEl.style.color || '#4F46E5'
-
+        
         domainEl.textContent = '✓ Copied!'
         domainEl.style.background = '#10B981'
         domainEl.style.color = 'white'
         domainEl.style.fontSize = '0.7rem'
-
+        
         setTimeout(() => {
           domainEl.textContent = originalText
           domainEl.style.background = originalBg
@@ -227,37 +238,17 @@ export default {
           domainEl.style.fontSize = '' // Reset font size
         }, 2000)
       }
-    }
+    },
 
-    const goToInbox = () => {
-      if (!randomName.value.trim()) return
-
-      router.push({
+    goToInbox() {
+      if (!this.randomName.trim()) return
+      
+      this.$router.push({
         name: 'Inbox',
         params: {
-          email: randomName.value
+          email: this.randomName
         }
       })
-    }
-
-    onMounted(() => {
-      // Keep randomName empty by default - user can generate name with shuffle button
-      initClipboard()
-    })
-
-    onBeforeUnmount(() => {
-      if (clipboard) {
-        clipboard.destroy()
-      }
-    })
-
-    return {
-      randomName,
-      domain,
-      fullEmailAddress,
-      generateNewName,
-      copyEmail,
-      goToInbox
     }
   }
 }

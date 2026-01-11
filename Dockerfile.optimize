@@ -1,17 +1,14 @@
 #-------------------------------------------------------
 #
 # Base alpine images with all the runtime os dependencies
-#
-# Note that the node-sass is broken with node 12
-# https://github.com/nodejs/docker-node/issues/1028
+# EXPERIMENTAL: Testing npm package optimization
 #
 #-------------------------------------------------------
 
-# Does basic node, and runtime dependencies
+# Use current Node.js 14 Alpine
 FROM node:14-alpine AS baseimage
 RUN apk add --no-cache gettext
 RUN mkdir -p /application/
-# WORKDIR /application/
 
 #-------------------------------------------------------
 #
@@ -21,7 +18,6 @@ RUN mkdir -p /application/
 
 # Install dependencies for some NPM modules
 FROM baseimage AS codebuilder
-# RUN apk add --no-cache make gcc g++ python
 
 #-------------------------------------------------------
 #
@@ -43,6 +39,8 @@ COPY api /application/api/
 RUN rm -rf /application/api/node_modules
 # merge in dependnecies
 RUN cp -r /application/api-mods/node_modules /application/api/node_modules
+# OPTIMIZATION: npm dedupe to reduce duplicate dependencies
+RUN cd /application/api && npm dedupe
 RUN ls /application/api/
 
 # Build the UI
@@ -53,9 +51,13 @@ COPY ui  /application/ui/
 RUN rm -rf /application/ui/node_modules
 RUN rm -rf /application/ui/dist
 RUN cd /application/ui  && ls && npm install
+# OPTIMIZATION: npm dedupe to reduce duplicate dependencies
+RUN cd /application/ui && npm dedupe
 # Lets do the UI build
 RUN cp /application/ui/config/apiconfig.sample.js /application/ui/config/apiconfig.js
 RUN cd /application/ui && npm run build
+# OPTIMIZATION: npm prune --production to remove dev dependencies after build
+RUN cd /application/ui && npm prune --production
 
 # Entry script
 # & Permission reset
@@ -86,11 +88,8 @@ EXPOSE 8000
 #
 # Configurable environment variable
 #
-ENV MAIL_CONFIG="MAILGUN"
 ENV MAILGUN_EMAIL_DOMAIN=""
 ENV MAILGUN_API_KEY=""
-ENV CLOUDFLARE_API_URL=""
-ENV EMAIL_DOMAIN=""
 ENV WEBSITE_DOMAIN=""
 
 # Setup the workdir

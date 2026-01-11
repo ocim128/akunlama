@@ -1,16 +1,23 @@
-import { createApp } from 'vue';
-import { createPinia } from 'pinia';
-import App from './App.vue';
-import router from './router';
+// The Vue build version to load with the `import` command
+// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
+import Vue from 'vue'
+import App from "./App.vue"
+import router from './router'
 
-const app = createApp(App);
-app.use(createPinia());
-app.use(router);
+Vue.config.productionTip = false
 
-// Create event hub for Vue 3
-const eventHub = createApp({ name: 'EventHub' });
-app.config.globalProperties.$eventHub = eventHub;
-window.$eventHub = eventHub; // For components that need access
+/* eslint-disable no-new */
+new Vue({
+  el: '#app',
+  router,
+  components: {App},
+  template: '<App/>',
+  created () {
+    this.$eventHub = new Vue({
+      name: 'EventHub',
+      parent: this,
+      functional: true
+    })
+  }
+})
 
-app.mount('#app');
-//# sourceMappingURL=main.js.map

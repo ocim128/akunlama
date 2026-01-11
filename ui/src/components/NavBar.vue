@@ -50,138 +50,122 @@
 </template>
 
 <script>
-import config from '@/../config/apiconfig.js'
-import 'normalize.css'
-import $ from 'jquery'
-import ClipboardJS from 'clipboard'
-import { onMounted, onBeforeUnmount, computed, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+	import config from '@/../config/apiconfig.js'
+	import 'normalize.css'
+	import $ from 'jquery'
+	import ClipboardJS from 'clipboard'
 
-export default {
-	name: 'NavBar',
-	setup() {
-		const route = useRoute()
-		const router = useRouter()
-		const email = ref('')
-		const isRefreshing = ref(false)
-
-		const domain = computed(() => config.domain)
-		const fullEmail = computed(() => {
-			if (email.value.includes('@' + config.domain)) {
-				return email.value
+	export default {
+		name: 'NavBar',
+		data: () => {
+			return {
+				email: '',
+				isRefreshing: false
 			}
-			return email.value + '@' + config.domain
-		})
-		const backButtonLabel = computed(() => route.name === 'List' ? 'Back to home' : 'Back to inbox')
-
-		const initClipboard = () => {
-			const clipboard = new ClipboardJS('#nav-domain', {
-				text: () => fullEmail.value
-			})
-
-			clipboard.on('success', () => {
-				showCopyFeedback()
-			})
-			return clipboard
-		}
-
-		const showCopyFeedback = () => {
-			const domainEl = $('#nav-domain')
-			domainEl.addClass('copied')
-
-			// Create tooltip
-			const tooltip = $('<div class="copy-tooltip">Copied!</div>')
-			domainEl.append(tooltip)
-
-			setTimeout(() => {
-				tooltip.fadeOut(() => tooltip.remove())
-				domainEl.removeClass('copied')
-			}, 2000)
-		}
-
-		const setupRefreshListener = () => {
-			window.$eventHub.$on('refreshStart', () => {
-				isRefreshing.value = true
-			})
-			window.$eventHub.$on('refreshEnd', () => {
-				isRefreshing.value = false
-			})
-		}
-
-		const goMainPage = () => {
-			router.push({
-				name: 'Kitten Land'
-			})
-		}
-
-		const emitRefresh = () => {
-			if (isRefreshing.value) return
-			isRefreshing.value = true
-			window.$eventHub.$emit('refresh', '')
-			// Reset after 3 seconds as fallback
-			setTimeout(() => {
-				isRefreshing.value = false
-			}, 3000)
-		}
-
-		const changeInbox = () => {
-			if (!email.value.trim()) return
-
-			router.push({
-				name: 'List',
-				params: {
-					email: email.value
+		},
+		computed: {
+			domain () {
+				return config.domain
+			},
+			fullEmail() {
+				if (this.email.includes('@' + config.domain)) {
+					return this.email
 				}
-			})
-			window.$eventHub.$emit('refreshInbox', {email: email.value})
-		}
+				return this.email + '@' + config.domain
+			},
+			backButtonLabel() {
+				return this.$route.name === 'List' ? 'Back to home' : 'Back to inbox'
+			}
+		},
+		mounted () {
+			this.email = this.$route.params.email || ''
+			if (this.email === '') {
+				this.goMainPage()
+			}
 
-		const backAPage = () => {
-			if (route.name === 'List') {
-				router.push({
+			this.initClipboard()
+			this.setupRefreshListener()
+		},
+		beforeDestroy () {
+			if (this.$clipboard) {
+				this.$clipboard.destroy()
+			}
+		},
+		methods: {
+			initClipboard() {
+				this.$clipboard = new ClipboardJS('#nav-domain', {
+					text: () => this.fullEmail
+				})
+
+				this.$clipboard.on('success', () => {
+					this.showCopyFeedback()
+				})
+			},
+
+			showCopyFeedback() {
+				const domainEl = $('#nav-domain')
+				domainEl.addClass('copied')
+				
+				// Create tooltip
+				const tooltip = $('<div class="copy-tooltip">Copied!</div>')
+				domainEl.append(tooltip)
+				
+				setTimeout(() => {
+					tooltip.fadeOut(() => tooltip.remove())
+					domainEl.removeClass('copied')
+				}, 2000)
+			},
+
+			setupRefreshListener() {
+				this.$eventHub.$on('refreshStart', () => {
+					this.isRefreshing = true
+				})
+				this.$eventHub.$on('refreshEnd', () => {
+					this.isRefreshing = false
+				})
+			},
+
+			goMainPage () {
+				this.$router.push({
 					name: 'Kitten Land'
 				})
-			} else {
-				router.push({
+			},
+			emitRefresh () {
+				if (this.isRefreshing) return
+				this.isRefreshing = true
+				this.$eventHub.$emit('refresh', '')
+				// Reset after 3 seconds as fallback
+				setTimeout(() => {
+					this.isRefreshing = false
+				}, 3000)
+			},
+			changeInbox () {
+				if (!this.email.trim()) return
+				
+				this.$router.push({
 					name: 'List',
 					params: {
-						email: email.value
+						email: this.email
 					}
 				})
+				this.$eventHub.$emit('refreshInbox', {email: this.email})
+			},
+			backAPage () {
+				if (this.$route.name === 'List') {
+					this.$router.push({
+						name: 'Kitten Land'
+					})
+				} else {
+					this.$router.push({
+						name: 'List',
+						params: {
+							email: this.email
+						}
+					})
+				}
 			}
-		}
-
-		let clipboard = null
-
-		onMounted(() => {
-			email.value = route.params.email || ''
-			if (email.value === '') {
-				goMainPage()
-			}
-
-			clipboard = initClipboard()
-			setupRefreshListener()
-		})
-
-		onBeforeUnmount(() => {
-			if (clipboard) {
-				clipboard.destroy()
-			}
-		})
-
-		return {
-			email,
-			isRefreshing,
-			domain,
-			fullEmail,
-			backButtonLabel,
-			goMainPage,
-			emitRefresh,
-			changeInbox,
-			backAPage
 		}
 	}
-}
 </script>
 
 <style lang="scss" rel="stylesheet/scss">

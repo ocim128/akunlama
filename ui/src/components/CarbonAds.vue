@@ -3,18 +3,15 @@
 </template>
 
 <script>
-import config from '@/../config/carbonads.js'
-import { onMounted } from 'vue'
-
-export default {
-	name: 'CarbonAds',
-	data: () => {
-		return {
-			placement: ''
-		}
-	},
-	setup() {
-		onMounted(() => {
+	import config from '@/../config/carbonads.js'
+	export default {
+		name: 'CarbonAds',
+		data: () => {
+			return {
+				placement: ''
+			}
+		},
+		mounted () {
 			// // Skip if disabled
 			// if (!config.enable) {
 			// 	return
@@ -37,9 +34,8 @@ export default {
 			scriptTag.setAttribute('id', '_carbonads_js')
 
 			document.getElementById('_carbon_ads_div').appendChild(scriptTag)
-		})
+		}
 	}
-}
 </script>
 <style lang="scss" rel="stylesheet/scss">
 #carbonads {

@@ -6,14 +6,14 @@
 </template>
 
 <script>
-import NavBar from '../NavBar.vue'
+  import NavBar from '../NavBar.vue'
 
-export default {
-  name: 'inbox',
-  components: {
-    NavBar: NavBar
+  export default {
+    name: 'inbox',
+    components: {
+      NavBar: NavBar
+    }
   }
-}
 </script>
 <style>
   .wrapper {
