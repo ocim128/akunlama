@@ -1,0 +1,4 @@
+export default {
+    apiUrl: 'http://localhost:8080/api/v1/mail',
+    domain: 'localhost'
+}

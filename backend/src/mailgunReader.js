@@ -1,173 +1,111 @@
-// AXIOS dependencies
-const axios = require("axios");
-
-// Create a reusable axios instance with connection pooling
-const axiosInstance = axios.create({
-    timeout: 10000, // 10 second timeout
-    maxRedirects: 5,
-    httpAgent: new require('http').Agent({
-        keepAlive: true,
-        keepAliveMsecs: 30000,
-        maxSockets: 50,
-        maxFreeSockets: 10
-    }),
-    httpsAgent: new require('https').Agent({
-        keepAlive: true,
-        keepAliveMsecs: 30000,
-        maxSockets: 50,
-        maxFreeSockets: 10
-    })
-});
+// Shared axios client with connection pooling
+const { axiosClient, get: axiosGet } = require('./shared/axiosClient');
 
 /**
-* Optimized axios get with connection pooling and response data
-* @param {String} urlWithParams
-* @param {Object} options
-*/
-var axiosGet = function(urlWithParams, options){
-	return new Promise(function(resolve, reject){
-		// console.log(urlWithParams);
-		axiosInstance.get(urlWithParams, options).then(response => {
-			resolve(response.data)
-		}).catch(e => {
-			// console.log(e);
-			reject(e)
-		})
-	})
-}
+ * Simple MailgunApi accessor class for reading event stream, and saved emails
+ *
+ * Example usage:
+ * ```
+ * let reader = new mailgunReader({ apiKey:"api-*****", emailDomain:"inboxkitten.com" })
+ * reader.recipientEventList("some-domain.inboxkitten.com");
+ * reader.getKey({region, key});
+ * ```
+ */
+class MailgunReader {
+	constructor(config) {
+		this._config = config;
 
-/**
-* Simple MailgunApi accessor class for reading event stream, and saved emails
-*
-* Example usage
-* ```
-* let reader = new mailgunReader( { apiKey:"api-*****", emailDomain:"inboxkitten.com" })
-*
-* // Returns a list of email recieve events
-* reader.recipientEventList("some-domain.inboxkitten.com");
-*
-* // Get and return the email json
-* reader.getRecipentEmail("some-email-id");
-* ```
-*/
-let mailgunReader = function mailgunReader(config) {
-
-	// The config object being used
-	this._config = config;
-
-	// Validate the config for required parameters
-	if( this._config.apiKey == null || this._config.apiKey.length <= 0 ) {
-		throw new Error("Missing config.apiKey");
-	}
-	if( this._config.emailDomain == null || this._config.emailDomain.length <= 0 ) {
-		throw new Error("Missing config.emailDomain");
-	}
-
-	// Default mailgun domain if not used
-	this._config.mailgunApi = this._config.mailgunApi || "https://api.mailgun.net/v3";
-
-	// Setup the authentication option object
-	this._authOption = {
-		auth: {
-			username : "api",
-			password : this._config.apiKey
+		// Validate the config
+		if (!this._config.apiKey || this._config.apiKey.length <= 0) {
+			throw new Error("Missing config.apiKey");
 		}
-	};
-}
+		if (!this._config.emailDomain || this._config.emailDomain.length <= 0) {
+			throw new Error("Missing config.emailDomain");
+		}
 
-/**
- * Validate the request email against list of domains
- *
- * @param {String} email
- */
-mailgunReader.prototype.recipientEmailValidation = function recipientEmailValidation(email) {
-	// @TODO - the validation
-	return true;
-}
+		// Default mailgun domain if not set
+		this._config.mailgunApi = this._config.mailgunApi || "https://api.mailgun.net/v3";
 
-/**
- * Get and return a list of email events
- *
- * See : https://documentation.mailgun.com/en/latest/api-events.html#event-structure
- *
- * @param {String} email
- *
- * @return  Promise object, returning list of email events
- */
-mailgunReader.prototype.recipientEventList = function recipientEventList(email) {
-	// Validate email format
-	if( !this.recipientEmailValidation(email) ) {
-		return Promise.reject("Invalid email format : "+email);
+		// Setup the authentication option object
+		this._authOption = {
+			auth: {
+				username: "api",
+				password: this._config.apiKey
+			}
+		};
 	}
 
-	// Compute the listing url
-	let urlWithParams = this._config.mailgunApi+"/"+this._config.emailDomain+"/events?recipient="+email;
-
-	// Lets get and return it with a promise
-	return axiosGet(urlWithParams, this._authOption);
-}
-
-/**
- * Validate the url parameter for a valid mailgun api URL.
- * This is to safeguard the getURL from api key leakage
- *
- * @param {String} url
- */
-mailgunReader.prototype.getUrlValidation = function getUrlValidation(email) {
-	// @TODO - the validation
-	return true;
-}
-
-/**
- * Get the content of URL and return it, using the mailgun key.
- * This is useful for stored emails returned by the event stream.
- *
- * @param {String} url
- */
-mailgunReader.prototype.getUrl = function getUrl(url) {
-	// Validate the URL
-	if( !this.getUrlValidation(url) ) {
-		return Promise.reject("Invalid getUrl request : "+url);
+	/**
+	 * Validate the request email format
+	 * @param {string} email
+	 * @returns {boolean}
+	 */
+	recipientEmailValidation(email) {
+		// Basic validation - can be extended
+		return true;
 	}
 
-	// Lets get and return it with a promise
-	return axiosGet(url, this._authOption);
+	/**
+	 * Get and return a list of email events
+	 * @param {string} email
+	 * @returns {Promise<Object>} List of email events
+	 */
+	recipientEventList(email) {
+		if (!this.recipientEmailValidation(email)) {
+			return Promise.reject("Invalid email format: " + email);
+		}
+
+		const url = `${this._config.mailgunApi}/${this._config.emailDomain}/events?recipient=${email}`;
+		return axiosGet(url, this._authOption);
+	}
+
+	/**
+	 * Validate URL for mailgun API access
+	 * @param {string} url
+	 * @returns {boolean}
+	 */
+	getUrlValidation(url) {
+		return true;
+	}
+
+	/**
+	 * Get content of a mailgun URL
+	 * @param {string} url
+	 * @returns {Promise<Object>}
+	 */
+	getUrl(url) {
+		if (!this.getUrlValidation(url)) {
+			return Promise.reject("Invalid getUrl request: " + url);
+		}
+		return axiosGet(url, this._authOption);
+	}
+
+	/**
+	 * Get email content by region and storage key
+	 * @param {Object} params - { region, key }
+	 * @returns {Promise<Object>}
+	 */
+	getKey({ region, key }) {
+		let apiUrl = this._config.mailgunApi;
+		apiUrl = apiUrl.replace("://", `://storage-${region}.`);
+		const url = `${apiUrl}/domains/${this._config.emailDomain}/messages/${key}`;
+		return axiosGet(url, this._authOption);
+	}
+
+	/**
+	 * Validate the email format
+	 * @param {string} email
+	 * @returns {string} Trimmed and validated email
+	 * @throws {Error} if email format is invalid
+	 */
+	validateEmail(email) {
+		email = email.trim();
+		const allowedCharacters = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}$/;
+		if (!allowedCharacters.test(email)) {
+			throw new Error("Invalid email format");
+		}
+		return email;
+	}
 }
 
-/**
- * Get the content of URL and return it, using the mailgun key.
- * This is useful for stored emails returned by the event stream.
- *
- * @param {String} url
- */
-mailgunReader.prototype.getKey = function getKey({region, key}) {
-
-	// Inject the region to the mailgunApi
-	let apiUrl = this._config.mailgunApi
-	apiUrl = apiUrl.replace("://", "://storage-" + region + ".")
-	let urlWithParams = apiUrl + "/domains/" + this._config.emailDomain + "/messages/" + key;
-	
-	// Lets get and return it with a promise
-	return axiosGet(urlWithParams, this._authOption);
-}
-
-// Export the mailgunReader class
-module.exports = mailgunReader;
-
-/**
- * Validate the email format and ensure it contains only allowed characters
- *
- * @param {String} email
- */
-mailgunReader.prototype.validateEmail = function validateEmail(email) {
-  // Remove leading/trailing whitespace
-  email = email.trim();
-
-  // Validate that the email contains only allowed characters
-  const allowedCharacters = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9._-]+\.[a-zA-Z]{2,}$/;
-  if (!allowedCharacters.test(email)) {
-    throw new Error("Invalid email format");
-  }
-
-  return email;
-};
+module.exports = MailgunReader;

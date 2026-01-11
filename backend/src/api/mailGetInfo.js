@@ -1,58 +1,37 @@
 // Loading mailgun reader and config
 const mailgunReader = require("../mailgunReader");
 const mailgunConfig = require("../../config/mailgunConfig");
-const cacheControl  = require("../../config/cacheControl");
+const cacheControl = require("../../config/cacheControl");
+const { extractEmailDetails } = require('../shared/emailUtils');
 
 const reader = new mailgunReader(mailgunConfig);
 
 /**
  * Get and return the static email header details from the mailgun API given the mailKey
  *
- * @param {*} req
- * @param {*} res
+ * @param {Object} req Express request
+ * @param {Object} res Express response
  */
-module.exports = function(req, res){
+module.exports = function (req, res) {
+	const region = req.query.region;
+	const key = req.query.key;
 
-	let region = req.query.region
-	let key = req.query.key
-	
-	if (region == null || region === ""){
+	if (!region || region === "") {
 		return res.status(400).send('{ "error" : "No `region` param found" }');
 	}
 
-	if (key == null || key === ""){
+	if (!key || key === "") {
 		return res.status(400).send('{ "error" : "No `key` param found" }');
 	}
-	
-	reader.getKey({region, key}).then(response => {
-		let emailDetails = {}
 
-		// Format and extract the name of the user
-		let [name, ...rest] = formatName(response.from)
-		emailDetails.name = name
+	reader.getKey({ region, key }).then(response => {
+		const emailDetails = extractEmailDetails(response);
 
-		// Extract the rest of the email domain after splitting
-		if (rest[0].length > 0) {
-			emailDetails.emailAddress = ' <' + rest
-		}
-
-		// Extract the subject of the response
-		emailDetails.subject = response.subject
-
-		// Extract the recipients
-		emailDetails.recipients = response.recipients
-
-		// Return with cache control
-		res.set('cache-control', cacheControl.static)
-		res.status(200).send(emailDetails)
+		res.set('cache-control', cacheControl.static);
+		res.status(200).send(emailDetails);
 	})
-	.catch(e => {
-		console.error(`Error getting mail metadata info for /${region}/${key}: `, e)
-		res.status(500).send("{error: '"+e+"'}")
-	});
-}
-
-function formatName (sender) {
-	let [name, ...rest] = sender.split(' <')
-	return [name, rest]
-}
+		.catch(e => {
+			console.error(`Error getting mail metadata info for /${region}/${key}: `, e);
+			res.status(500).send("{error: '" + e + "'}");
+		});
+};

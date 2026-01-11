@@ -3,7 +3,7 @@ const compression = require('compression');
 const cacheControl = require("./config/cacheControl");
 const app = express();
 
-// Trust proxy headers for IP detection (important for production)
+// Trust proxy headers for IP detection
 app.set('trust proxy', true);
 
 // Load banned IP addresses from environment variable
@@ -19,19 +19,17 @@ const getBannedIPs = () => {
 
 const bannedIPs = getBannedIPs();
 
-// Enable gzip compression for all responses
+// Enable gzip compression
 app.use(compression({
     filter: (req, res) => {
-        // Don't compress responses with this request header
         if (req.headers['x-no-compression']) {
             return false;
         }
-        // fallback to standard filter function
         return compression.filter(req, res);
     },
-    level: 6, // Compression level (1-9, 6 is good balance)
-    threshold: 1024, // Only compress responses > 1KB
-    chunkSize: 1024 // Process data in 1KB chunks
+    level: 6,
+    threshold: 1024,
+    chunkSize: 1024
 }));
 
 // IP extraction and security middleware
@@ -47,15 +45,11 @@ app.use((req, res, next) => {
     if (bannedIPs.has(req.realIP)) {
         console.log(`[BANNED IP] Blocked request from: ${req.realIP}`);
 
-        // For API endpoints, return empty array to look like no emails
         if (req.path.startsWith('/api/')) {
             res.set('Content-Type', 'application/json; charset=utf-8');
             res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
             return res.status(200).json([]);
         }
-
-        // For other requests (like static files), continue normally
-        // This way the site appears to work but API returns no data
     }
 
     // Security headers
@@ -66,8 +60,6 @@ app.use((req, res, next) => {
     // Performance headers
     res.set('Connection', 'keep-alive');
     res.set('Keep-Alive', 'timeout=5, max=1000');
-
-    // CDN and caching friendly headers
     res.set('Vary', 'Accept-Encoding, User-Agent');
 
     next();
@@ -75,7 +67,6 @@ app.use((req, res, next) => {
 
 // Input validation middleware
 app.use((req, res, next) => {
-    // Limit query parameter sizes to prevent DoS
     for (const [key, value] of Object.entries(req.query)) {
         if (typeof value === 'string' && value.length > 100) {
             return res.status(400).json({
@@ -88,13 +79,13 @@ app.use((req, res, next) => {
 });
 
 // Optimize JSON responses
-app.set('json spaces', 0); // Minimize JSON output
-app.set('json replacer', null); // Don't replace anything
+app.set('json spaces', 0);
+app.set('json replacer', null);
 
-// Setup the routes with dynamic backend selection
-// Setup the routes with dynamic backend selection
+// Dynamic backend selection based on MAIL_CONFIG environment variable
 const mailConfig = (process.env.MAIL_CONFIG || 'MAILGUN').toUpperCase();
 console.log(`[INIT] Initializing backend with MAIL_CONFIG=${mailConfig}`);
+
 let mailList, mailGetInfo, mailGetHtml;
 
 try {
@@ -105,21 +96,14 @@ try {
         mailGetHtml = require("./src/api/mailGetHtmlCloudflare");
     } else {
         console.log("Using MAILGUN email configuration (default)");
-        // Check if Mailgun config is valid, otherwise warn
-        try {
-            mailList = require("./src/api/mailList");
-            mailGetInfo = require("./src/api/mailGetInfo");
-            mailGetHtml = require("./src/api/mailGetHtml");
-        } catch (e) {
-            console.error("[CRITICAL] Failed to load Mailgun modules. If you intended to use Cloudflare, set MAIL_CONFIG=CLOUDFLARE env var.", e);
-            throw e;
-        }
+        mailList = require("./src/api/mailList");
+        mailGetInfo = require("./src/api/mailGetInfo");
+        mailGetHtml = require("./src/api/mailGetHtml");
     }
 } catch (error) {
     console.error(`[CRITICAL] Error initializing backend modules for ${mailConfig}:`, error);
-    // Define fallback handlers to prevent immediate crash during module load
+    // Fallback error handler
     const errorHandler = (req, res) => {
-        console.error(`[RUNTIME] Calling broken endpoint. Init error was:`, error);
         res.status(500).json({
             error: "Backend Initialization Failed",
             details: error.message,
@@ -131,63 +115,49 @@ try {
     mailGetHtml = errorHandler;
 }
 
+// API routes
 app.get("/api/v1/mail/list", (req, res) => {
-    console.log(`[${req.realIP}] Received /api/v1/mail/list (Backend: ${mailConfig}) with parameters:`, req.query);
-
-    // Optimized cache headers with longer stale-while-revalidate for better performance
+    console.log(`[${req.realIP}] /api/v1/mail/list`, req.query);
     res.set('Cache-Control', 'public, max-age=15, stale-while-revalidate=45, stale-if-error=120');
     res.set('Content-Type', 'application/json; charset=utf-8');
     res.set('Vary', 'Accept-Encoding');
-
     mailList(req, res);
 });
 
 app.get("/api/v1/mail/getInfo", (req, res) => {
-    console.log(`[${req.realIP}] Received /api/v1/mail/getInfo with parameters:`, req.query);
-
-    // Email info metadata doesn't change often - can be cached longer
+    console.log(`[${req.realIP}] /api/v1/mail/getInfo`, req.query);
     res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120, stale-if-error=300');
     res.set('Content-Type', 'application/json; charset=utf-8');
     res.set('Vary', 'Accept-Encoding');
-
     mailGetInfo(req, res);
 });
 
 app.get("/api/v1/mail/getHtml", (req, res) => {
-    console.log(`[${req.realIP}] Received /api/v1/mail/getHtml with parameters:`, req.query);
-
-    // HTML content is static once delivered - can be cached much longer
+    console.log(`[${req.realIP}] /api/v1/mail/getHtml`, req.query);
     res.set('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800, stale-if-error=3600');
     res.set('Vary', 'Accept-Encoding');
-
     mailGetHtml(req, res);
 });
 
-// Improved static regex for better file type detection
+// Static file handling with optimized cache control
 const staticRegex = /\.(css|js|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot|ico)$/i;
 const immutableRegex = /\.(css|js)$/i;
 
-// Static folder hosting with optimized cache control
 app.use(express.static("public", {
     etag: true,
     lastModified: true,
-    maxAge: 0, // We set cache-control manually for better control
-    setHeaders: function (res, path, stat) {
+    maxAge: 0,
+    setHeaders: (res, path) => {
         const ext = path.toLowerCase();
-
-        // Set appropriate cache headers based on file type
         if (immutableRegex.test(ext)) {
-            // CSS/JS files - longer cache with versioning expected
             res.set('Cache-Control', cacheControl.immutable);
         } else if (staticRegex.test(ext)) {
-            // Images and fonts - moderate caching
             res.set('Cache-Control', 'public, max-age=3600, stale-while-revalidate=7200');
         } else {
-            // HTML and other files - short cache
             res.set('Cache-Control', cacheControl.static);
         }
 
-        // Set appropriate content types for better compression
+        // Set appropriate content types
         if (ext.endsWith('.svg')) {
             res.set('Content-Type', 'image/svg+xml');
         } else if (ext.endsWith('.woff2')) {
@@ -198,56 +168,38 @@ app.use(express.static("public", {
     }
 }));
 
-// Custom 404 handling - use index.html with appropriate headers
-app.use(function (req, res) {
+// 404 fallback - serve index.html for SPA routing
+app.use((req, res) => {
     res.set('Cache-Control', cacheControl.static);
     res.set('Content-Type', 'text/html; charset=utf-8');
     res.sendFile(__dirname + '/public/index.html');
 });
 
-// Export the app for serverless deployment
+// Export for serverless deployment
 module.exports = app;
 
-// Setup the server with optimized settings if run directly
+// Start server when run directly
 if (require.main === module) {
     const port = process.env.PORT || 8000;
-    var server = app.listen(port, function () {
+    const server = app.listen(port, () => {
         console.log("===========================================");
         console.log(`🚀 API RUNNING ON PORT ${port}`);
         console.log(`📧 Backend: ${mailConfig}`);
         console.log("===========================================");
-        console.log("Bandwidth optimization enabled: compression, caching");
-        console.log("Security features: IP-based rate limiting, input validation");
+        console.log("Features: compression, caching, security, rate limiting");
 
-        // Optimized memory monitoring with reduced frequency and overhead
+        // Single memory monitoring interval (reduced from 2 to 1)
         setInterval(() => {
             const memUsage = process.memoryUsage();
             const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
 
-            // Only log if memory exceeds threshold (reduced from 200MB to 150MB for earlier detection)
+            // Log warning if memory exceeds threshold
             if (heapUsedMB > 150) {
-                const memMB = {
-                    rss: Math.round(memUsage.rss / 1024 / 1024),
-                    heapUsed: heapUsedMB,
-                    heapTotal: Math.round(memUsage.heapTotal / 1024 / 1024),
-                    external: Math.round(memUsage.external / 1024 / 1024)
-                };
-                console.log(`[MEMORY WARNING] High memory usage: RSS=${memMB.rss}MB, Heap=${memMB.heapUsed}/${memMB.heapTotal}MB, External=${memMB.external}MB`);
+                console.log(`[MEMORY WARNING] High usage: ${heapUsedMB}MB heap`);
             }
         }, 300000); // Every 5 minutes
-
-        // Reduced frequency memory logging - only every 5 minutes instead of every minute
-        setInterval(() => {
-            const memUsage = process.memoryUsage();
-            const heapUsedMB = Math.round(memUsage.heapUsed / 1024 / 1024);
-            console.log(`[MEMORY] Heap usage: ${heapUsedMB}MB`);
-        }, 300000); // Changed from 60000 to 300000
     });
 
     server.keepAliveTimeout = 5000;
     server.headersTimeout = 6000;
-} else {
-    // Export for Vercel Serverless
-    module.exports = app;
 }
-
