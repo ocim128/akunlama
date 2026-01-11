@@ -35,8 +35,16 @@ const getEvents = async (recipient, res, isAdminAccess = false) => {
     }
 
     try {
-        const fullEmail = isAdminAccess ? '' : `${recipient}@${cloudflareConfig.emailDomain}`;
-        const apiUrl = `${cloudflareConfig.apiUrl}/api/events?recipient=${encodeURIComponent(fullEmail)}`;
+        // For admin access, use '*' wildcard AND pass admin_key for authentication
+        const recipientParam = isAdminAccess ? '*' : `${recipient}@${cloudflareConfig.emailDomain}`;
+        let apiUrl = `${cloudflareConfig.apiUrl}/api/events?recipient=${encodeURIComponent(recipientParam)}`;
+
+        // Add admin_key for authenticated admin access
+        if (isAdminAccess && cloudflareConfig.adminAccessKey) {
+            apiUrl += `&admin_key=${encodeURIComponent(cloudflareConfig.adminAccessKey)}`;
+        }
+
+        console.log(`[CLOUDFLARE] Fetching emails: ${isAdminAccess ? 'ADMIN (authenticated)' : recipient}`);
         const response = await axiosClient.get(apiUrl, { timeout: 10000 });
 
         let emails = response.data.items || [];
