@@ -92,19 +92,43 @@ app.set('json spaces', 0); // Minimize JSON output
 app.set('json replacer', null); // Don't replace anything
 
 // Setup the routes with dynamic backend selection
+// Setup the routes with dynamic backend selection
 const mailConfig = (process.env.MAIL_CONFIG || 'MAILGUN').toUpperCase();
+console.log(`[INIT] Initializing backend with MAIL_CONFIG=${mailConfig}`);
 let mailList, mailGetInfo, mailGetHtml;
 
-if (mailConfig === 'CLOUDFLARE') {
-    console.log("Using CLOUDFLARE email configuration");
-    mailList = require("./src/api/mailListCloudflare");
-    mailGetInfo = require("./src/api/mailGetInfoCloudflare");
-    mailGetHtml = require("./src/api/mailGetHtmlCloudflare");
-} else {
-    console.log("Using MAILGUN email configuration (default)");
-    mailList = require("./src/api/mailList");
-    mailGetInfo = require("./src/api/mailGetInfo");
-    mailGetHtml = require("./src/api/mailGetHtml");
+try {
+    if (mailConfig === 'CLOUDFLARE') {
+        console.log("Using CLOUDFLARE email configuration");
+        mailList = require("./src/api/mailListCloudflare");
+        mailGetInfo = require("./src/api/mailGetInfoCloudflare");
+        mailGetHtml = require("./src/api/mailGetHtmlCloudflare");
+    } else {
+        console.log("Using MAILGUN email configuration (default)");
+        // Check if Mailgun config is valid, otherwise warn
+        try {
+            mailList = require("./src/api/mailList");
+            mailGetInfo = require("./src/api/mailGetInfo");
+            mailGetHtml = require("./src/api/mailGetHtml");
+        } catch (e) {
+            console.error("[CRITICAL] Failed to load Mailgun modules. If you intended to use Cloudflare, set MAIL_CONFIG=CLOUDFLARE env var.", e);
+            throw e;
+        }
+    }
+} catch (error) {
+    console.error(`[CRITICAL] Error initializing backend modules for ${mailConfig}:`, error);
+    // Define fallback handlers to prevent immediate crash during module load
+    const errorHandler = (req, res) => {
+        console.error(`[RUNTIME] Calling broken endpoint. Init error was:`, error);
+        res.status(500).json({
+            error: "Backend Initialization Failed",
+            details: error.message,
+            config: mailConfig
+        });
+    };
+    mailList = errorHandler;
+    mailGetInfo = errorHandler;
+    mailGetHtml = errorHandler;
 }
 
 app.get("/api/v1/mail/list", (req, res) => {

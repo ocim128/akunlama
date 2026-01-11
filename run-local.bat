@@ -14,7 +14,7 @@ if "%MAIL_CONFIG%"=="" set MAIL_CONFIG=CLOUDFLARE
 echo Creating local apiconfig...
 (
 echo export default {
-echo     apiUrl: 'http://localhost:8000/api/v1/mail',
+echo     apiUrl: 'http://localhost:8080/api/v1/mail',
 echo     domain: 'localhost'
 echo }
 ) > ui\config\apiconfig.local.js
@@ -45,7 +45,8 @@ echo.
 
 :: Start Backend
 echo Starting Backend...
-start "InboxKitten Backend" cmd /k "title Backend && echo Starting Node Server... && node backend/app.js"
+set PORT=8080
+start "InboxKitten Backend" cmd /k "title Backend && echo Starting Node Server on 8080... && node backend/app.js"
 
 :: Start Frontend
 echo Starting Frontend...
@@ -55,5 +56,5 @@ cd ..
 
 echo.
 echo Services started in new windows.
-echo - Backend running on http://localhost:8000
+echo - Backend running on http://localhost:8080
 echo - Frontend running on http://localhost:5173 (check window)
