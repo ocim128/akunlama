@@ -139,7 +139,7 @@ describe('MessageList.vue', () => {
         it('should set up auto-refresh interval on mount', () => {
             expect(window.setInterval).toHaveBeenCalledWith(
                 expect.any(Function),
-                10000
+                1000
             )
         })
     })

@@ -17,13 +17,19 @@
       <!-- Email list -->
       <div class="email-list-container" v-if="listOfMessages.length > 0 && !refreshing">
         <div class="email-list-header">
-          <h3>
-            <i class="fas fa-inbox"></i>
-            Inbox ({{listOfMessages.length}})
-          </h3>
+          <div class="header-main">
+            <h3>
+              <i class="fas fa-inbox"></i>
+              Inbox ({{listOfMessages.length}})
+            </h3>
+            <div class="refresh-info">
+              <span class="last-refreshed">Last checked: {{formattedLastRefreshed}}</span>
+              <span class="countdown">Next update in: {{countdown}}s</span>
+            </div>
+          </div>
           <button class="refresh-btn-inline" @click="refreshList" :disabled="refreshing">
             <i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
-            Refresh
+            Refresh Now
           </button>
         </div>
         
@@ -58,9 +64,17 @@
       <!-- Empty state -->
       <div class="empty-state" v-if="listOfMessages.length == 0 && !refreshing">
         <div class="empty-state-content">
-          <i class="fas fa-cat"></i>
+          <div class="kitten-animation-container">
+            <img src="@/assets/sleeping-kitten.png" alt="Sleeping Kitten" class="sleeping-kitten">
+          </div>
           <h3>No messages yet</h3>
           <p>Your inbox is empty. Send an email to this address to see it appear here!</p>
+          
+          <div class="empty-refresh-info">
+              <p class="last-refreshed">Last checked: {{formattedLastRefreshed}}</p>
+              <p class="countdown">Next check in: {{countdown}}s</p>
+          </div>
+
           <button class="refresh-button" @click="refreshList" :disabled="refreshing">
             <i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
             Check for messages
@@ -92,7 +106,15 @@ export default {
           }
         }
       },
-      refreshing: false
+      refreshing: false,
+      lastRefreshed: moment(),
+      countdown: 10,
+      countdownTimer: null
+    }
+  },
+  computed: {
+    formattedLastRefreshed () {
+      return this.lastRefreshed.format('HH:mm:ss')
     }
   },
   mounted () {
@@ -102,18 +124,27 @@ export default {
     }
 
     this.getMessageList()
-    this.retrieveMessage = window.setInterval(this.getMessageList, 10000)
+    
+    // Auto-refresh every 10 seconds
+    this.countdownTimer = window.setInterval(() => {
+      if (this.countdown > 0) {
+        this.countdown--
+      } else {
+        this.refreshList()
+      }
+    }, 1000)
 
     this.$eventHub.$on('refreshInbox', this.getMessageList)
     this.$eventHub.$on('refresh', this.getMessageList)
   },
   beforeDestroy () {
-    window.clearInterval(this.retrieveMessage)
+    window.clearInterval(this.countdownTimer)
     this.$eventHub.$off('refreshInbox', this.getMessageList)
     this.$eventHub.$off('refresh', this.getMessageList)
   },
   methods: {
     refreshList () {
+      if (this.refreshing) return
       this.refreshing = true
       this.$eventHub.$emit('refreshStart')
       this.getMessageList()
@@ -128,9 +159,13 @@ export default {
         .then(res => {
           this.listOfMessages = res.data
           this.refreshing = false
+          this.lastRefreshed = moment()
+          this.countdown = 10 // Reset countdown
           this.$eventHub.$emit('refreshEnd')
         }).catch((e) => {
-        this.refreshing = false
+          this.refreshing = false
+          this.lastRefreshed = moment()
+          this.countdown = 10 // Reset countdown even on error
           this.$eventHub.$emit('refreshEnd')
           console.error('Failed to fetch messages:', e)
         })
@@ -243,6 +278,12 @@ export default {
     border-bottom: 1px solid $gray-200;
     margin-bottom: 1rem;
 
+    .header-main {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
     h3 {
       margin: 0;
       color: $dark-text;
@@ -255,7 +296,23 @@ export default {
       i {
         color: $primary;
       }
-  }
+    }
+
+    .refresh-info {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.75rem;
+      color: $muted-text;
+
+      .last-refreshed {
+        font-weight: 500;
+      }
+
+      .countdown {
+        color: $primary;
+        font-weight: 600;
+      }
+    }
 
     .refresh-btn-inline {
       background: $gray-100;
@@ -278,7 +335,7 @@ export default {
       &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
-  }
+      }
 
       .fa-spin {
         animation-duration: 1s;
@@ -396,31 +453,70 @@ export default {
   }
 
   .empty-state-content {
-        text-align: center;
+    text-align: center;
     max-width: 400px;
 
-    i {
-      font-size: 4rem;
-      color: $gray-300;
-      margin-bottom: 1.5rem;
-      display: inline-block;
-      width: 1em;
-      height: 1em;
-      line-height: 1;
+    .kitten-animation-container {
+      margin-bottom: 2rem;
+      perspective: 1000px;
+      
+      .sleeping-kitten {
+        width: 200px;
+        height: auto;
+        border-radius: $radius-lg;
+        box-shadow: $shadow-lg;
+        animation: breathing 4s ease-in-out infinite, gentle-float 6s ease-in-out infinite;
+        filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
+      }
     }
 
     h3 {
       color: $dark-text;
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin: 0 0 1rem 0;
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0 0 0.5rem 0;
+      background: linear-gradient(135deg, $primary, $primary-dark);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
     p {
       color: $muted-text;
       line-height: 1.6;
-      margin: 0 0 2rem 0;
+      margin: 0 0 1.5rem 0;
     }
+
+    .empty-refresh-info {
+        margin-bottom: 2rem;
+        background: $gray-50;
+        padding: 0.75rem;
+        border-radius: $radius;
+        border: 1px dashed $gray-200;
+
+        p {
+            margin: 0.25rem 0;
+            font-size: 0.85rem;
+            
+            &.last-refreshed {
+                color: $muted-text;
+            }
+            
+            &.countdown {
+                color: $primary;
+                font-weight: 600;
+            }
+        }
+    }
+  }
+
+  @keyframes breathing {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  @keyframes gentle-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
 
   .refresh-button {
