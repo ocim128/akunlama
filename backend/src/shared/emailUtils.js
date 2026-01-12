@@ -3,14 +3,31 @@
  */
 
 /**
- * Format sender name from email header
- * @param {string} sender - Full sender string like "Name <email@example.com>"
- * @returns {Array} [name, rest] where rest is the email part
+ * Format sender name and email from email header
+ * @param {string} sender - Full sender string like "Name <email@example.com>" or just "email@example.com"
+ * @returns {Object} { name, emailAddress }
  */
 const formatSenderName = (sender) => {
-    if (!sender) return ['', []];
-    const [name, ...rest] = sender.split(' <');
-    return [name, rest];
+    if (!sender) return { name: 'Unknown', emailAddress: '' };
+
+    // Check for "Name <email@example.com>" format
+    const match = sender.match(/^(.*?)\s*<([^>]+)>$/);
+    if (match) {
+        return {
+            name: match[1].trim() || match[2].split('@')[0],
+            emailAddress: match[2].trim()
+        };
+    }
+
+    // If just "email@example.com"
+    if (sender.includes('@')) {
+        return {
+            name: sender.split('@')[0],
+            emailAddress: sender.trim()
+        };
+    }
+
+    return { name: sender, emailAddress: '' };
 };
 
 /**
@@ -19,19 +36,18 @@ const formatSenderName = (sender) => {
  * @returns {Object} Formatted email details
  */
 const extractEmailDetails = (email) => {
+    if (!email) return { name: 'Unknown', emailAddress: '', subject: '(No Subject)', recipients: '' };
+
     const from = email.from || email.sender || '';
-    const [name, rest] = formatSenderName(from);
+    const { name, emailAddress } = formatSenderName(from);
 
     const details = {
-        name: name
+        name: name,
+        emailAddress: emailAddress,
+        subject: email.subject || email.message?.headers?.subject || '(No Subject)',
+        recipients: email.recipients || email.to || email.recipient || email.message?.headers?.to || '',
+        Date: email.Date || email.date || email.timestamp || email.received_at || new Date().toISOString()
     };
-
-    if (rest[0] && rest[0].length > 0) {
-        details.emailAddress = ' <' + rest;
-    }
-
-    details.subject = email.subject || '';
-    details.recipients = email.recipients || email.to || email.recipient || '';
 
     return details;
 };

@@ -14,7 +14,7 @@ if "%MAIL_CONFIG%"=="" set MAIL_CONFIG=CLOUDFLARE
 echo Creating local apiconfig...
 (
 echo export default {
-echo     apiUrl: 'http://localhost:8080/api/v1/mail',
+echo     apiUrl: '/api/v1/mail',
 echo     domain: 'localhost'
 echo }
 ) > ui\config\apiconfig.local.js

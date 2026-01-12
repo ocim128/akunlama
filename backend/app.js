@@ -1,7 +1,11 @@
 const express = require('express');
+const cors = require('cors');
 const compression = require('compression');
 const cacheControl = require("./config/cacheControl");
 const app = express();
+
+// Enable CORS for all routes
+app.use(cors());
 
 // Trust proxy headers for IP detection
 app.set('trust proxy', true);
@@ -132,6 +136,15 @@ app.get("/api/v1/mail/getInfo", (req, res) => {
     mailGetInfo(req, res);
 });
 
+// Alias for getInfo as the UI uses /getKey
+app.get("/api/v1/mail/getKey", (req, res) => {
+    console.log(`[${req.realIP}] /api/v1/mail/getKey`, req.query);
+    res.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=120, stale-if-error=300');
+    res.set('Content-Type', 'application/json; charset=utf-8');
+    res.set('Vary', 'Accept-Encoding');
+    mailGetInfo(req, res);
+});
+
 app.get("/api/v1/mail/getHtml", (req, res) => {
     console.log(`[${req.realIP}] /api/v1/mail/getHtml`, req.query);
     res.set('Cache-Control', 'public, max-age=600, stale-while-revalidate=1800, stale-if-error=3600');
@@ -167,6 +180,11 @@ app.use(express.static("public", {
         }
     }
 }));
+
+// 404 fallback for API - don't serve index.html for API routes
+app.use('/api/*', (req, res) => {
+    res.status(404).json({ error: 'API route not found' });
+});
 
 // 404 fallback - serve index.html for SPA routing
 app.use((req, res) => {

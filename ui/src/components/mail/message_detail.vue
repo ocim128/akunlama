@@ -365,18 +365,22 @@
 	.message-body {
 		flex: 1;
 		display: flex;
-		background: white;
-		margin: 0 1rem 1rem;
+		flex-direction: column;
+		background: #ffffff;
+		margin: 0 1.5rem 1.5rem;
 		border-radius: $radius-lg;
-		box-shadow: $shadow;
+		box-shadow: $shadow-lg;
 		overflow: hidden;
+		border: 1px solid $gray-200;
 	}
 
 	#message-content {
+		flex: 1;
 		width: 100%;
 		height: 100%;
 		border: none;
-		background: white;
+		background: #ffffff;
+		display: block;
 	}
 
 	// Mobile optimizations
