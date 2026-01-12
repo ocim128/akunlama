@@ -24,8 +24,20 @@
             "destination": "backend/app.js"
         },
         {
-            "source": "/(.*)",
-            "destination": "ui/$1"
+            "source": "/assets/(.*)",
+            "destination": "ui/assets/$1"
+        },
+        {
+            "source": "/static/(.*)",
+            "destination": "ui/static/$1"
+        },
+        {
+            "source": "/favicon.ico",
+            "destination": "ui/static/favicon.ico"
+        },
+        {
+            "source": "/((?!api/|assets/|static/|favicon.ico).*)",
+            "destination": "ui/index.html"
         }
     ]
 }
