@@ -10,6 +10,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "vite",
+    "dev:e2e": "vite --port 5173 --strictPort",
     "build": "vite build",
     "preview": "vite preview",
     "vercel-build": "cp config/apiconfig.vercel.js config/apiconfig.js && vite build",
@@ -19,7 +20,9 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report tests/e2e-results"
   },
   "dependencies": {
     "axios": "^1.6.0",
