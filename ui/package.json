@@ -13,7 +13,13 @@
     "build": "vite build",
     "preview": "vite preview",
     "vercel-build": "cp config/apiconfig.vercel.js config/apiconfig.js && vite build",
-    "prebuild": "cp config/apiconfig.vercel.js config/apiconfig.js"
+    "prebuild": "cp config/apiconfig.vercel.js config/apiconfig.js",
+    "test": "vitest",
+    "test:unit": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "axios": "^1.6.0",
@@ -24,7 +30,7 @@
     "primer-tooltips": "^2.0.0",
     "random-words": "^2.0.0",
     "sass": "^1.69.5",
-    "vue": "^2.7.14",
+    "vue": "2.7.16",
     "vue-router": "^3.6.5",
     "vue-spinner": "^1.0.4",
     "vuescroll": "^4.18.0",
@@ -32,6 +38,12 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue2": "^2.2.0",
+    "@vue/test-utils": "^1.3.6",
+    "@playwright/test": "^1.40.0",
+    "vue-template-compiler": "2.7.16",
+    "vitest": "^1.0.4",
+    "@vitest/coverage-v8": "^1.0.4",
+    "jsdom": "^23.0.1",
     "vite": "^4.5.0"
   }
 }

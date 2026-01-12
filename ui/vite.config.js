@@ -32,4 +32,18 @@ export default defineConfig({
       vue: 'vue/dist/vue.esm.js',
     }
   },
+  // Vitest configuration
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.js'],
+    include: ['tests/unit/**/*.{test,spec}.{js,ts}'],
+    exclude: ['tests/e2e/**/*', 'node_modules/**/*'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.{js,vue}'],
+      exclude: ['src/main.js', 'src/router/**']
+    }
+  }
 })

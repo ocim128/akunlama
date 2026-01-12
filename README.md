@@ -1,85 +1,169 @@
-[![inboxkitten header](./ui/static/inbox-kitten-opengraph.jpg)](https://inboxkitten.com)
-
-# Open-Source Disposable Email - Served by Serverless Kittens
+# 🐱 Akunlama - Open-Source Disposable Email Service
 
 [![Build Status](https://travis-ci.org/uilicious/inboxkitten.svg?branch=master)](https://travis-ci.org/uilicious/inboxkitten)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[Inboxkitten](https://inboxkitten.com) is an open-source disposable email service that you can freely deploy adopt on your own!
+A free, open-source disposable email service powered by adorably lazy kittens! Based on [InboxKitten](https://inboxkitten.com) - create temporary email addresses instantly without signup.
 
-Visit [our site](https://inboxkitten.com) to give a spin, or ...
+## ✨ Features
 
-# Docker Deployment Guide
+- 🚀 **Instant Email Addresses** - No signup required, just pick a name
+- 🔒 **Privacy First** - Emails auto-delete after 24 hours
+- 📱 **Responsive Design** - Works on desktop and mobile
+- 🌐 **Multiple Email Backends** - Supports Mailgun and Cloudflare Email
+- 🐳 **Docker Ready** - Easy deployment with Docker
+- ☁️ **Serverless Support** - Deploy to Vercel, Cloudflare Workers
+- 🧪 **Fully Tested** - Unit tests with Vitest, E2E tests with Playwright
 
-Its one simple line - to use our prebuilt docker container.
+## 🚀 Quick Start
 
-Note you will need to [setup your mailgun account first](#setup-mailgun)
+### Docker Deployment (Recommended)
 
-```
-# PS: you should modify this for your use case
+```bash
 docker run \
-	-e MAILGUN_EMAIL_DOMAIN="<email-domain>" \
-	-e MAILGUN_API_KEY="<api-key>" \
-	-e WEBSITE_DOMAIN="localhost:8000" \
-	-p 8000:8000 \
-	uilicious/inboxkitten
+  -e MAIL_CONFIG="MAILGUN" \
+  -e MAILGUN_EMAIL_DOMAIN="<your-domain>" \
+  -e MAILGUN_API_KEY="<your-api-key>" \
+  -e WEBSITE_DOMAIN="localhost:8000" \
+  -p 8000:8000 \
+  uilicious/inboxkitten
 ```
 
-And head over to port 8000 - for your inboxkitten
+### Local Development
 
-# Other Deployment Options
+```bash
+# Clone the repository
+git clone https://github.com/your-username/akunlama.git
+cd akunlama
 
-- [Serverless deployment guide (for cloudflare)](./DEPLOY-GUIDE-SERVERLESS.md)
-- [localhost/custom deployment/configuration guide](./DEPLOY-GUIDE-LOCALHOST)
+# Install dependencies
+cd ui && npm install
+cd ../backend && npm install
 
-# Support us on product hunt 🚀
+# Start development servers
+# Terminal 1: Start backend
+cd backend && npm start
 
-+ https://www.producthunt.com/posts/inboxkitten
-
-# Somewhat related blog / articles
-
-+ [The Stack : Making a free open-source disposable email service prototype (inboxkitten.com) in 14 hours](https://dev.to/picocreator/the-stack-making-a-free-open-source-disposable-email-service-prototype-inboxkittencom-in-14-hours-206g)
-+ [What I have learnt from a 14 hours project](https://dev.to/jmtiong/what-i-have-learnt-from-a-14-hours-project-2joo)
-+ [Development timeline](https://blog.uilicious.com/development-timeline-for-inboxkitten-com-lessons-learnt-e802a2f0a47c)
-
-# Other References
-
-- [Coding Guide](./CODE-GUIDE.md)
-
-# Looking for sponsor
-
-Note: Due to this project rather heavy traffic usage, a good half sadly spam/bot related, we are looking for a hosting sponsor / sponsor to subsidise running cost
-___
-
-## How to Setup Mailgun - and get your free API key
-
-### Mailgun
-To sign up for a Mailgun account, go to the <a href="https://signup.mailgun.com/new/signup" target="_blank">signup</a> page.
-
-> 2021 Udpate: Inbound routing for mailgun, now requires any paid account (starting at $35/month) see : https://www.mailgun.com/pricing/
-
-#### Custom Domain
+# Terminal 2: Start frontend
+cd ui && npm run dev
 ```
-	1. Click on `Add New Domain` button under your Domains panel. 
-	2. Follow the steps accordingly
+
+## 📧 Email Backend Configuration
+
+### Option 1: Mailgun (Default)
+
+Set these environment variables:
+
+```bash
+MAIL_CONFIG=MAILGUN
+MAILGUN_EMAIL_DOMAIN=your-domain.com
+MAILGUN_API_KEY=your-api-key
 ```
-> You can use the default domain that was provided by Mailgun if you do not have your own domain.
 
-#### Routes Configuration
-After setting up your domain, in order for you to receive email, you have to configure the routes. <a href="https://documentation.mailgun.com/en/latest/quickstart-receiving.html" target="_blank">Routes</a> act as rules that will filter through all the incoming mails and execute actions on matched conditions.
+> **Note:** Mailgun inbound routing requires a paid account ($35/month minimum).
 
-In your Routes panel, simply click on `Create Route` button and follow the steps accordingly.
+### Option 2: Cloudflare Email
 
-<img src="./assets/mailgun_create_route.png" alt="Mailgun Route" width="600px"/>
+Set these environment variables:
 
-> The above route will match all names ending with `@inboxkitten.com`, store them in the storage that mailgun provides (only for 3 days) and stop processing any other rules once this route is matched. 
+```bash
+MAIL_CONFIG=CLOUDFLARE
+CLOUDFLARE_API_URL=https://your-worker.workers.dev
+CLOUDFLARE_API_KEY=your-api-key
+EMAIL_DOMAIN=your-domain.com
+```
 
-#### Mailgun API Key
-You can locate your Mailgun API key by clicking on the domain that you are managing. In it you can see your API key.
+See [cloudflare-email/](./cloudflare-email/) for Cloudflare Worker setup.
 
-<img src="./assets/mailgun_api_key.png" alt="Mailgun API key" width="500px"/>
+## 🧪 Testing
 
-Or you can go to the security settings and locate the API key there.
+### Unit Tests (Vitest)
 
-<img src="./assets/mailgun_api_key_2.png" alt="Mailgun API key" width="500px"/>
+```bash
+cd ui
 
-___
+# Run tests in watch mode
+npm test
+
+# Run tests once
+npm run test:unit
+
+# Run with coverage
+npm run test:coverage
+```
+
+### E2E Tests (Playwright)
+
+```bash
+cd ui
+
+# Run E2E tests
+npm run test:e2e
+
+# Run with UI
+npm run test:e2e:ui
+
+# Run headed (see browser)
+npm run test:e2e:headed
+```
+
+## 📁 Project Structure
+
+```
+akunlama/
+├── ui/                    # Vue.js frontend
+│   ├── src/
+│   │   ├── components/    # Vue components
+│   │   ├── scss/          # Stylesheets
+│   │   └── router/        # Vue Router config
+│   ├── tests/
+│   │   ├── unit/          # Vitest unit tests
+│   │   └── e2e/           # Playwright E2E tests
+│   └── config/            # Frontend configuration
+├── backend/               # Express.js API server
+│   ├── src/
+│   │   ├── api/           # API endpoints
+│   │   └── shared/        # Shared utilities
+│   └── config/            # Backend configuration
+├── cloudflare-email/      # Cloudflare Email Worker
+├── cli/                   # CLI tools
+└── deploy/                # Deployment scripts
+```
+
+## 🚀 Deployment Options
+
+| Platform | Guide |
+|----------|-------|
+| Docker | [Docker Deployment](#docker-deployment-recommended) |
+| Vercel | [DEPLOY-GUIDE-SERVERLESS.md](./DEPLOY-GUIDE-SERVERLESS.md) |
+| Localhost | [DEPLOY-GUIDE-LOCALHOST.md](./DEPLOY-GUIDE-LOCALHOST.md) |
+| Cloudflare Workers | [cloudflare-email/](./cloudflare-email/) |
+
+## 📖 Documentation
+
+- [Code Guide](./CODE-GUIDE.md) - Coding standards and architecture
+- [Optimization Guide](./OPTIMIZATIONS.md) - Performance optimizations
+- [Docker Notes](./docker-notes.md) - Docker-specific configuration
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📜 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- Original [InboxKitten](https://github.com/uilicious/inboxkitten) by [UIlicious](https://uilicious.com)
+- All the adorable kittens who power this service ☀️🐱
+
+---
+
+Made with ❤️ and 🐱 for fellow humans who value privacy
