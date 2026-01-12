@@ -403,6 +403,10 @@ export default {
       font-size: 4rem;
       color: $gray-300;
       margin-bottom: 1.5rem;
+      display: inline-block;
+      width: 1em;
+      height: 1em;
+      line-height: 1;
     }
 
     h3 {

@@ -23,8 +23,13 @@
                   class="main-email-input"
                   required
                 />
-                <span class="domain-display" @click="copyEmail" :title="'Click to copy: ' + fullEmailAddress">
-                  @{{ domain }}
+                <span 
+                  class="domain-display" 
+                  :class="{ 'copied': isCopied }"
+                  @click="copyEmail" 
+                  :title="'Click to copy: ' + fullEmailAddress"
+                >
+                  {{ isCopied ? '✓ Copied!' : '@' + domain }}
                 </span>
               </div>
             </div>
@@ -123,11 +128,12 @@ export default {
   name: 'LandingPage',
   data() {
     return {
-      randomName: ''
+      randomName: '',
+      isCopied: false
     }
   },
   mounted() {
-    // Keep randomName empty by default - user can generate name with shuffle button
+    // Keep randomName empty by default
     this.initClipboard()
   },
   beforeDestroy() {
@@ -205,39 +211,29 @@ export default {
       })
 
       this.$clipboard.on('success', () => {
-        this.showCopySuccess()
+        this.handleCopySuccess()
       })
     },
 
     copyEmail() {
-      navigator.clipboard.writeText(this.fullEmailAddress).then(() => {
-        this.showCopySuccess()
-      }).catch(() => {
-        // Fallback for browsers that don't support clipboard API
-        this.showCopySuccess()
-      })
+      // Try modern API first
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(this.fullEmailAddress).then(() => {
+          this.handleCopySuccess()
+        }).catch(() => {
+          this.handleCopySuccess() // Fallback visual feedback mainly
+        })
+      } else {
+        // Fallback or ClipboardJS will catch it
+        this.handleCopySuccess()
+      }
     },
 
-    showCopySuccess() {
-      // Create a temporary visual feedback for the new domain-display class
-      const domainEl = document.querySelector('.domain-display')
-      if (domainEl) {
-        const originalText = domainEl.textContent
-        const originalBg = domainEl.style.background || '#f8fafc'
-        const originalColor = domainEl.style.color || '#4F46E5'
-        
-        domainEl.textContent = '✓ Copied!'
-        domainEl.style.background = '#10B981'
-        domainEl.style.color = 'white'
-        domainEl.style.fontSize = '0.7rem'
-        
-        setTimeout(() => {
-          domainEl.textContent = originalText
-          domainEl.style.background = originalBg
-          domainEl.style.color = originalColor
-          domainEl.style.fontSize = '' // Reset font size
-        }, 2000)
-      }
+    handleCopySuccess() {
+      this.isCopied = true
+      setTimeout(() => {
+        this.isCopied = false
+      }, 2000)
     },
 
     goToInbox() {
@@ -401,10 +397,17 @@ h2 {
   border-left: 1px solid #e2e8f0;
 }
 
-.domain-display:hover {
-  background: #f1f5f9;
-  color: #3730A3;
-}
+  .domain-display:hover {
+    background: #f1f5f9;
+    color: #3730A3;
+  }
+
+  .domain-display.copied {
+    background: #10B981;
+    color: white;
+    font-size: 0.8rem;
+    padding: 0.9rem 0.5rem;
+  }
 
 // Action buttons
 .action-buttons {

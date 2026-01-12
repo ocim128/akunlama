@@ -44,6 +44,7 @@ export default {
 	@use "scss/producthunt" as *;
 	@use "scss/common" as *;
 	@import url("https://unpkg.com/purecss@1.0.0/build/pure-min.css");
+	@import url("https://use.fontawesome.com/releases/v5.3.1/css/all.css");
 
 	* {
 		box-sizing: border-box;

@@ -62,7 +62,7 @@ test.describe('Inbox Page', () => {
         await page.waitForLoadState('networkidle')
 
         // The navigation should show the email address
-        await expect(page.locator('body')).toContainText('test-user')
+        await expect(page.locator('.email-input')).toHaveValue('test-user')
     })
 })
 

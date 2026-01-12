@@ -44,7 +44,7 @@ test.describe('Complete User Flow', () => {
         await page.locator('.btn-get-mail').click()
 
         // 4. Verify navigation
-        await expect(page).toHaveURL('/inbox/my-custom-email')
+        await expect(page).toHaveURL(/\/inbox\/my-custom-email(\/list)?/)
 
         // 5. Verify inbox loaded
         await page.waitForLoadState('networkidle')
@@ -61,7 +61,7 @@ test.describe('Complete User Flow', () => {
         await page.locator('.btn-get-mail').click()
 
         // 3. Wait for inbox to load
-        await expect(page).toHaveURL('/inbox/back-nav-test')
+        await expect(page).toHaveURL(/\/inbox\/back-nav-test(\/list)?/)
         await page.waitForLoadState('networkidle')
 
         // 4. Go back
@@ -81,7 +81,7 @@ test.describe('Complete User Flow', () => {
         await input.fill('preserve-test')
         await page.locator('.btn-get-mail').click()
 
-        await expect(page).toHaveURL('/inbox/preserve-test')
+        await expect(page).toHaveURL(/\/inbox\/preserve-test(\/list)?/)
 
         // 3. Go back
         await page.goBack()

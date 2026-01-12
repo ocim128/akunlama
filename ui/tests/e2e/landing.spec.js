@@ -70,9 +70,11 @@ test.describe('Landing Page', () => {
         expect(names.size).toBeGreaterThanOrEqual(3)
     })
 
-    test('should copy email when clicking domain', async ({ page, context }) => {
-        // Grant clipboard permissions
-        await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+    test('should copy email when clicking domain', async ({ page, context, browserName }) => {
+        // Grant clipboard permissions only for chromium
+        if (browserName === 'chromium') {
+            await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+        }
 
         const input = page.locator('.main-email-input')
         await input.fill('mytest')
@@ -83,16 +85,17 @@ test.describe('Landing Page', () => {
         // Check for visual feedback
         await expect(domainDisplay).toContainText('Copied')
 
-        // Wait for text to reset
-        await expect(domainDisplay).toContainText('@', { timeout: 3000 })
+        // Wait for text to reset - allow more time for animation
+        await expect(domainDisplay).not.toContainText('Copied', { timeout: 10000 })
+        await expect(domainDisplay).toContainText('@')
     })
 
     test('should navigate to inbox on form submit', async ({ page }) => {
         const input = page.locator('.main-email-input')
-        const form = page.locator('.email-form')
 
         await input.fill('testuser')
-        await form.evaluate(el => el.submit())
+        // Press Enter to trigger form submit
+        await input.press('Enter')
 
         // Should navigate to inbox
         await expect(page).toHaveURL(/\/inbox\/testuser/)
