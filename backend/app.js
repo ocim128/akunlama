@@ -119,6 +119,17 @@ try {
     mailGetHtml = errorHandler;
 }
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.status(200).json({
+        status: "ok",
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        backend: mailConfig
+    });
+});
+
 // API routes
 app.get("/api/v1/mail/list", (req, res) => {
     console.log(`[${req.realIP}] /api/v1/mail/list`, req.query);
