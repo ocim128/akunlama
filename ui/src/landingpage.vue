@@ -255,8 +255,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+@use "scss/color" as *;
 @import url('https://use.fontawesome.com/releases/v5.3.1/css/all.css');
-@import 'scss/_color.scss';
 
 // Reset and base
 * {

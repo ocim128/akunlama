@@ -28,7 +28,7 @@ And head over to port 8000 - for your inboxkitten
 
 # Other Deployment Options
 
-- [Serverless deployment guide (for cloudflare/firebase)](./DEPLOY-GUIDE-SERVERLESS.md)
+- [Serverless deployment guide (for cloudflare)](./DEPLOY-GUIDE-SERVERLESS.md)
 - [localhost/custom deployment/configuration guide](./DEPLOY-GUIDE-LOCALHOST)
 
 # Support us on product hunt 🚀

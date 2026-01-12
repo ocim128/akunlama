@@ -1,3 +1,5 @@
+@use "sass:color";
+
 //-----------------------------------------------
 // Modern Color Palette
 //-----------------------------------------------
@@ -38,13 +40,13 @@ $color5-base: $gray-100;
 $domain-base: $gray-100;
 
 $color1-dark: $secondary-dark;
-$color2-dark: darken($secondary-dark, 10%);
+$color2-dark: color.adjust($secondary-dark, $lightness: -10%);
 $color3-dark: $gray-800;
 $color4-dark: $gray-900;
 $color5-dark: $gray-200;
 
 $color1-light: $secondary-light;
-$color2-light: lighten($secondary-dark, 10%);
+$color2-light: color.adjust($secondary-dark, $lightness: 10%);
 $color3-light: $gray-600;
 $color4-light: $gray-800;
 $color5-light: $gray-50;

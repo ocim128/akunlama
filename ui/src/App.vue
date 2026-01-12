@@ -41,9 +41,9 @@ export default {
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
+	@use "scss/producthunt" as *;
+	@use "scss/common" as *;
 	@import url("https://unpkg.com/purecss@1.0.0/build/pure-min.css");
-	@import "scss/_producthunt.scss";
-	@import "scss/_common.scss";
 
 	* {
 		box-sizing: border-box;

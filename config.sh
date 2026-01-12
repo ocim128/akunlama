@@ -3,7 +3,7 @@
 # Deploy will terminate on any error
 set -e
 
-# Firebase Working directory
+# Project Working directory
 projectDir="`dirname \"$0\"`"
 cd "$projectDir" || exit 1
 projectDir="`pwd`"

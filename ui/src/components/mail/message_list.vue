@@ -183,7 +183,7 @@ export default {
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
-  @import '@/scss/_color.scss';
+  @use '@/scss/color' as *;
 
   .advisory-banner {
     background: linear-gradient(135deg, #FEF3C7, #FCD34D);

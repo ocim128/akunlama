@@ -194,7 +194,7 @@
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
-	@import '@/scss/_color.scss';
+	@use '@/scss/color' as *;
 
 	.message-details {
 		height: 100%;

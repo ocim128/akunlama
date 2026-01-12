@@ -71,9 +71,6 @@
 	route <span style="color:#406080; ">:</span> <span style="color:#308080; ">[</span>
 		<span style="color:#595979; ">// Lets load all requests to commonshost first</span>
 		<span style="color:#800000; ">"</span><span style="color:#1060b6; ">commonshost.inboxkitten.com</span><span style="color:#800000; ">"</span>
-
-		<span style="color:#595979; ">// If it fails, we fallback to firebase</span>
-		<span style="color:#595979; ">//"firebase.inboxkitten.com"</span>
 	<span style="color:#308080; ">]</span><span style="color:#308080; ">,</span>
 
 	<span style="color:#595979; ">// Set to true to disable fallback to origin host </span>
@@ -162,8 +159,8 @@ export default {
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
+    @use "scss/landingpage" as *;
 	@import url("https://use.fontawesome.com/releases/v5.3.1/css/all.css");
-    @import "scss/landingpage.scss";
 
 	.kittenrouter-navigation {
 		display:flex;

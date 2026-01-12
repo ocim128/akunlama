@@ -80,10 +80,7 @@ const exampleConfig = {
 	route : [
 
 		// Lets load all requests to commonshost first
-		"commonshost.inboxkitten.com",
-
-		// If it fails, we fallback to firebase
-		"firebase.inboxkitten.com"
+		"commonshost.inboxkitten.com"
 
 		// // Object based route definitions
 		// //-----------------------------------------------------------------
@@ -156,13 +153,13 @@ function getIPV4(request, logTrueIP = false) {
 	ip = ip.trim();
 
 	// If ipv4 validation failed, return blank
-	if(ip === '' || !ipv4_simpleRegex.test(ip)) {
+	if (ip === '' || !ipv4_simpleRegex.test(ip)) {
 		return "";
 	}
 
 	// Assume that its a valid ipv4
 	// return immediately if no ipmasking is done
-	if(logTrueIP == false) {
+	if (logTrueIP == false) {
 		return ip;
 	}
 
@@ -187,19 +184,19 @@ function getIPV6(request, logTrueIP = false) {
 	ip = ip.trim();
 
 	// If ipv4 validation passes, return blank
-	if(ip === '' || ipv4_simpleRegex.test(ip)) {
+	if (ip === '' || ipv4_simpleRegex.test(ip)) {
 		return "";
 	}
 
 	// Assume that its an ipv6
 	// return immediately if no ipmasking is done
-	if(logTrueIP == false) {
+	if (logTrueIP == false) {
 		return ip;
 	}
 
 	// Time to perform ip masking
 	let ip_split = ip.split(":");
-	for(let i=2; i<ip_split.length; ++i) {
+	for (let i = 2; i < ip_split.length; ++i) {
 		ip_split[i] = "xxxx"
 	}
 	return ip_split.join(":");
@@ -208,20 +205,20 @@ function getIPV6(request, logTrueIP = false) {
 // Log request with a single config map
 async function logRequestWithConfigMap(logConfig, request, response, routeType, routeCount) {
 	// Does nothing if logconfig is null
-	if( logConfig == null || logConfig.url == null || logConfig.url.length <= 0 ) {
+	if (logConfig == null || logConfig.url == null || logConfig.url.length <= 0) {
 		return null;
 	}
 
 	// Index YYYY.MM formating
-	let indexYearAndMonth = (new Date()).toISOString().substr(0,7).replace("-",".");
+	let indexYearAndMonth = (new Date()).toISOString().substr(0, 7).replace("-", ".");
 	let indexPrefix = logConfig.indexPrefix || "KittenRouter-log-";
 
 	// The full POST request URL
 	let fullLoggingURL = logConfig.url.trim();
-	if( !fullLoggingURL.endsWith("/") ) {
-		fullLoggingURL = fullLoggingURL+"/";
+	if (!fullLoggingURL.endsWith("/")) {
+		fullLoggingURL = fullLoggingURL + "/";
 	}
-	fullLoggingURL = fullLoggingURL+logConfig.indexPrefix+indexYearAndMonth+"/_doc/";
+	fullLoggingURL = fullLoggingURL + logConfig.indexPrefix + indexYearAndMonth + "/_doc/";
 
 	// Trueip logging flag
 	let logTrueIP = logConfig.logTrueIP || false;
@@ -230,34 +227,34 @@ async function logRequestWithConfigMap(logConfig, request, response, routeType, 
 	let data = {
 		'timestamp': (new Date()).toISOString(),
 
-		'route.type':  routeType,
+		'route.type': routeType,
 		'route.count': routeCount,
 
-		'req.url':        request.url,
-		'req.referer':    request.referrer || '',
-		'req.method':     request.method,
+		'req.url': request.url,
+		'req.referer': request.referrer || '',
+		'req.method': request.method,
 
-		'req.ipv4':          getIPV4(request, logTrueIP),
-		'req.ipv6':          getIPV6(request, logTrueIP),
-		'req.host':          request.headers.get('host') || '',
-		'req.user-agent':    request.headers.get('user-agent') || '',
-		'req.country-code':  request.headers.get('cf-ipcountry') || '',
+		'req.ipv4': getIPV4(request, logTrueIP),
+		'req.ipv6': getIPV6(request, logTrueIP),
+		'req.host': request.headers.get('host') || '',
+		'req.user-agent': request.headers.get('user-agent') || '',
+		'req.country-code': request.headers.get('cf-ipcountry') || '',
 
-		'req.cf.ray':     request.headers.get('cf-ray') || '',
-		'req.cf.colo':    (request.cf && request.cf.colo) || '',
+		'req.cf.ray': request.headers.get('cf-ray') || '',
+		'req.cf.colo': (request.cf && request.cf.colo) || '',
 		'req.tlsVersion': (request.cf && request.cf.tlsVersion) || '',
-		'req.tlsCipher':  (request.cf && request.cf.tlsCipher) || '',
+		'req.tlsCipher': (request.cf && request.cf.tlsCipher) || '',
 
-		'res.status':           response.status,
-		'res.url':              response.url,
-		'res.server':           response.headers.get('server') || '',
-		'res.via':              response.headers.get('via') || '',
-		'res.content-type':     response.headers.get('content-type') || '',
+		'res.status': response.status,
+		'res.url': response.url,
+		'res.server': response.headers.get('server') || '',
+		'res.via': response.headers.get('via') || '',
+		'res.content-type': response.headers.get('content-type') || '',
 		'res.content-encoding': response.headers.get('content-encoding') || '',
-		'res.content-length':   response.headers.get('content-length') || '',
-		'res.cache-control':    response.headers.get('cache-control') || '',
-		'res.cf.cache-status':  response.headers.get('cf-cache-status') || '',
-		'res.cf.ray':           response.headers.get('cf-ray') || '',
+		'res.content-length': response.headers.get('content-length') || '',
+		'res.cache-control': response.headers.get('cache-control') || '',
+		'res.cf.cache-status': response.headers.get('cf-cache-status') || '',
+		'res.cf.ray': response.headers.get('cf-ray') || '',
 
 		'config.logTrueIP': logTrueIP
 	};
@@ -275,8 +272,8 @@ async function logRequestWithConfigMap(logConfig, request, response, routeType, 
 	};
 
 	// Lets handle authentication
-	if( logConfig.basicAuthToken && logConfig.basicAuthToken.length > 0 ) {
-		logHeaders["Authorization"] = "Basic "+btoa(logConfig.basicAuthToken);
+	if (logConfig.basicAuthToken && logConfig.basicAuthToken.length > 0) {
+		logHeaders["Authorization"] = "Basic " + btoa(logConfig.basicAuthToken);
 	}
 
 	// The elasticsearch POST request to perform for logging
@@ -288,7 +285,7 @@ async function logRequestWithConfigMap(logConfig, request, response, routeType, 
 	})
 
 	// Log the log?
-	if( logConfig.consoleDebug ) {
+	if (logConfig.consoleDebug) {
 		console.log("KittenRouter logging response", logResult);
 	}
 
@@ -299,13 +296,13 @@ async function logRequestWithConfigMap(logConfig, request, response, routeType, 
 // Log request with a config array
 async function logRequestWithConfigArray(configArr, request, response, routeType, routeCount) {
 	// Does nothing if configArr is null
-	if( configArr == null || configArr.length <= 0 ) {
+	if (configArr == null || configArr.length <= 0) {
 		return null;
 	}
 
 	// Lets iterate the config
 	let promiseArray = [];
-	for(let i=0; i<configArr.length; ++i) {
+	for (let i = 0; i < configArr.length; ++i) {
 		promiseArray[i] = logRequestWithConfigMap(configArr[i], request, response, routeType, routeCount);
 	}
 
@@ -343,13 +340,13 @@ function setupResponseError(errorCode, errorMsg, httpCode = 500) {
 	let ret = new Response(
 		JSON.stringify({
 			error: {
-				code : errorCode,
-				message : errorMsg
+				code: errorCode,
+				message: errorMsg
 			}
 		}),
-		{ 
-			status: httpCode, 
-			statusText: errorCode, 
+		{
+			status: httpCode,
+			statusText: errorCode,
 			headers: {
 				"Content-Type": "application/json",
 				//"KittenRouterException": "true"
@@ -400,7 +397,7 @@ function isKittenRouterException(resObj) {
 // Process a routing request, and return its response object
 async function processOriginRoutingStr(originHostStr, inRequest) {
 	return fetch( //
-		cloneUrlWithNewOriginHostString(inRequest.url,originHostStr), //
+		cloneUrlWithNewOriginHostString(inRequest.url, originHostStr), //
 		inRequest //
 	);
 }
@@ -423,13 +420,13 @@ async function processOriginRoutingStr(originHostStr, inRequest) {
  * 
  * @return {Response} if a valid route with result is found, else return final route request failure (if any), else return null
  */
-async function processRoutingRequest( configObj, fetchEvent, inRequest ) {
+async function processRoutingRequest(configObj, fetchEvent, inRequest) {
 	// Lets get the route, and log array first
 	let routeArray = configObj.route;
 	let logArray = configObj.log;
 
 	// Return null, on empty routeArray
-	if( routeArray == null || routeArray.length <= 0 ) {
+	if (routeArray == null || routeArray.length <= 0) {
 		return null;
 	}
 
@@ -437,19 +434,19 @@ async function processRoutingRequest( configObj, fetchEvent, inRequest ) {
 	let resObj = null;
 
 	// Lets iterate the routes
-	for( let i=0; i<routeArray.length; ++i ) {
+	for (let i = 0; i < routeArray.length; ++i) {
 		let route = routeArray[i];
 
 		// Route string processing
-		if( (typeof route) === "string" ) {
+		if ((typeof route) === "string") {
 			// Lets handle string origins
-			resObj = await processOriginRoutingStr( route, inRequest );
+			resObj = await processOriginRoutingStr(route, inRequest);
 
 			// Lets log 
-			fetchEvent.waitUntil( logRequestWithConfigArray( logArray, inRequest, resObj, "ROUTE_REQUEST", i) );
+			fetchEvent.waitUntil(logRequestWithConfigArray(logArray, inRequest, resObj, "ROUTE_REQUEST", i));
 
 			// If its a valid response, return it
-			if( isGoodResponseObject(resObj) ) {
+			if (isGoodResponseObject(resObj)) {
 				return resObj;
 			}
 
@@ -472,7 +469,7 @@ async function processRoutingRequest( configObj, fetchEvent, inRequest ) {
  * 
  * @return {Response} if a valid route with result is found, else the last route error (if applicable)
  */
-async function processFetchEvent( configObj, fetchEvent ) {
+async function processFetchEvent(configObj, fetchEvent) {
 	// Lets unpack out the request
 	let inReq = fetchEvent.request;
 	let resObj = null;
@@ -481,17 +478,17 @@ async function processFetchEvent( configObj, fetchEvent ) {
 	//----------------------------------------------------------------------
 
 	// Lets try to get a response from a route
-	resObj = await processRoutingRequest( configObj, fetchEvent, inReq );
+	resObj = await processRoutingRequest(configObj, fetchEvent, inReq);
 
 	// Lets return the response object if its valid
 	// We do an oversimilified assumption that its valid 
 	// if the response code is 200~399
-	if( isGoodResponseObject(resObj) ) {
+	if (isGoodResponseObject(resObj)) {
 		return resObj;
 	}
 
 	// Throw and show results from setupResponseError (for direct feedback loop)
-	if( isKittenRouterException(resObj) ) {
+	if (isKittenRouterException(resObj)) {
 		return resObj;
 	}
 
@@ -500,9 +497,9 @@ async function processFetchEvent( configObj, fetchEvent ) {
 	//----------------------------------------------------------------------
 
 	// Origin fallback disabled, return last response, or a hard error
-	if( configObj.disableOriginFallback ) {
+	if (configObj.disableOriginFallback) {
 		// No response object returned by routes : assume no valid routes
-		if( resObj == null ) {
+		if (resObj == null) {
 			return setupResponseError("NO_VALID_ROUTE", "No valid route found in config");
 		}
 
@@ -512,7 +509,7 @@ async function processFetchEvent( configObj, fetchEvent ) {
 
 	// Lets fetch the cloudflare origin request, log it, and return its result instead
 	resObj = await fetch(inReq);
-	fetchEvent.waitUntil( logRequestWithConfigArray( configObj.log, inReq, resObj, "ORIGIN_FALLBACK", -1) );
+	fetchEvent.waitUntil(logRequestWithConfigArray(configObj.log, inReq, resObj, "ORIGIN_FALLBACK", -1));
 	return resObj;
 }
 
@@ -523,7 +520,7 @@ async function processFetchEvent( configObj, fetchEvent ) {
 //---------------------------------------------------------------------------------------------
 
 class KittenRouter {
-	
+
 	/**
 	 * Setup KittenRouter instance with the given config
 	 * 
@@ -603,8 +600,7 @@ if( this.module == null ) {
 	 ],
 
 		route: [
-			"commonshost.inboxkitten.com",
-			"firebase.inboxkitten.com"
+			"commonshost.inboxkitten.com"
 		]
 	});
 

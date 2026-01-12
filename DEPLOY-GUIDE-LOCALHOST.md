@@ -1,6 +1,6 @@
 # Developing on localhost / Custom deployment
 
-Note: You will still need to do the mail gun setup in the firebase guide.
+Note: You will still need to do the mail gun setup.
 
 Instead of running `./config.sh`, you should setup the config files respectively for the deployment.
 

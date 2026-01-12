@@ -1,9 +1,11 @@
+@use "color" as *;
+@use "common" as *;
+
 // Loading of font awesome
 // @import url("https://use.fontawesome.com/releases/v5.3.1/css/all.css");
 
 // Loading of color scheme
-@import "_color";
-@import "_common";
+
 
 // Modern typography
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -86,7 +88,7 @@ body {
 		margin: 0;
 		opacity: 0.95;
 	}
-		}
+}
 
 // Email input section styles moved to component for better specificity
 
@@ -98,7 +100,7 @@ body {
 	background: white;
 
 	h3 {
-			color: $dark-text;
+		color: $dark-text;
 		font-size: 1.25rem;
 		font-weight: 600;
 		margin-bottom: 1rem;
@@ -123,7 +125,7 @@ body {
 
 			&:hover {
 				text-decoration: underline;
-	}
+			}
 		}
 	}
 
@@ -139,8 +141,8 @@ body {
 			transform: translateY(-4px);
 			box-shadow: $shadow-lg;
 			border-color: $primary;
-			}
 		}
+	}
 
 	.pure-u-1-2 {
 		padding: 0 0.5rem;
@@ -157,11 +159,11 @@ body {
 
 		h1 {
 			font-size: 2.5rem;
-	}
+		}
 
 		h2 {
 			font-size: 1.1rem;
-	}
+		}
 	}
 
 	.email-selection {
@@ -177,7 +179,7 @@ body {
 				border-top: 1px solid $gray-200;
 				border-radius: 0 0 $radius-lg $radius-lg;
 				justify-content: center;
-	}
+			}
 		}
 	}
 
@@ -205,11 +207,12 @@ body {
 		opacity: 0;
 		transform: translateY(30px);
 	}
+
 	to {
 		opacity: 1;
 		transform: translateY(0);
-			}
-		}
+	}
+}
 
 .fade-in-up {
 	animation: fadeInUp 0.6s ease-out;
@@ -225,8 +228,13 @@ body {
 }
 
 @keyframes loading {
-	0% { background-position: 200% 0; }
-	100% { background-position: -200% 0; }
+	0% {
+		background-position: 200% 0;
+	}
+
+	100% {
+		background-position: -200% 0;
+	}
 }
 
 // Cleaned up - old sections removed for humorous kitten-themed design
