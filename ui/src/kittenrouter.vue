@@ -160,6 +160,7 @@ export default {
 
 <style lang="scss" rel="stylesheet/scss">
     @use "scss/landingpage" as *;
+    @use "scss/color" as *;
 	@import url("https://use.fontawesome.com/releases/v5.3.1/css/all.css");
 
 	.kittenrouter-navigation {

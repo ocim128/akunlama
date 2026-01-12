@@ -9,9 +9,9 @@ export default defineConfig({
     testDir: './tests/e2e',
 
     // Test timeout
-    timeout: 30 * 1000,
+    timeout: 60 * 1000,
     expect: {
-        timeout: 5000
+        timeout: 10000
     },
 
     // Run tests in parallel

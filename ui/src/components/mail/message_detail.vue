@@ -200,7 +200,8 @@
 		height: 100%;
 		display: flex;
 		flex-direction: column;
-		background: $gray-50;
+		background: var(--color-background);
+		transition: background 0.3s ease;
 	}
 
 	.loading-container {
@@ -241,11 +242,12 @@
 	}
 
 	.message-header {
-		background: white;
+		background: var(--color-surface);
 		border-bottom: 1px solid $gray-200;
 		box-shadow: $shadow-sm;
 		position: relative;
 		z-index: 1;
+		transition: background 0.3s ease;
 	}
 
 	.message-subject {
@@ -372,6 +374,12 @@
 		box-shadow: $shadow-lg;
 		overflow: hidden;
 		border: 1px solid $gray-200;
+		transition: all 0.3s ease;
+
+		[data-theme='dark'] & {
+			background: #f8fafc; // Slightly off-white for better contrast in dark mode
+			border-color: $gray-700;
+		}
 	}
 
 	#message-content {

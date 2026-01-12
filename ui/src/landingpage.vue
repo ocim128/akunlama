@@ -267,7 +267,7 @@ export default {
 
 // Hero section
 .hero-section {
-  background: linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%);
+  background: linear-gradient(135deg, var(--color-primary-dark) 0%, var(--color-secondary-dark) 100%);
   color: white;
   padding: 3rem 2rem;
   text-align: center;
@@ -276,6 +276,7 @@ export default {
   align-items: center;
   justify-content: center;
   overflow: auto;
+  transition: background 0.5s ease;
 }
 
 .hero-content {
@@ -312,16 +313,17 @@ h2 {
 
 // REDESIGNED EMAIL FORM - COMPACT AND WELL-SPACED
 .email-form-container {
-  background: rgba(255, 255, 255, 0.95);
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 1.8rem 1.5rem;
   margin: 1.5rem auto;
   max-width: 480px;
   width: 90%;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  color: #333;
+  box-shadow: $shadow-xl;
+  color: $dark-text;
   text-align: center;
-  border: 2px solid rgba(255, 255, 255, 0.8);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
 }
 
 .form-header {
@@ -352,8 +354,8 @@ h2 {
 
 .email-input-group {
   display: flex;
-  background: white;
-  border: 2px solid #4F46E5;
+  background: var(--color-surface);
+  border: 2px solid $primary;
   border-radius: 10px;
   overflow: hidden;
   transition: all 0.3s ease;
@@ -373,7 +375,7 @@ h2 {
   font-size: 0.95rem !important;
   font-weight: 500 !important;
   background: transparent !important;
-  color: #333 !important;
+  color: $dark-text !important;
   outline: none !important;
   min-height: auto !important;
 }
@@ -468,8 +470,9 @@ h2 {
 
 // Content section
 .content-section {
-  background: #f9fafb;
+  background: var(--color-background);
   padding: 4rem 2rem;
+  transition: background 0.3s ease;
 }
 
 .content-wrapper {
@@ -486,12 +489,12 @@ h2 {
 }
 
 .fact-card {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 2rem;
   text-align: center;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease;
+  box-shadow: $shadow-md;
+  transition: transform 0.3s ease, background 0.3s ease;
 }
 
 .fact-card:hover {
@@ -538,13 +541,13 @@ h2 {
 }
 
 .use-case {
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   padding: 1.5rem;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  transition: transform 0.3s ease;
+  box-shadow: $shadow-sm;
+  transition: transform 0.3s ease, background 0.3s ease;
   font-weight: 500;
-  color: #374151;
+  color: $dark-text;
 }
 
 .use-case:hover {
@@ -572,12 +575,12 @@ h2 {
 }
 
 .faq-item {
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   padding: 2rem;
   text-align: left;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-  transition: transform 0.3s ease;
+  box-shadow: $shadow-md;
+  transition: transform 0.3s ease, background 0.3s ease;
 }
 
 .faq-item:hover {
@@ -585,14 +588,14 @@ h2 {
 }
 
 .faq-item h4 {
-  color: #1f2937;
+  color: $dark-text;
   font-size: 1.1rem;
   font-weight: 600;
   margin: 0 0 1rem 0;
 }
 
 .faq-item p {
-  color: #6b7280;
+  color: $muted-text;
   line-height: 1.6;
   margin: 0;
 }

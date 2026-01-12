@@ -65,6 +65,7 @@
       <div class="empty-state" v-if="listOfMessages.length == 0 && !refreshing">
         <div class="empty-state-content">
           <div class="kitten-animation-container">
+            <i class="fas fa-cat fa-3x cat-icon-animation"></i>
             <img src="@/assets/sleeping-kitten.png" alt="Sleeping Kitten" class="sleeping-kitten">
           </div>
           <h3>No messages yet</h3>
@@ -344,10 +345,11 @@ export default {
   }
 
   .email-list {
-    background: white;
+    background: var(--color-surface);
     border-radius: $radius-lg;
     box-shadow: $shadow;
     overflow: hidden;
+    transition: background 0.3s ease;
   }
 
   .email-item {
@@ -459,7 +461,21 @@ export default {
     .kitten-animation-container {
       margin-bottom: 2rem;
       perspective: 1000px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       
+      .cat-icon-animation {
+        color: $primary;
+        margin-bottom: 1.5rem;
+        animation: gentle-float 4s ease-in-out infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 48px;
+        min-height: 48px;
+      }
+
       .sleeping-kitten {
         width: 200px;
         height: auto;
@@ -475,7 +491,7 @@ export default {
       font-size: 1.75rem;
       font-weight: 700;
       margin: 0 0 0.5rem 0;
-      background: linear-gradient(135deg, $primary, $primary-dark);
+      background: linear-gradient(135deg, $primary, $primary-light);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
@@ -488,7 +504,7 @@ export default {
 
     .empty-refresh-info {
         margin-bottom: 2rem;
-        background: $gray-50;
+        background: var(--color-background);
         padding: 0.75rem;
         border-radius: $radius;
         border: 1px dashed $gray-200;

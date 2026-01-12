@@ -172,12 +172,13 @@
 	@use "@/scss/color" as *;
 
 	.modern-nav {
-		background: white;
+		background: var(--color-surface);
 		border-bottom: 1px solid $gray-200;
 		box-shadow: $shadow-sm;
 		position: sticky;
 		top: 0;
 		z-index: 40;
+		transition: all 0.3s ease;
 
 		.nav-container {
 			max-width: 1200px;
@@ -196,7 +197,7 @@
 		padding: 0.75rem;
 		cursor: pointer;
 		transition: all 0.2s ease;
-		color: $gray-600;
+		color: $muted-text;
 		display: flex;
 		align-items: center;
 		justify-content: center;
@@ -205,7 +206,7 @@
 
 		&:hover {
 			background: $gray-200;
-			color: $gray-800;
+			color: $dark-text;
 			transform: translateX(-2px);
 		}
 
@@ -247,7 +248,7 @@
 
 	.email-input-group {
 		display: flex;
-		background: white;
+		background: var(--color-surface);
 		border: 1px solid $gray-300;
 		border-radius: $radius-lg;
 		overflow: hidden;
@@ -294,7 +295,7 @@
 
 			&.copied {
 				background: $success;
-				color: white;
+				color: $bright-text;
 			}
 		}
 	}
@@ -363,12 +364,12 @@
 
 		.refresh-btn {
 			background: $gray-100;
-			color: $gray-700;
+			color: $dark-text;
 			border: 1px solid $gray-300;
 
 			&:hover:not(:disabled) {
 				background: $gray-200;
-				color: $gray-800;
+				color: $dark-text;
 			}
 
 			.fa-spin {
