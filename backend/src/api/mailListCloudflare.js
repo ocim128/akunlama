@@ -5,7 +5,8 @@ const cloudflareConfig = require("../../config/cloudflareConfig");
 // Import shared modules to reduce code duplication
 const { getCachedEmails, cacheEmails } = require('../shared/emailCache');
 const { checkRateLimit } = require('../shared/rateLimit');
-const { validateUsername, shouldFilterEmail, getFilterStats } = require('../shared/emailFilter');
+const { validateUsername } = require('../shared/emailFilter');
+// Note: Email filtering now happens at Cloudflare Worker level (before storage)
 
 /**
  * Set security response headers
@@ -58,8 +59,8 @@ const getEvents = async (recipient, res, isAdminAccess = false) => {
         }
 
         // Transform to match frontend expectations
+        // Note: Email filtering already done at Cloudflare Worker level
         emails = emails
-            .filter(email => !shouldFilterEmail(email))
             .map(email => ({
                 id: email.id,
                 timestamp: email.timestamp,

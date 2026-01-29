@@ -4,7 +4,7 @@ This folder contains the Cloudflare Worker scripts for inbound email storage and
 
 ## Files
 
-- `email-worker.js` - Inbound email handler (parses MIME + stores in D1)
+- `email-worker.js` - Inbound email handler (parses MIME + stores in D1 + filters spam)
 - `api-worker.js` - API worker that reads from D1
 
 ## Setup
@@ -56,6 +56,44 @@ In your backend deployment (Vercel, Docker, etc.), set the same key:
 ADMIN_ACCESS_KEY=your-secret-key-here
 ```
 
+### 5. Email Filtering (Optional - Saves D1 Quota)
+
+The email worker includes built-in filtering to block unwanted emails **before** they are stored in D1.
+
+**Default blocked patterns (always active):**
+- Meta/Facebook registration emails
+- Instagram/Threads verification codes
+
+**Configurable filtering via environment variables:**
+
+| Variable | Description |
+|----------|-------------|
+| `BLOCKED_SENDER_KEYWORDS` | Comma-separated keywords to block in sender address |
+| `BLOCKED_SUBJECT_KEYWORDS` | Comma-separated keywords to block in subject |
+| `BLOCKED_BODY_KEYWORDS` | Comma-separated keywords to block in email body |
+
+**Example configuration:**
+```bash
+# Block newsletters and marketing
+BLOCKED_SENDER_KEYWORDS=noreply,newsletter,marketing,spam
+
+# Block promotional subject lines
+BLOCKED_SUBJECT_KEYWORDS=unsubscribe,promotional offer,limited time
+
+# Block automated message content
+BLOCKED_BODY_KEYWORDS=click here to unsubscribe,automated message
+```
+
+**Set via Cloudflare Dashboard:**
+1. Go to Workers → Your Worker → Settings → Variables
+2. Add environment variables (plain text, not secrets)
+
+**Set via Wrangler CLI:**
+```bash
+wrangler secret put BLOCKED_SENDER_KEYWORDS
+# Enter: noreply,newsletter,marketing
+```
+
 ## API Endpoints
 
 ### GET /api/events?recipient=user@domain.com
@@ -75,3 +113,4 @@ Health check endpoint.
 - The `*` and `all` wildcards require authentication via `admin_key`
 - Never expose `ADMIN_ACCESS_KEY` in client-side code
 - Admin access is only used server-to-server (backend → worker)
+- Blocked emails are logged but not stored (check Cloudflare Logs)

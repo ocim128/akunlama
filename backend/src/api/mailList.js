@@ -5,7 +5,8 @@ const cacheControl = require("../../config/cacheControl");
 // Import shared modules to reduce code duplication
 const { getCachedEmails, cacheEmails } = require('../shared/emailCache');
 const { checkRateLimit } = require('../shared/rateLimit');
-const { validateUsername, shouldFilterEmail, getFilterStats } = require('../shared/emailFilter');
+const { validateUsername } = require('../shared/emailFilter');
+// Note: For Cloudflare setup, email filtering happens at Worker level
 
 const mailgunClient = mailgun({
     apiKey: mailgunConfig.apiKey,
@@ -78,7 +79,6 @@ const getEvents = (recipient, res, isAdminAccess = false) => {
 
         // Process emails
         emails = emails
-            .filter(email => !shouldFilterEmail(email))
             .map(email => {
                 // Add sender from envelope if missing
                 if (!email.sender && email.envelope?.sender) {
