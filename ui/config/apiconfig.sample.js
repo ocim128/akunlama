@@ -1,4 +1,4 @@
 export default {
 	apiUrl: '/api/v1/mail',
-	domain: '${MAILGUN_EMAIL_DOMAIN}'
+	domain: import.meta.env.VITE_WEBSITE_DOMAIN || '${MAILGUN_EMAIL_DOMAIN}'
 }

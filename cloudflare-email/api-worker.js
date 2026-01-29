@@ -208,10 +208,28 @@ export default {
                     });
                 }
 
+                const trimmedRecipient = recipient.trim();
+                if (!trimmedRecipient) {
+                    return new Response(JSON.stringify({ error: 'Missing recipient parameter' }), {
+                        status: 400, headers
+                    });
+                }
+
                 let result;
 
                 // Check for admin access (wildcard)
-                const isAdminRequest = recipient === '*' || recipient === 'all';
+                const isAdminRequest = trimmedRecipient === '*' || trimmedRecipient === 'all';
+                let lookupRecipient = trimmedRecipient;
+
+                if (!isAdminRequest && !lookupRecipient.includes('@')) {
+                    if (env.EMAIL_DOMAIN) {
+                        lookupRecipient = `${lookupRecipient}@${env.EMAIL_DOMAIN}`;
+                    } else {
+                        return new Response(JSON.stringify({ error: 'EMAIL_DOMAIN is not configured' }), {
+                            status: 400, headers
+                        });
+                    }
+                }
 
                 if (isAdminRequest) {
                     // SECURITY: Admin access requires valid admin_key
@@ -241,7 +259,7 @@ export default {
             WHERE recipient = ? 
             ORDER BY received_at DESC 
             LIMIT 50
-          `).bind(recipient).all();
+          `).bind(lookupRecipient).all();
                 }
 
                 // Format response like Mailgun events API
