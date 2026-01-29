@@ -1,22 +1,23 @@
 # Cloudflare Email Worker Setup
 
-This folder contains the Cloudflare Worker script for the email API.
+This folder contains the Cloudflare Worker scripts for inbound email storage and the email API.
 
 ## Files
 
-- `api-worker.js` - The main worker script that handles email fetching
+- `email-worker.js` - Inbound email handler (parses MIME + stores in D1)
+- `api-worker.js` - API worker that reads from D1
 
 ## Setup
 
-### 1. Deploy the Worker
+### 1. Deploy the Workers
 
-Deploy `api-worker.js` to Cloudflare Workers via:
+Deploy `email-worker.js` (inbound) and `api-worker.js` (fetch) to Cloudflare Workers via:
 - **Cloudflare Dashboard**: Workers → Create Worker → Paste code → Deploy
 - **Wrangler CLI**: `wrangler deploy`
 
 ### 2. Configure D1 Database
 
-The worker requires a D1 database binding named `DB` with the following schema:
+Both workers require a D1 database binding named `DB` with the following schema:
 
 ```sql
 CREATE TABLE emails (
