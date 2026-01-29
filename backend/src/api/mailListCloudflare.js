@@ -5,7 +5,7 @@ const cloudflareConfig = require("../../config/cloudflareConfig");
 // Import shared modules to reduce code duplication
 const { getCachedEmails, cacheEmails } = require('../shared/emailCache');
 const { checkRateLimit } = require('../shared/rateLimit');
-const { validateUsername, shouldFilterEmail } = require('../shared/emailFilter');
+const { validateUsername, shouldFilterEmail, getFilterStats } = require('../shared/emailFilter');
 
 /**
  * Set security response headers

@@ -5,7 +5,7 @@ const cacheControl = require("../../config/cacheControl");
 // Import shared modules to reduce code duplication
 const { getCachedEmails, cacheEmails } = require('../shared/emailCache');
 const { checkRateLimit } = require('../shared/rateLimit');
-const { validateUsername, shouldFilterEmail } = require('../shared/emailFilter');
+const { validateUsername, shouldFilterEmail, getFilterStats } = require('../shared/emailFilter');
 
 const mailgunClient = mailgun({
     apiKey: mailgunConfig.apiKey,
