@@ -52,7 +52,6 @@
 <script>
 	import config from '@/../config/apiconfig.js'
 	import 'normalize.css'
-	import $ from 'jquery'
 	import ClipboardJS from 'clipboard'
 
 	export default {
@@ -103,16 +102,25 @@
 			},
 
 			showCopyFeedback() {
-				const domainEl = $('#nav-domain')
-				domainEl.addClass('copied')
+				const domainEl = document.getElementById('nav-domain')
+				if (!domainEl) return
+				
+				domainEl.classList.add('copied')
 				
 				// Create tooltip
-				const tooltip = $('<div class="copy-tooltip">Copied!</div>')
-				domainEl.append(tooltip)
+				const tooltip = document.createElement('div')
+				tooltip.className = 'copy-tooltip'
+				tooltip.textContent = 'Copied!'
+				domainEl.appendChild(tooltip)
 				
 				setTimeout(() => {
-					tooltip.fadeOut(() => tooltip.remove())
-					domainEl.removeClass('copied')
+					// Fade out effect
+					tooltip.style.transition = 'opacity 0.3s ease'
+					tooltip.style.opacity = '0'
+					setTimeout(() => {
+						tooltip.remove()
+					}, 300)
+					domainEl.classList.remove('copied')
 				}, 2000)
 			},
 

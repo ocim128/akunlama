@@ -64,7 +64,7 @@
 	import 'normalize.css'
 	import config from '@/../config/apiconfig.js'
 	import axios from 'axios'
-	import moment from 'moment'
+	import dayjs from 'dayjs'
 
 	export default {
 		name: 'MessageDetail',
@@ -173,10 +173,10 @@
 
 			formatDate(dateString) {
 				if (!dateString) return 'Unknown time'
-				let date = moment(dateString)
+				let date = dayjs(dateString)
 				if (!date.isValid()) return 'Unknown time'
 				
-				let now = moment()
+				let now = dayjs()
 				let diff = now.diff(date, 'days')
 				
 				if (diff === 0) {

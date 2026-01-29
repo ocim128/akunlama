@@ -90,7 +90,8 @@ import NavBar from '../NavBar.vue'
 import 'normalize.css'
 import config from '@/../config/apiconfig.js'
 import axios from 'axios'
-import moment from 'moment'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import PulseLoader from 'vue-spinner/src/PulseLoader.vue'
 
 export default {
@@ -108,7 +109,7 @@ export default {
         }
       },
       refreshing: false,
-      lastRefreshed: moment(),
+      lastRefreshed: dayjs(),
       countdown: 10,
       countdownTimer: null
     }
@@ -160,12 +161,12 @@ export default {
         .then(res => {
           this.listOfMessages = res.data
           this.refreshing = false
-          this.lastRefreshed = moment()
+          this.lastRefreshed = dayjs()
           this.countdown = 10 // Reset countdown
           this.$eventHub.$emit('refreshEnd')
         }).catch((e) => {
           this.refreshing = false
-          this.lastRefreshed = moment()
+          this.lastRefreshed = dayjs()
           this.countdown = 10 // Reset countdown even on error
           this.$eventHub.$emit('refreshEnd')
           console.error('Failed to fetch messages:', e)
@@ -183,8 +184,8 @@ export default {
     },
 
     calculateTime (msg) {
-      let now = moment()
-      let theDate = moment(msg.timestamp * 1000)
+      let now = dayjs()
+      let theDate = dayjs(msg.timestamp * 1000)
       let diff = now.diff(theDate, 'day')
       
       if (diff === 0) {

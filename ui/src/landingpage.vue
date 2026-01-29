@@ -119,7 +119,6 @@
 </template>
 
 <script>
-import $ from 'jquery'
 import config from '@/../config/apiconfig.js'
 import 'normalize.css'
 import ClipboardJS from 'clipboard'
@@ -252,7 +251,6 @@ export default {
 
 <style lang="scss" scoped>
 @use "scss/color" as *;
-@import url('https://use.fontawesome.com/releases/v5.3.1/css/all.css');
 
 // Reset and base
 * {
