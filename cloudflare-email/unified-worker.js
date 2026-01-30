@@ -35,13 +35,20 @@ const RATE_LIMITS = {
 
 // Default blocked sender patterns (Meta/Facebook related)
 const DEFAULT_BLOCKED_SENDER_PATTERNS = [
+    // Facebook registration (blocks spam account creation)
     'registration@facebook',
-    'registrations@mail.instagram.com',
     'registration@facebookmail.com',
-    'groupupdates@facebookmail.com',
-    'reminders@facebookmail.com',
+    // Facebook notifications (high volume - saves D1 quota)
+    'notification@facebookmail.com',
     'friendsuggestion@facebookmail.com',
-    'pageupdates@facebookmail.com'
+    'friendupdates@facebookmail.com',
+    'friends@facebookmail.com',
+    'close_friend_updates@facebookmail.com',
+    'groupupdates@facebookmail.com',
+    'pageupdates@facebookmail.com',
+    'reminders@facebookmail.com',
+    // Instagram notifications (NOT registrations - those are legitimate)
+    'posts-recaps@mail.instagram.com'
 ];
 
 // Default blocked subject patterns (verification codes)

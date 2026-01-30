@@ -1,16 +1,16 @@
 # wrangler.toml - Cloudflare Worker configuration for akunlama
 # Documentation: https://developers.cloudflare.com/workers/wrangler/configuration/
 
-name = "akunlama-worker-test"
+name = "akunlama-worker"
 main = "unified-worker.js"
 compatibility_date = "2024-01-01"
 
 # D1 Database binding
-# Using email-storage database for testing
+# Using akunlama database for production
 [[d1_databases]]
 binding = "DB"
-database_name = "email-storage"
-database_id = "0a90f976-6a9e-416b-a574-95be4e03d780"
+database_name = "akunlama"
+database_id = "687a7407-1606-4444-9694-52d3aa050a49"
 
 # Scheduled cron trigger for email cleanup
 # Runs daily at midnight UTC to delete emails older than 7 days
@@ -21,7 +21,7 @@ crons = ["0 0 * * *"]
 # For sensitive values like ADMIN_ACCESS_KEY, use:
 # npx wrangler secret put ADMIN_ACCESS_KEY
 [vars]
-EMAIL_DOMAIN = "gratis-ongkir.com"
+EMAIL_DOMAIN = "akunlama.com"
 
 # Optional: Banned usernames (comma-separated)
 # BANNED_USERNAMES = "admin,postmaster,abuse,root"
