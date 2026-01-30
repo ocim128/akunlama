@@ -1,7 +1,11 @@
 // api-worker.js - API to fetch emails (replaces Mailgun)
 // Admin access requires both wildcard recipient AND valid admin_key
+// Includes scheduled cleanup of old emails (7-day retention)
 
 const MAX_BODY_LENGTH = 50000;
+
+// Email retention period: 7 days in milliseconds
+const EMAIL_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 const splitHeadersAndBody = (raw) => {
     const crlfIndex = raw.indexOf('\r\n\r\n');
@@ -333,5 +337,36 @@ export default {
                 status: 500, headers
             });
         }
+    },
+
+    // Scheduled cron handler - runs daily to clean up old emails
+    // Configure in wrangler.toml or Cloudflare Dashboard:
+    // [triggers]
+    // crons = ["0 0 * * *"]  # Runs at midnight UTC daily
+    async scheduled(event, env, ctx) {
+        const cutoffTime = Date.now() - EMAIL_RETENTION_MS;
+
+        try {
+            // Count emails to be deleted (for logging)
+            const countResult = await env.DB.prepare(`
+                SELECT COUNT(*) as count FROM emails WHERE received_at < ?
+            `).bind(cutoffTime).first();
+
+            const count = countResult?.count || 0;
+
+            if (count > 0) {
+                // Delete emails older than retention period
+                await env.DB.prepare(`
+                    DELETE FROM emails WHERE received_at < ?
+                `).bind(cutoffTime).run();
+
+                console.log(`[CLEANUP] Deleted ${count} emails older than 7 days`);
+            } else {
+                console.log('[CLEANUP] No old emails to delete');
+            }
+        } catch (error) {
+            console.error('[CLEANUP] Error during email cleanup:', error);
+        }
     }
 }
+

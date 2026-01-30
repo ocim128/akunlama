@@ -114,3 +114,37 @@ Health check endpoint.
 - Never expose `ADMIN_ACCESS_KEY` in client-side code
 - Admin access is only used server-to-server (backend → worker)
 - Blocked emails are logged but not stored (check Cloudflare Logs)
+
+## Auto-Delete (7-Day Retention)
+
+Emails are automatically deleted after 7 days to save D1 storage quota.
+
+### Setup Cron Trigger
+
+**Via Cloudflare Dashboard:**
+1. Go to Workers → Your API Worker → Triggers
+2. Add a new Cron Trigger: `0 0 * * *` (runs at midnight UTC daily)
+
+**Via Wrangler CLI (wrangler.toml):**
+```toml
+[triggers]
+crons = ["0 0 * * *"]
+```
+
+### How It Works
+
+- The `scheduled` handler runs daily at midnight UTC
+- Deletes all emails where `received_at` is older than 7 days
+- Logs the count of deleted emails to Cloudflare Logs
+
+### Customizing Retention Period
+
+To change the retention period, modify `EMAIL_RETENTION_MS` in `api-worker.js`:
+
+```javascript
+// Examples:
+const EMAIL_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;  // 7 days (default)
+const EMAIL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
+const EMAIL_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+```
+
