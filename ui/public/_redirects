@@ -1,0 +1,5 @@
+# Cloudflare Pages redirects configuration
+# https://developers.cloudflare.com/pages/configuration/redirects/
+
+# SPA fallback - all routes serve index.html (Vue Router handles routing)
+/*  /index.html  200

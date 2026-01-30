@@ -14,6 +14,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "vercel-build": "cp config/apiconfig.vercel.js config/apiconfig.js && vite build",
+    "cloudflare-build": "cp config/apiconfig.cloudflare.js config/apiconfig.js && vite build",
     "prebuild": "cp config/apiconfig.vercel.js config/apiconfig.js",
     "test": "vitest",
     "test:unit": "vitest run",

@@ -1,0 +1,55 @@
+# wrangler.toml - Cloudflare Worker configuration for akunlama
+# Documentation: https://developers.cloudflare.com/workers/wrangler/configuration/
+
+name = "akunlama-worker-test"
+main = "unified-worker.js"
+compatibility_date = "2024-01-01"
+
+# D1 Database binding
+# Using email-storage database for testing
+[[d1_databases]]
+binding = "DB"
+database_name = "email-storage"
+database_id = "0a90f976-6a9e-416b-a574-95be4e03d780"
+
+# Scheduled cron trigger for email cleanup
+# Runs daily at midnight UTC to delete emails older than 7 days
+[triggers]
+crons = ["0 0 * * *"]
+
+# Environment variables (non-sensitive)
+# For sensitive values like ADMIN_ACCESS_KEY, use:
+# npx wrangler secret put ADMIN_ACCESS_KEY
+[vars]
+EMAIL_DOMAIN = "gratis-ongkir.com"
+
+# Optional: Banned usernames (comma-separated)
+# BANNED_USERNAMES = "admin,postmaster,abuse,root"
+
+# Optional: Additional blocked keywords for email filtering
+# BLOCKED_SENDER_KEYWORDS = "spam,noreply"
+# BLOCKED_SUBJECT_KEYWORDS = "lottery,winner"
+# BLOCKED_BODY_KEYWORDS = "click here to claim"
+
+# ============================================
+# DEPLOYMENT COMMANDS
+# ============================================
+# 
+# First-time setup:
+# 1. Login to Cloudflare: npx wrangler login
+# 2. Create D1 database: npx wrangler d1 create akunlama-emails
+# 3. Update database_id above with the ID from step 2
+# 4. Initialize database schema:
+#    npx wrangler d1 execute akunlama-emails --file=./schema.sql
+# 5. Set secrets:
+#    npx wrangler secret put ADMIN_ACCESS_KEY
+#
+# Deployment:
+# npx wrangler deploy
+#
+# Local development:
+# npx wrangler dev
+#
+# View logs:
+# npx wrangler tail
+# ============================================

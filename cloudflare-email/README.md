@@ -1,19 +1,48 @@
 # Cloudflare Email Worker Setup
 
-This folder contains the Cloudflare Worker scripts for inbound email storage and the email API.
+This folder contains the Cloudflare Worker for inbound email storage and API endpoints.
 
 ## Files
 
-- `email-worker.js` - Inbound email handler (parses MIME + stores in D1 + filters spam)
-- `api-worker.js` - API worker that reads from D1
+| File | Description |
+|------|-------------|
+| `unified-worker.js` | **Main worker** - Combined email + API handler with rate limiting |
+| `mime-utils.js` | MIME parsing utilities for email content |
+| `wrangler.toml` | Wrangler deployment configuration |
+| `schema.sql` | D1 database schema initialization |
+| `email-worker.js` | *(Legacy)* Standalone inbound email handler |
+| `api-worker.js` | *(Legacy)* Standalone API worker |
 
-## Setup
+## Quick Start
 
-### 1. Deploy the Workers
+```bash
+# 1. Login to Cloudflare
+npx wrangler login
 
-Deploy `email-worker.js` (inbound) and `api-worker.js` (fetch) to Cloudflare Workers via:
-- **Cloudflare Dashboard**: Workers → Create Worker → Paste code → Deploy
-- **Wrangler CLI**: `wrangler deploy`
+# 2. Create D1 database
+npx wrangler d1 create akunlama-emails
+
+# 3. Update wrangler.toml with your database_id from step 2
+
+# 4. Initialize database schema
+npx wrangler d1 execute akunlama-emails --file=./schema.sql
+
+# 5. Set secrets
+npx wrangler secret put ADMIN_ACCESS_KEY
+
+# 6. Deploy
+npx wrangler deploy
+
+# 7. Local development
+npx wrangler dev
+```
+
+## Architecture
+
+The `unified-worker.js` combines all functionality:
+- **Email handler** (`email()`) - Receives inbound emails from Cloudflare Email Routing
+- **API handler** (`fetch()`) - HTTP endpoints for the frontend with rate limiting
+- **Scheduled handler** (`scheduled()`) - Daily cleanup of old emails (7-day retention)
 
 ### 2. Configure D1 Database
 
@@ -139,7 +168,7 @@ crons = ["0 0 * * *"]
 
 ### Customizing Retention Period
 
-To change the retention period, modify `EMAIL_RETENTION_MS` in `api-worker.js`:
+To change the retention period, modify `EMAIL_RETENTION_MS` in `unified-worker.js`:
 
 ```javascript
 // Examples:
