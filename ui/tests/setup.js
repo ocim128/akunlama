@@ -1,17 +1,20 @@
 /**
  * Vitest Setup File
- * Configures the test environment for Vue 2 components
+ * Configures the test environment for Vue 3 components
  */
 
 import { vi } from 'vitest'
-import Vue from 'vue'
+import { config } from '@vue/test-utils'
+import mitt from 'mitt'
 
-// Suppress Vue warnings in tests
-Vue.config.productionTip = false
-Vue.config.devtools = false
-
-// Mock event hub (used across components)
-Vue.prototype.$eventHub = new Vue()
+// Mock event hub for Vue 3 using mitt
+const emitter = mitt()
+config.global.mocks = {
+    $eventHub: emitter
+}
+config.global.provide = {
+    eventHub: emitter
+}
 
 // Mock window.matchMedia for responsive design tests
 Object.defineProperty(window, 'matchMedia', {
@@ -61,3 +64,4 @@ vi.spyOn(window, 'clearInterval')
 afterEach(() => {
     vi.clearAllMocks()
 })
+

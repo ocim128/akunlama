@@ -1,17 +1,13 @@
 /**
- * Unit Tests for LandingPage.vue
+ * Unit Tests for LandingPage.vue (Vue 3)
  * Tests the main landing page functionality including email generation,
  * form validation, and navigation
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { shallowMount, createLocalVue } from '@vue/test-utils'
-import VueRouter from 'vue-router'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { shallowMount, flushPromises } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import LandingPage from '@/landingpage.vue'
-
-// Create a local Vue instance with router
-const localVue = createLocalVue()
-localVue.use(VueRouter)
 
 // Mock the config module
 vi.mock('@/../config/apiconfig.js', () => ({
@@ -21,29 +17,39 @@ vi.mock('@/../config/apiconfig.js', () => ({
     }
 }))
 
+// Mock clipboard
+vi.mock('clipboard', () => ({
+    default: vi.fn().mockImplementation(() => ({
+        on: vi.fn(),
+        destroy: vi.fn()
+    }))
+}))
+
 describe('LandingPage.vue', () => {
     let wrapper
     let router
 
     beforeEach(() => {
-        router = new VueRouter({
+        router = createRouter({
+            history: createMemoryHistory(),
             routes: [
-                { path: '/', name: 'Kitten Land' },
-                { path: '/inbox/:email', name: 'Inbox' }
+                { path: '/', name: 'Kitten Land', component: { template: '<div/>' } },
+                { path: '/inbox/:email', name: 'Inbox', component: { template: '<div/>' } }
             ]
         })
 
         wrapper = shallowMount(LandingPage, {
-            localVue,
-            router,
-            stubs: {
-                'router-view': true
+            global: {
+                plugins: [router],
+                stubs: {
+                    'router-view': true
+                }
             }
         })
     })
 
     afterEach(() => {
-        wrapper.destroy()
+        wrapper.unmount()
     })
 
     describe('Component Rendering', () => {
@@ -104,25 +110,25 @@ describe('LandingPage.vue', () => {
     })
 
     describe('Full Email Address', () => {
-        it('should compute correct full email address', () => {
-            wrapper.setData({ randomName: 'test-user' })
+        it('should compute correct full email address', async () => {
+            await wrapper.setData({ randomName: 'test-user' })
             expect(wrapper.vm.fullEmailAddress).toBe('test-user@test-domain.com')
         })
 
-        it('should handle email that already contains domain', () => {
-            wrapper.setData({ randomName: 'test-user@test-domain.com' })
+        it('should handle email that already contains domain', async () => {
+            await wrapper.setData({ randomName: 'test-user@test-domain.com' })
             expect(wrapper.vm.fullEmailAddress).toBe('test-user@test-domain.com')
         })
 
-        it('should handle empty randomName', () => {
-            wrapper.setData({ randomName: '' })
+        it('should handle empty randomName', async () => {
+            await wrapper.setData({ randomName: '' })
             expect(wrapper.vm.fullEmailAddress).toBe('@test-domain.com')
         })
     })
 
     describe('Form Validation', () => {
-        it('should disable submit button when randomName is empty', () => {
-            wrapper.setData({ randomName: '' })
+        it('should disable submit button when randomName is empty', async () => {
+            await wrapper.setData({ randomName: '' })
             const submitBtn = wrapper.find('.btn-get-mail')
             expect(submitBtn.attributes('disabled')).toBeDefined()
         })
@@ -155,6 +161,7 @@ describe('LandingPage.vue', () => {
 
         it('should not navigate when randomName is empty', async () => {
             const pushSpy = vi.spyOn(router, 'push')
+            vi.clearAllMocks()
             await wrapper.setData({ randomName: '' })
 
             wrapper.vm.goToInbox()
@@ -164,6 +171,7 @@ describe('LandingPage.vue', () => {
 
         it('should not navigate when randomName is only whitespace', async () => {
             const pushSpy = vi.spyOn(router, 'push')
+            vi.clearAllMocks()
             await wrapper.setData({ randomName: '   ' })
 
             wrapper.vm.goToInbox()

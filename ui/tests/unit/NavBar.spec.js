@@ -1,33 +1,23 @@
 /**
- * Unit Tests for NavBar.vue
+ * Unit Tests for NavBar.vue (Vue 3)
  * Tests the navigation bar functionality including email display,
  * copy functionality, and responsive behavior
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { shallowMount, createLocalVue } from '@vue/test-utils'
-import VueRouter from 'vue-router'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { shallowMount } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
+import mitt from 'mitt'
 import NavBar from '@/components/NavBar.vue'
 
-const localVue = createLocalVue()
-localVue.use(VueRouter)
-localVue.prototype.$eventHub = new localVue()
+// Create event hub mock
+const emitter = mitt()
 
 // Mock clipboard
 vi.mock('clipboard', () => ({
     default: vi.fn().mockImplementation(() => ({
         on: vi.fn(),
         destroy: vi.fn()
-    }))
-}))
-
-// Mock jquery
-vi.mock('jquery', () => ({
-    default: vi.fn().mockImplementation(() => ({
-        addClass: vi.fn().mockReturnThis(),
-        removeClass: vi.fn().mockReturnThis(),
-        append: vi.fn().mockReturnThis(),
-        fadeOut: vi.fn().mockImplementation((cb) => { if (cb) cb() })
     }))
 }))
 
@@ -43,24 +33,30 @@ describe('NavBar.vue', () => {
     let wrapper
     let router
 
-    beforeEach(() => {
-        router = new VueRouter({
+    beforeEach(async () => {
+        router = createRouter({
+            history: createMemoryHistory(),
             routes: [
-                { path: '/', name: 'Kitten Land' },
-                { path: '/inbox/:email', name: 'List' }
+                { path: '/', name: 'Kitten Land', component: { template: '<div/>' } },
+                { path: '/inbox/:email', name: 'List', component: { template: '<div/>' } }
             ]
         })
 
-        router.push('/inbox/test-user')
+        await router.push('/inbox/test-user')
+        await router.isReady()
 
         wrapper = shallowMount(NavBar, {
-            localVue,
-            router
+            global: {
+                plugins: [router],
+                mocks: {
+                    $eventHub: emitter
+                }
+            }
         })
     })
 
     afterEach(() => {
-        wrapper.destroy()
+        wrapper.unmount()
     })
 
     describe('Component Rendering', () => {
@@ -130,7 +126,7 @@ describe('NavBar.vue', () => {
 
     describe('Refresh Functionality', () => {
         it('should emit refresh event when refresh button is clicked', async () => {
-            const emitSpy = vi.spyOn(wrapper.vm.$eventHub, '$emit')
+            const emitSpy = vi.spyOn(emitter, 'emit')
 
             await wrapper.find('.refresh-btn').trigger('click')
 

@@ -1,5 +1,5 @@
 <template>
-    <vue-scroll :ops="vueScrollBarOps">
+    <div class="message-list-scroll">
       <!-- Advisory notice -->
       <div class="advisory-banner">
         <div class="advisory-content">
@@ -10,7 +10,7 @@
 
       <!-- Loading state -->
       <div v-if="refreshing" class="loading-container">
-        <pulse-loader class="spinner"></pulse-loader>
+        <div class="pulse-spinner"><span></span><span></span><span></span></div>
         <p class="loading-text">Checking for new messages...</p>
       </div>
 
@@ -82,7 +82,7 @@
           </button>
         </div>
       </div>
-    </vue-scroll>
+    </div>
 </template>
 
 <script>
@@ -92,22 +92,12 @@ import config from '@/../config/apiconfig.js'
 import axios from 'axios'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import PulseLoader from 'vue-spinner/src/PulseLoader.vue'
 
 export default {
   name: 'MessageList',
   data: () => {
     return {
       listOfMessages: [],
-      vueScrollBarOps: {
-        bar: {
-          background: '#cbd5e0',
-          size: '6px',
-          hoverStyle: {
-            background: '#a0aec0'
-          }
-        }
-      },
       refreshing: false,
       lastRefreshed: dayjs(),
       countdown: 10,
@@ -136,25 +126,25 @@ export default {
       }
     }, 1000)
 
-    this.$eventHub.$on('refreshInbox', this.getMessageList)
-    this.$eventHub.$on('refresh', this.getMessageList)
+    this.$eventHub.on('refreshInbox', this.getMessageList)
+    this.$eventHub.on('refresh', this.getMessageList)
   },
-  beforeDestroy () {
+  beforeUnmount () {
     window.clearInterval(this.countdownTimer)
-    this.$eventHub.$off('refreshInbox', this.getMessageList)
-    this.$eventHub.$off('refresh', this.getMessageList)
+    this.$eventHub.off('refreshInbox', this.getMessageList)
+    this.$eventHub.off('refresh', this.getMessageList)
   },
   methods: {
     refreshList () {
       if (this.refreshing) return
       this.refreshing = true
-      this.$eventHub.$emit('refreshStart')
+      this.$eventHub.emit('refreshStart')
       this.getMessageList()
     },
     
     getMessageList () {
       this.refreshing = true
-      this.$eventHub.$emit('refreshStart')
+      this.$eventHub.emit('refreshStart')
       
       let email = this.$route.params.email
       axios.get(config.apiUrl + '/list?recipient=' + email)
@@ -163,12 +153,12 @@ export default {
           this.refreshing = false
           this.lastRefreshed = dayjs()
           this.countdown = 10 // Reset countdown
-          this.$eventHub.$emit('refreshEnd')
+          this.$eventHub.emit('refreshEnd')
         }).catch((e) => {
           this.refreshing = false
           this.lastRefreshed = dayjs()
           this.countdown = 10 // Reset countdown even on error
-          this.$eventHub.$emit('refreshEnd')
+          this.$eventHub.emit('refreshEnd')
           console.error('Failed to fetch messages:', e)
         })
     },
@@ -213,14 +203,68 @@ export default {
     }
   },
   components: {
-    NavBar: NavBar,
-    PulseLoader: PulseLoader
+    NavBar: NavBar
   }
 }
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
   @use '@/scss/color' as *;
+
+  // Scroll container
+  .message-list-scroll {
+    height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 transparent;
+    
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 3px;
+      
+      &:hover {
+        background: #a0aec0;
+      }
+    }
+  }
+
+  // Pulse spinner (replacement for vue-spinner)
+  .pulse-spinner {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 1rem;
+    
+    span {
+      width: 12px;
+      height: 12px;
+      background: $primary;
+      border-radius: 50%;
+      animation: pulse-bounce 1.4s ease-in-out infinite both;
+      
+      &:nth-child(1) { animation-delay: -0.32s; }
+      &:nth-child(2) { animation-delay: -0.16s; }
+      &:nth-child(3) { animation-delay: 0s; }
+    }
+  }
+
+  @keyframes pulse-bounce {
+    0%, 80%, 100% { 
+      transform: scale(0);
+      opacity: 0.5;
+    }
+    40% { 
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
 
   .advisory-banner {
     background: linear-gradient(135deg, #FEF3C7, #FCD34D);

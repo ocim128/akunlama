@@ -16,7 +16,9 @@ import {
     faChevronRight,
     faInbox,
     faCat,
-    faServer
+    faServer,
+    faSun,
+    faMoon
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -29,15 +31,17 @@ library.add(
     faChevronRight,
     faInbox,
     faCat,
-    faServer
+    faServer,
+    faSun,
+    faMoon
 )
 
 // Export the component for global registration
 export { FontAwesomeIcon }
 
-// Plugin installer
+// Plugin installer (Vue 3)
 export default {
-    install(Vue) {
-        Vue.component('font-awesome-icon', FontAwesomeIcon)
+    install(app) {
+        app.component('font-awesome-icon', FontAwesomeIcon)
     }
 }

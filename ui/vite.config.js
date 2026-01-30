@@ -1,6 +1,6 @@
 import path from "path"
 import { defineConfig } from 'vite'
-import vue from '@vitejs/plugin-vue2'
+import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -35,7 +35,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['vue', 'vue-router', 'vuex'],
+          vendor: ['vue', 'vue-router', 'pinia'],
           icons: ['@fortawesome/fontawesome-svg-core', '@fortawesome/free-solid-svg-icons', '@fortawesome/vue-fontawesome'],
         },
       },
@@ -48,8 +48,6 @@ export default defineConfig({
     alias: {
       // resolve "@" - required for css imports
       "@": path.resolve(__dirname, "src"),
-      // we need to use the vue build with the runtime template compiler included, otherwise vue will complain about the needing the runtime template compiler or to pre-compile the templates
-      vue: 'vue/dist/vue.esm.js',
     }
   },
   // Vitest configuration

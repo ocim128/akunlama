@@ -1,26 +1,31 @@
-import { describe, it, expect, vi } from 'vitest'
-import { shallowMount, createLocalVue } from '@vue/test-utils'
+/**
+ * Unit Tests for message_detail.vue (Vue 3)
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { shallowMount, flushPromises } from '@vue/test-utils'
 import MessageDetail from '@/components/mail/message_detail.vue'
 import axios from 'axios'
-
-const localVue = createLocalVue()
+import mitt from 'mitt'
 
 // Mock dependencies
 vi.mock('axios')
 
+// Create event hub mock
+const emitter = mitt()
+
 describe('message_detail.vue', () => {
     let wrapper
-    const $route = {
-        params: { region: 'us', key: '123' }
+    const mockRoute = {
+        params: { region: 'us', key: '123', email: 'test-user' }
     }
-    const $router = {
+    const mockRouter = {
         push: vi.fn(),
         go: vi.fn()
     }
-    const $eventHub = {
-        $on: vi.fn(),
-        $off: vi.fn()
-    }
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
 
     it('renders and fetches message on mount', async () => {
         // Mock axios response
@@ -35,21 +40,20 @@ describe('message_detail.vue', () => {
         })
 
         wrapper = shallowMount(MessageDetail, {
-            localVue,
-            mocks: {
-                $route,
-                $router,
-                $eventHub
+            global: {
+                mocks: {
+                    $route: mockRoute,
+                    $router: mockRouter,
+                    $eventHub: emitter
+                }
             }
         })
 
         // Initial loading state
         expect(wrapper.vm.loading).toBe(true)
 
-        // Wait for promise resolution (microtask)
-        await wrapper.vm.$nextTick()
-        await wrapper.vm.$nextTick()
-        await wrapper.vm.$nextTick()
+        // Wait for promise resolution
+        await flushPromises()
 
         expect(axios.get).toHaveBeenCalled()
         expect(wrapper.vm.loading).toBe(false)
@@ -60,17 +64,16 @@ describe('message_detail.vue', () => {
         axios.get.mockRejectedValue(new Error('Network Error'))
 
         wrapper = shallowMount(MessageDetail, {
-            localVue,
-            mocks: {
-                $route,
-                $router,
-                $eventHub
+            global: {
+                mocks: {
+                    $route: mockRoute,
+                    $router: mockRouter,
+                    $eventHub: emitter
+                }
             }
         })
 
-        await wrapper.vm.$nextTick()
-        await wrapper.vm.$nextTick()
-        await wrapper.vm.$nextTick()
+        await flushPromises()
 
         expect(wrapper.vm.loading).toBe(false)
         expect(wrapper.vm.emailContent.subject).toBe('Message could not be loaded')

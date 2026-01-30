@@ -85,7 +85,7 @@
 			this.initClipboard()
 			this.setupRefreshListener()
 		},
-		beforeDestroy () {
+		beforeUnmount () {
 			if (this.$clipboard) {
 				this.$clipboard.destroy()
 			}
@@ -125,10 +125,10 @@
 			},
 
 			setupRefreshListener() {
-				this.$eventHub.$on('refreshStart', () => {
+				this.$eventHub.on('refreshStart', () => {
 					this.isRefreshing = true
 				})
-				this.$eventHub.$on('refreshEnd', () => {
+				this.$eventHub.on('refreshEnd', () => {
 					this.isRefreshing = false
 				})
 			},
@@ -141,7 +141,7 @@
 			emitRefresh () {
 				if (this.isRefreshing) return
 				this.isRefreshing = true
-				this.$eventHub.$emit('refresh', '')
+				this.$eventHub.emit('refresh', '')
 				// Reset after 3 seconds as fallback
 				setTimeout(() => {
 					this.isRefreshing = false
@@ -156,7 +156,7 @@
 						email: this.email
 					}
 				})
-				this.$eventHub.$emit('refreshInbox', {email: this.email})
+				this.$eventHub.emit('refreshInbox', {email: this.email})
 			},
 			backAPage () {
 				if (this.$route.name === 'List') {

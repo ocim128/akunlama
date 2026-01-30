@@ -19,6 +19,7 @@
 <script>
 export default {
   name: 'ThemeToggle',
+  emits: ['theme-changed'],
   data() {
     return {
       isDark: false
@@ -122,7 +123,7 @@ export default {
   transition: opacity 0.2s ease, transform 0.2s ease;
 }
 
-.fade-icon-enter {
+.fade-icon-enter-from {
   opacity: 0;
   transform: rotate(-90deg) scale(0.5);
 }

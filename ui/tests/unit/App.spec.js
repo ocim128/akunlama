@@ -1,16 +1,26 @@
+/**
+ * Unit Tests for App.vue (Vue 3)
+ */
 import { describe, it, expect } from 'vitest'
-import { shallowMount, createLocalVue } from '@vue/test-utils'
+import { shallowMount } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import App from '@/App.vue'
-import VueRouter from 'vue-router'
 
-const localVue = createLocalVue()
-localVue.use(VueRouter)
+// Create a test router
+const router = createRouter({
+    history: createMemoryHistory(),
+    routes: [
+        { path: '/', name: 'Kitten Land', component: { template: '<div/>' } }
+    ]
+})
 
 describe('App.vue', () => {
     it('renders correctly', () => {
         const wrapper = shallowMount(App, {
-            localVue,
-            stubs: ['router-view']
+            global: {
+                plugins: [router],
+                stubs: ['router-view', 'ThemeToggle']
+            }
         })
 
         // Check if the main container exists
@@ -25,8 +35,10 @@ describe('App.vue', () => {
 
     it('contains correct data from config', () => {
         const wrapper = shallowMount(App, {
-            localVue,
-            stubs: ['router-view']
+            global: {
+                plugins: [router],
+                stubs: ['router-view', 'ThemeToggle']
+            }
         })
 
         expect(wrapper.vm.githubLink).toBeDefined()

@@ -1,43 +1,27 @@
 /**
- * Unit Tests for MessageList.vue
+ * Unit Tests for MessageList.vue (Vue 3)
  * Tests the email inbox functionality including message fetching,
  * time formatting, and user interactions
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { shallowMount, createLocalVue } from '@vue/test-utils'
-import VueRouter from 'vue-router'
+import { shallowMount, flushPromises } from '@vue/test-utils'
+import { createRouter, createMemoryHistory } from 'vue-router'
 import axios from 'axios'
+import mitt from 'mitt'
 import MessageList from '@/components/mail/message_list.vue'
 
 // Mock axios
 vi.mock('axios')
 
-// Create a local Vue instance
-const localVue = createLocalVue()
-localVue.use(VueRouter)
-
-// Add event hub to Vue prototype
-localVue.prototype.$eventHub = new localVue()
+// Create event hub mock
+const emitter = mitt()
 
 // Mock the config module
 vi.mock('@/../config/apiconfig.js', () => ({
     default: {
         domain: 'test-domain.com',
         apiUrl: 'http://localhost:8080/api/v1/mail'
-    }
-}))
-
-// Mock vue-spinner
-vi.mock('vue-spinner/src/PulseLoader.vue', () => ({
-    default: { template: '<div class="pulse-loader-mock"></div>' }
-}))
-
-// Mock vuescroll
-vi.mock('vuescroll', () => ({
-    default: {
-        name: 'vue-scroll',
-        template: '<div><slot></slot></div>'
     }
 }))
 
@@ -79,37 +63,42 @@ describe('MessageList.vue', () => {
         }
     ]
 
-    beforeEach(() => {
+    beforeEach(async () => {
         // Mock setInterval to prevent auto-refresh issues
         vi.spyOn(window, 'setInterval').mockReturnValue(123)
         vi.spyOn(window, 'clearInterval').mockImplementation(() => { })
 
-        router = new VueRouter({
+        router = createRouter({
+            history: createMemoryHistory(),
             routes: [
-                { path: '/inbox/:email', name: 'Inbox' },
-                { path: '/inbox/:email/:region/:key', name: 'Message' },
-                { path: '/', name: 'Kitten Land' }
+                { path: '/inbox/:email', name: 'Inbox', component: { template: '<div/>' } },
+                { path: '/inbox/:email/:region/:key', name: 'Message', component: { template: '<div/>' } },
+                { path: '/', name: 'Kitten Land', component: { template: '<div/>' } },
+                { path: '/inbox/:email/list', name: 'List', component: { template: '<div/>' } }
             ]
         })
 
         // Mock the API response
         axios.get.mockResolvedValue({ data: mockMessages })
 
-        router.push('/inbox/test-user')
+        await router.push('/inbox/test-user')
+        await router.isReady()
 
         wrapper = shallowMount(MessageList, {
-            localVue,
-            router,
-            stubs: {
-                'vue-scroll': { template: '<div><slot></slot></div>' },
-                'pulse-loader': { template: '<div class="spinner-stub"></div>' },
-                'nav-bar': true
+            global: {
+                plugins: [router],
+                mocks: {
+                    $eventHub: emitter
+                },
+                stubs: {
+                    'nav-bar': true
+                }
             }
         })
     })
 
     afterEach(() => {
-        wrapper.destroy()
+        wrapper.unmount()
         vi.restoreAllMocks()
         vi.clearAllMocks()
     })
@@ -119,21 +108,23 @@ describe('MessageList.vue', () => {
             expect(wrapper.exists()).toBe(true)
         })
 
-        it('should start with empty message list', () => {
+        it('should start with empty message list', async () => {
             const freshWrapper = shallowMount(MessageList, {
-                localVue,
-                router,
-                stubs: {
-                    'vue-scroll': { template: '<div><slot></slot></div>' },
-                    'pulse-loader': { template: '<div class="spinner-stub"></div>' },
-                    'nav-bar': true
+                global: {
+                    plugins: [router],
+                    mocks: {
+                        $eventHub: emitter
+                    },
+                    stubs: {
+                        'nav-bar': true
+                    }
                 },
                 data() {
                     return { listOfMessages: [], refreshing: false }
                 }
             })
             expect(freshWrapper.vm.listOfMessages).toEqual([])
-            freshWrapper.destroy()
+            freshWrapper.unmount()
         })
 
         it('should set up auto-refresh interval on mount', () => {
@@ -153,16 +144,13 @@ describe('MessageList.vue', () => {
 
         it('should update listOfMessages when API returns data', async () => {
             // Wait for the promise to resolve
-            await wrapper.vm.$nextTick()
-            // Wait for the axios promise
-            await new Promise(resolve => setTimeout(resolve, 10))
+            await flushPromises()
 
             expect(wrapper.vm.listOfMessages).toEqual(mockMessages)
         })
 
         it('should set refreshing to false after fetch completes', async () => {
-            await wrapper.vm.$nextTick()
-            await new Promise(resolve => setTimeout(resolve, 10))
+            await flushPromises()
 
             expect(wrapper.vm.refreshing).toBe(false)
         })
@@ -172,20 +160,21 @@ describe('MessageList.vue', () => {
             axios.get.mockRejectedValueOnce(new Error('Network error'))
 
             const errorWrapper = shallowMount(MessageList, {
-                localVue,
-                router,
-                stubs: {
-                    'vue-scroll': { template: '<div><slot></slot></div>' },
-                    'pulse-loader': { template: '<div class="spinner-stub"></div>' },
-                    'nav-bar': true
+                global: {
+                    plugins: [router],
+                    mocks: {
+                        $eventHub: emitter
+                    },
+                    stubs: {
+                        'nav-bar': true
+                    }
                 }
             })
 
-            await errorWrapper.vm.$nextTick()
-            await new Promise(resolve => setTimeout(resolve, 10))
+            await flushPromises()
 
             expect(errorWrapper.vm.refreshing).toBe(false)
-            errorWrapper.destroy()
+            errorWrapper.unmount()
         })
     })
 
@@ -235,8 +224,6 @@ describe('MessageList.vue', () => {
         })
 
         it('should extract first email when multiple are present', () => {
-            // The extractEmail function uses a regex that may include trailing comma
-            // So we test what the actual behavior is - extracting an email from the string
             const result = wrapper.vm.extractEmail('first@example.com, second@example.com')
             expect(result).toContain('first@example.com')
         })
@@ -260,7 +247,7 @@ describe('MessageList.vue', () => {
 
     describe('Refresh Functionality', () => {
         it('should emit refreshStart event when refreshing', () => {
-            const emitSpy = vi.spyOn(wrapper.vm.$eventHub, '$emit')
+            const emitSpy = vi.spyOn(emitter, 'emit')
 
             wrapper.vm.refreshList()
 
@@ -297,7 +284,7 @@ describe('MessageList.vue', () => {
 
     describe('Cleanup', () => {
         it('should clear interval on component destroy', async () => {
-            wrapper.destroy()
+            wrapper.unmount()
 
             expect(window.clearInterval).toHaveBeenCalled()
         })

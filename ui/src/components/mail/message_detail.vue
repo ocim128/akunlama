@@ -84,10 +84,10 @@
 			}
 
 			this.getMessage()
-			this.$eventHub.$on('refresh', this.refreshMessage)
+			this.$eventHub.on('refresh', this.refreshMessage)
 		},
-		beforeDestroy () {
-			this.$eventHub.$off('refresh', this.refreshMessage)
+		beforeUnmount () {
+			this.$eventHub.off('refresh', this.refreshMessage)
 		},
 		methods: {
 			getMessage () {

@@ -135,7 +135,7 @@ export default {
     // Keep randomName empty by default
     this.initClipboard()
   },
-  beforeDestroy() {
+  beforeUnmount() {
     if (this.$clipboard) {
       this.$clipboard.destroy()
     }

@@ -1,31 +1,28 @@
-// The Vue build version to load with the `import` command
-// (runtime-only or standalone) has been set in webpack.base.conf with an alias.
-import Vue from 'vue'
+// Vue 3 Application Entry Point
+import { createApp } from 'vue'
 import App from "./App.vue"
 import router from './router'
+import { createPinia } from 'pinia'
+import mitt from 'mitt'
 
 // Font Awesome - tree-shaken icon library
-import fontAwesomePlugin from './plugins/fontawesome'
-Vue.use(fontAwesomePlugin)
+import { FontAwesomeIcon } from './plugins/fontawesome'
 
-// VueScroll
-import vuescroll from 'vuescroll'
-Vue.use(vuescroll)
+// Create Vue 3 app instance
+const app = createApp(App)
 
-Vue.config.productionTip = false
+// Event bus using mitt (replaces Vue 2 EventHub pattern)
+const emitter = mitt()
+app.config.globalProperties.$eventHub = emitter
+app.provide('eventHub', emitter)
 
-/* eslint-disable no-new */
-new Vue({
-  el: '#app',
-  router,
-  components: { App },
-  template: '<App/>',
-  created() {
-    this.$eventHub = new Vue({
-      name: 'EventHub',
-      parent: this,
-      functional: true
-    })
-  }
-})
+// Register global components
+app.component('font-awesome-icon', FontAwesomeIcon)
+
+// Use plugins
+app.use(createPinia())
+app.use(router)
+
+// Mount the app
+app.mount('#app')
 

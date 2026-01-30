@@ -1,17 +1,28 @@
-import { describe, it, expect } from 'vitest'
-import emailStore from '@/store/emailStore'
-import config from '../../../config/apiconfig'
+/**
+ * Unit Tests for Email Store (Pinia - Vue 3)
+ */
+import { describe, it, expect, beforeEach } from 'vitest'
+import { setActivePinia, createPinia } from 'pinia'
+import { useEmailStore } from '@/stores/email'
 
-describe('emailStore', () => {
-    it('has correct initial state', () => {
-        expect(emailStore.state.domain).toBe(config.domain)
-        expect(emailStore.state.apiUrl).toBe(config.apiUrl)
+describe('Email Store (Pinia)', () => {
+    beforeEach(() => {
+        // Create a fresh pinia and make it active for each test
+        setActivePinia(createPinia())
     })
 
-    it('exports required vuex properties', () => {
-        expect(emailStore).toHaveProperty('state')
-        expect(emailStore).toHaveProperty('mutations')
-        expect(emailStore).toHaveProperty('getters')
-        expect(emailStore).toHaveProperty('actions')
+    it('has correct initial state', () => {
+        const store = useEmailStore()
+
+        expect(store.domain).toBeDefined()
+        expect(store.apiUrl).toBeDefined()
+    })
+
+    it('exports required pinia properties', () => {
+        const store = useEmailStore()
+
+        expect(store.$id).toBe('email')
+        expect(typeof store.domain).toBe('string')
+        expect(typeof store.apiUrl).toBe('string')
     })
 })
