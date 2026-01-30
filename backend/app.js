@@ -2,6 +2,10 @@ const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
 const cacheControl = require("./config/cacheControl");
+
+// Validate environment variables at startup (will exit if validation fails)
+const envConfig = require("./config/env");
+
 const app = express();
 
 // Enable CORS for all routes
@@ -10,18 +14,8 @@ app.use(cors());
 // Trust proxy headers for IP detection
 app.set('trust proxy', true);
 
-// Load banned IP addresses from environment variable
-const getBannedIPs = () => {
-    const bannedIPsEnv = process.env.BANNED_IPS || '';
-    if (bannedIPsEnv) {
-        const ips = bannedIPsEnv.split(',').map(ip => ip.trim()).filter(ip => ip.length > 0);
-        console.log(`Loaded ${ips.length} banned IP addresses`);
-        return new Set(ips);
-    }
-    return new Set();
-};
-
-const bannedIPs = getBannedIPs();
+// Use validated banned IPs from environment config
+const bannedIPs = new Set(envConfig.bannedIPs);
 
 // Enable gzip compression
 app.use(compression({

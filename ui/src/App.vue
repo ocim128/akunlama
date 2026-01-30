@@ -18,28 +18,17 @@
 </template>
 
 <script>
-import shareConfig from '@/../config/shareConfig.js'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
 export default {
 	name: 'App',
 	components: {
 		ThemeToggle
-	},
-	data: () => {
-		return {
-			githubLink: shareConfig.githubForkLink,
-			githubAriaLabel: shareConfig.githubAriaLabel,
-			tweetDataUrl: shareConfig.tweetDataUrl,
-			tweetMsg: shareConfig.tweetMessage,
-			isShare: shareConfig.enabled
-		}
 	}
 }
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
-	@use "scss/producthunt" as *;
 	@use "scss/common" as *;
 	@use "scss/color" as *;
 	@import url("https://unpkg.com/purecss@1.0.0/build/pure-min.css");

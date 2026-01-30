@@ -36,7 +36,7 @@
         <div class="email-list">
           <div 
             class="email-item" 
-            v-for="(msg, index) in listOfMessages" 
+            v-for="msg in listOfMessages" 
             :key="msg.url"
             @click="getMessage(msg)"
             :class="{ 'email-item--read': msg.read }"
@@ -86,12 +86,10 @@
 </template>
 
 <script>
-import NavBar from '../NavBar.vue'
 import 'normalize.css'
 import config from '@/../config/apiconfig.js'
 import axios from 'axios'
 import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
 
 export default {
   name: 'MessageList',
@@ -201,9 +199,6 @@ export default {
       }
       return sender
     }
-  },
-  components: {
-    NavBar: NavBar
   }
 }
 </script>

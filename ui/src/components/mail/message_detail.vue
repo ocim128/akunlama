@@ -48,12 +48,21 @@
 
 			<!-- Message content -->
 			<div class="message-body">
+				<!-- 
+					Security Note: Content is sanitized on the server with DOMPurify.
+					The sandbox attribute provides defense-in-depth:
+					- allow-same-origin: Required for proper styling
+					- allow-popups-to-escape-sandbox: Allow links to open in new tabs
+					Scripts are blocked as content is sanitized server-side.
+				-->
 				<iframe 
 					id="message-content" 
 					:src="src" 
 					@load="onIframeLoad"
 					scrolling="yes"
-					sandbox="allow-same-origin allow-scripts"
+					sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+					referrerpolicy="no-referrer"
+					title="Email content"
 				></iframe>
 			</div>
 		</div>

@@ -4,6 +4,7 @@ const mailgunConfig = require("../../config/mailgunConfig");
 const cacheControl = require("../../config/cacheControl");
 const { getEmailNotFoundHtml, getLinkTargetScript, getNoEmailBodyMessage } = require('../shared/errorPages');
 const { decodeQuotedPrintable } = require('../shared/utils');
+const { sanitizeEmailHTML, detectDangerousPatterns } = require('../shared/sanitizer');
 
 const reader = new mailgunReader(mailgunConfig);
 
@@ -63,11 +64,20 @@ module.exports = function (req, res) {
 			}
 		}
 
+		// Sanitize HTML content to prevent XSS attacks
+		const dangerCheck = detectDangerousPatterns(body);
+		if (dangerCheck.isDangerous) {
+			console.log(`[SECURITY] Dangerous patterns detected in email ${region}/${key}: ${dangerCheck.patterns.join(', ')}`);
+		}
+		body = sanitizeEmailHTML(body);
+
 		// Add JS injection to force all links to open in new tab
 		body += getLinkTargetScript();
 
 		res.set('Content-Type', 'text/html; charset=utf-8');
 		res.set('cache-control', cacheControl.static);
+		res.set('X-Content-Type-Options', 'nosniff');
+		res.set('X-XSS-Protection', '1; mode=block');
 		res.status(200).send(body);
 	})
 		.catch(e => {
