@@ -25,7 +25,8 @@ module.exports = async function (req, res) {
 	}
 
 	try {
-		const apiUrl = `${cloudflareConfig.apiUrl}/api/email/${encodeURIComponent(key)}`;
+		// region now contains the recipient email for compound key security validation
+		const apiUrl = `${cloudflareConfig.apiUrl}/api/email/${encodeURIComponent(key)}?recipient=${encodeURIComponent(region)}`;
 		const response = await axiosClient.get(apiUrl, { timeout: 10000 });
 
 		let body = response.data["body-html"] || response.data["body-plain"] ||

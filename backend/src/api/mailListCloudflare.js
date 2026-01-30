@@ -70,7 +70,8 @@ const getEvents = async (recipient, res, isAdminAccess = false) => {
                 subject: email.message?.headers?.subject || '',
                 storage: {
                     key: email.id,
-                    region: 'cf'
+                    // Use recipient email as region for compound key security validation
+                    region: email.message?.headers?.to || ''
                 },
                 message: email.message,
                 recipientUser: isAdminAccess ? (email.message?.headers?.to || '').split('@')[0] : undefined
