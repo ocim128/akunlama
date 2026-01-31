@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LandingPage from '@/landingpage.vue'
-import KittenRouter from '@/kittenrouter.vue'
-import Inbox from '@/components/mail/inbox.vue'
-import MessageDetail from '@/components/mail/message_detail.vue'
-import MessageList from '@/components/mail/message_list.vue'
+import LandingPage from '@/LandingPage.vue'
+import KittenRouter from '@/KittenRouter.vue'
+import Inbox from '@/components/mail/Inbox.vue'
+import MessageDetail from '@/components/mail/MessageDetail.vue'
+import MessageList from '@/components/mail/MessageList.vue'
 
 export default createRouter({
   history: createWebHistory(),

@@ -21,7 +21,7 @@
 					</p>
 				</div>
 				<div class="feature-card">
-                    <i class="fas fa-server fa-4x"></i>
+                    <font-awesome-icon icon="server" size="4x" />
 					<h3>Find next available server</h3>
 					<p>With the list of configured servers, KittenRouter can help you redirect the request to the next available server.</p>
 				</div>

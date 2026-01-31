@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { shallowMount, flushPromises } from '@vue/test-utils'
-import MessageDetail from '@/components/mail/message_detail.vue'
+import MessageDetail from '@/components/mail/MessageDetail.vue'
 import axios from 'axios'
 import mitt from 'mitt'
 

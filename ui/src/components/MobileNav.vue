@@ -7,7 +7,7 @@
         :class="{ 'active': isHome }"
         @click="goHome"
       >
-        <i class="fas fa-home"></i>
+        <font-awesome-icon icon="home" />
         <span class="nav-label">Home</span>
       </button>
 
@@ -17,7 +17,7 @@
         :class="{ 'active': isInbox }"
         @click="goInbox"
       >
-        <i class="fas fa-inbox"></i>
+        <font-awesome-icon icon="inbox" />
         <span class="nav-label">Inbox</span>
       </button>
 
@@ -28,7 +28,7 @@
         :disabled="isRefreshing"
       >
         <div class="refresh-button-inner">
-          <i class="fas fa-sync-alt" :class="{ 'fa-spin': isRefreshing }"></i>
+          <font-awesome-icon icon="sync-alt" :spin="isRefreshing" />
         </div>
         <span class="nav-label">Refresh</span>
       </button>
@@ -39,7 +39,7 @@
         @click="copyEmail"
         :class="{ 'copied': isCopied }"
       >
-        <i class="fas" :class="isCopied ? 'fa-check' : 'fa-copy'"></i>
+        <font-awesome-icon :icon="isCopied ? 'check' : 'copy'" />
         <span class="nav-label">{{ isCopied ? 'Copied!' : 'Copy' }}</span>
       </button>
 
@@ -48,7 +48,7 @@
         class="nav-item" 
         @click="newEmail"
       >
-        <i class="fas fa-dice"></i>
+        <font-awesome-icon icon="dice" />
         <span class="nav-label">New</span>
       </button>
     </div>

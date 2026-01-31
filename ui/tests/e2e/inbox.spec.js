@@ -37,15 +37,15 @@ test.describe('Inbox Page', () => {
     test('should show refresh button', async ({ page }) => {
         await page.waitForLoadState('networkidle')
 
-        // Find any refresh button (inline or in empty state)
-        const refreshBtn = page.locator('button:has-text("Refresh"), button:has-text("Check for messages")')
+        // Find any visible refresh button (inline, in nav or in empty state)
+        const refreshBtn = page.locator('button:visible:has-text("Refresh"), button:visible:has-text("Check for messages")')
         await expect(refreshBtn.first()).toBeVisible()
     })
 
     test('should refresh inbox when refresh button is clicked', async ({ page }) => {
         await page.waitForLoadState('networkidle')
 
-        const refreshBtn = page.locator('button:has-text("Refresh"), button:has-text("Check for messages")').first()
+        const refreshBtn = page.locator('button:visible:has-text("Refresh"), button:visible:has-text("Check for messages")').first()
 
         // Click refresh
         await refreshBtn.click()
@@ -95,8 +95,9 @@ test.describe('Inbox - Empty State', () => {
         const emptyState = page.locator('.empty-state')
 
         if (await emptyState.isVisible()) {
-            const catIcon = emptyState.locator('.fa-cat')
-            await expect(catIcon).toBeVisible()
+            // Check for the cat icon - support both <i> and <svg> (from font-awesome-icon)
+            const catIcon = emptyState.locator('.fa-cat, [data-icon="cat"]')
+            await expect(catIcon.first()).toBeVisible()
         }
     })
 })
@@ -148,7 +149,7 @@ test.describe('Inbox - Auto Refresh', () => {
         let requestCount = 0
 
         page.on('request', request => {
-            if (request.url().includes('/api/v1/mail/list')) {
+            if (request.url().includes('/api/list') || request.url().includes('/api/v1/mail/list')) {
                 requestCount++
             }
         })

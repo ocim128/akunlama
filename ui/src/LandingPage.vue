@@ -46,12 +46,12 @@
             
             <div class="action-buttons">
               <button type="submit" class="btn-get-mail" :disabled="!randomName.trim()">
-                <i class="fas fa-paper-plane"></i>
+                <font-awesome-icon icon="paper-plane" />
                 Get Mail Nyow!
               </button>
               
               <button type="button" class="btn-shuffle" @click="generateNewName">
-                <i class="fas fa-dice dice-icon"></i>
+                <font-awesome-icon icon="dice" class="dice-icon" />
                 Cat-shuffle!
               </button>
             </div>
@@ -863,9 +863,10 @@ h2 {
   }
   
   .action-buttons {
-    flex-direction: row;
-    gap: 0.5rem;
+    flex-direction: column;
+    gap: 0.75rem;
     max-width: 100%;
+    align-items: center;
   }
   
   .btn-get-mail, .btn-shuffle {

@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { shallowMount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
-import LandingPage from '@/landingpage.vue'
+import LandingPage from '@/LandingPage.vue'
 
 // Mock the config module
 vi.mock('@/../config/apiconfig.js', () => ({

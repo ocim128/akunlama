@@ -2,7 +2,7 @@
 	<div class="message-details" :class="{ 'has-mobile-nav': isMobile }">
 		<!-- Mobile floating back button -->
 		<button v-if="isMobile" class="floating-back-btn" @click="goBack">
-			<i class="fas fa-arrow-left"></i>
+			<font-awesome-icon icon="arrow-left" />
 			<span>Back</span>
 		</button>
 
@@ -43,11 +43,11 @@
 				<div class="message-actions">
 					<div class="actions-left">
 						<button class="action-btn" @click="goBack" title="Back to inbox">
-							<i class="fas fa-arrow-left"></i>
+							<font-awesome-icon icon="arrow-left" />
 							<span>Back</span>
 						</button>
 						<button class="action-btn" @click="refreshMessage" :disabled="refreshing" title="Refresh message">
-							<i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
+							<font-awesome-icon icon="sync-alt" :spin="refreshing" />
 							<span>Refresh</span>
 						</button>
 					</div>
@@ -58,15 +58,15 @@
 							title="Copy email content"
 							:class="{ 'copied': showCopiedFeedback }"
 						>
-							<i class="fas" :class="showCopiedFeedback ? 'fa-check' : 'fa-copy'"></i>
+							<font-awesome-icon :icon="showCopiedFeedback ? 'check' : 'copy'" />
 							<span class="action-tooltip">{{ showCopiedFeedback ? 'Copied!' : 'Copy' }}</span>
 						</button>
 						<button class="action-btn action-btn--icon" @click="printEmail" title="Print email">
-							<i class="fas fa-print"></i>
+							<font-awesome-icon icon="print" />
 							<span class="action-tooltip">Print</span>
 						</button>
 						<button class="action-btn action-btn--icon" @click="downloadEmail" title="Download as HTML">
-							<i class="fas fa-download"></i>
+							<font-awesome-icon icon="download" />
 							<span class="action-tooltip">Download</span>
 						</button>
 					</div>
@@ -103,9 +103,13 @@
 	import config from '@/../config/apiconfig.js'
 	import axios from 'axios'
 	import dayjs from 'dayjs'
+	import { FontAwesomeIcon } from '@/plugins/fontawesome'
 
 	export default {
 		name: 'MessageDetail',
+		components: {
+			FontAwesomeIcon
+		},
 		data: () => {
 			return {
 				emailContent: {},
@@ -426,7 +430,7 @@
 	}
 
 	.message-subject {
-		padding: 1rem 1.25rem 0.75rem;
+		padding: 0.75rem 1rem 0.5rem;
 		border-bottom: 1px solid $gray-100;
 
 		h1 {
@@ -443,7 +447,7 @@
 	}
 
 	.message-meta {
-		padding: 0.75rem 1.25rem;
+		padding: 0.5rem 1rem;
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
@@ -513,7 +517,7 @@
 	}
 
 	.message-actions {
-		padding: 0 1.25rem 0.75rem;
+		padding: 0 1rem 0.5rem;
 		display: flex;
 		justify-content: space-between;
 		align-items: center;

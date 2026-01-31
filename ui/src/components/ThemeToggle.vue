@@ -8,8 +8,8 @@
     <div class="toggle-track">
       <div class="toggle-thumb" :class="{ 'is-dark': isDark }">
         <transition name="fade-icon" mode="out-in">
-          <i v-if="isDark" class="fas fa-moon" key="moon"></i>
-          <i v-else class="fas fa-sun" key="sun"></i>
+          <font-awesome-icon v-if="isDark" icon="moon" key="moon" />
+          <font-awesome-icon v-else icon="sun" key="sun" />
         </transition>
       </div>
     </div>

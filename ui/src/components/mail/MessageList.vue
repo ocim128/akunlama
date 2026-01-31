@@ -14,7 +14,7 @@
         >
           <div class="pull-refresh-card" :class="{ 'ready': isPullReady, 'refreshing': isRefreshingPull }">
             <div class="pull-spinner">
-              <i class="fas" :class="isRefreshingPull ? 'fa-sync-alt fa-spin' : (isPullReady ? 'fa-arrow-up' : 'fa-arrow-down')"></i>
+              <font-awesome-icon :icon="isRefreshingPull ? 'sync-alt' : (isPullReady ? 'arrow-up' : 'arrow-down')" :spin="isRefreshingPull" />
             </div>
             <span class="pull-label">
               {{ isRefreshingPull ? 'Refreshing...' : (isPullReady ? 'Release!' : 'Pull down') }}
@@ -28,13 +28,13 @@
         <!-- Advisory notice -->
         <div class="advisory-banner">
           <div class="advisory-content">
-            <i class="fas fa-cat"></i>
+            <font-awesome-icon icon="cat" />
             <span>🐱 Meow! This is for fun emails only - not for banking or your secret catnip orders! Our kittens are judgmental about boring stuff.</span>
           </div>
         </div>
 
       <!-- Skeleton loading state -->
-      <div v-if="refreshing" class="skeleton-container">
+      <div v-if="refreshing" class="skeleton-container loading-container">
         <div class="skeleton-header">
           <div class="skeleton-title"></div>
           <div class="skeleton-subtitle"></div>
@@ -56,7 +56,7 @@
         <div class="email-list-header">
           <div class="header-main">
             <h3>
-              <i class="fas fa-inbox"></i>
+              <font-awesome-icon icon="inbox" />
               Inbox ({{listOfMessages.length}})
             </h3>
             <div class="refresh-info">
@@ -65,7 +65,7 @@
             </div>
           </div>
           <button class="refresh-btn-inline" @click="refreshList" :disabled="refreshing">
-            <i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
+            <font-awesome-icon icon="sync-alt" :spin="refreshing" />
             Refresh Now
           </button>
         </div>
@@ -93,7 +93,7 @@
 
             <div class="email-actions">
               <span class="unread-badge" v-if="msg.read_at === null" title="Unread"></span>
-              <i class="fas fa-chevron-right"></i>
+              <font-awesome-icon icon="chevron-right" />
             </div>
           </div>
         </div>
@@ -103,7 +103,7 @@
       <div class="empty-state" v-if="listOfMessages.length == 0 && !refreshing">
         <div class="empty-state-content">
           <div class="kitten-animation-container">
-            <i class="fas fa-cat fa-3x cat-icon-animation"></i>
+            <font-awesome-icon icon="cat" size="3x" class="cat-icon-animation" />
             <img src="@/assets/sleeping-kitten.png" alt="Sleeping Kitten" class="sleeping-kitten">
           </div>
           <h3>No messages yet</h3>
@@ -115,7 +115,7 @@
           </div>
 
           <button class="refresh-button" @click="refreshList" :disabled="refreshing">
-            <i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
+            <font-awesome-icon icon="sync-alt" :spin="refreshing" />
             Check for messages
           </button>
         </div>
@@ -538,23 +538,7 @@ export default {
     }
   }
 
-  	.iframe-container {
-		flex: 1;
-		background: #ffffff;
-		border-radius: $radius;
-		box-shadow: 
-			0 1px 3px rgba(0, 0, 0, 0.08);
-		overflow: hidden;
-		border: 1px solid $gray-200;
-		transition: all 0.3s ease;
-		display: flex;
-		flex-direction: column;
-		min-height: 300px;
-    border-bottom: 1px solid $gray-100;
-    
-    &:last-child {
-      border-bottom: none;
-    }
+
   .skeleton-list {
     background: var(--color-surface);
     border-radius: $radius-lg;
@@ -628,8 +612,10 @@ export default {
     background: linear-gradient(135deg, #FEF3C7, #FCD34D);
     border: 1px solid #F59E0B;
     border-radius: $radius;
-    margin: 0.75rem;
-    padding: 0.6rem 0.75rem;
+    margin: 0.5rem auto;
+    padding: 0.4rem 0.6rem;
+    max-width: 600px;
+    width: calc(100% - 1rem);
 
     .advisory-content {
       display: flex;
@@ -640,9 +626,9 @@ export default {
       font-size: 0.8rem;
       text-align: center;
 
-      i {
+      svg {
         color: #F59E0B;
-        font-size: 1rem;
+        font-size: 0.9rem;
         flex-shrink: 0;
       }
 
@@ -772,12 +758,12 @@ export default {
   .email-item {
     display: flex;
     align-items: center;
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
     border-bottom: 1px solid $gray-100;
     cursor: pointer;
     transition: all 0.2s ease;
     // Improved touch target - minimum 44px height
-    min-height: 64px;
+    min-height: 56px;
     // Better touch feedback
     -webkit-tap-highlight-color: rgba($primary, 0.1);
     touch-action: manipulation;

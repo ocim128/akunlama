@@ -3,7 +3,7 @@
 		<div class="nav-container">
 			<!-- Back button with label -->
 			<button class="nav-back-btn" @click="backAPage" :aria-label="backButtonLabel">
-				<i class="fas fa-arrow-left"></i>
+				<font-awesome-icon icon="arrow-left" />
 				<span class="back-label">{{ $route.name === 'List' ? 'Home' : 'Back' }}</span>
 			</button>
 
@@ -36,15 +36,20 @@
 					</div>
 					<div class="action-buttons">
 						<button type="submit" class="go-btn">
-							<i class="fas fa-paper-plane"></i>
+							<font-awesome-icon icon="paper-plane" />
 							<span class="btn-text">Go</span>
 						</button>
 						<button type="button" class="refresh-btn" @click="emitRefresh" :disabled="isRefreshing">
-							<i class="fas fa-sync-alt" :class="{'fa-spin': isRefreshing}"></i>
+							<font-awesome-icon icon="sync-alt" :spin="isRefreshing" />
 							<span class="btn-text">Refresh</span>
 						</button>
 					</div>
 				</form>
+			</div>
+
+			<!-- Theme Toggle -->
+			<div class="nav-theme-toggle">
+				<ThemeToggle />
 			</div>
 		</div>
 	</nav>
@@ -54,9 +59,13 @@
 	import config from '@/../config/apiconfig.js'
 	import 'normalize.css'
 	import ClipboardJS from 'clipboard'
+	import ThemeToggle from './ThemeToggle.vue'
 
 	export default {
 		name: 'NavBar',
+		components: {
+			ThemeToggle
+		},
 		data: () => {
 			return {
 				email: '',
@@ -197,6 +206,22 @@
 			display: flex;
 			align-items: center;
 			gap: 1.5rem;
+
+			@media (max-width: 1024px) {
+				gap: 1rem;
+				padding: 0.75rem 1rem;
+			}
+		}
+	}
+
+	.nav-theme-toggle {
+		flex-shrink: 0;
+		display: flex;
+		align-items: center;
+		margin-left: auto;
+
+		@media (max-width: 768px) {
+			display: none; // Hidden on mobile as it's in mobile nav or handled differently
 		}
 	}
 

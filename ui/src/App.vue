@@ -1,10 +1,5 @@
 <template>
 	<div id="app">
-		<!-- Theme Toggle -->
-		<div class="theme-toggle-container">
-			<ThemeToggle />
-		</div>
-
 		<!-- Github corners -->
 		<a href="https://github.com/uilicious/inboxkitten" class="github-corner" aria-label="View source on Github" target="_blank">
 			<svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true">
@@ -30,16 +25,20 @@
 </template>
 
 <script>
-import ThemeToggle from '@/components/ThemeToggle.vue'
 import ToastNotification from '@/components/ToastNotification.vue'
 import InstallPrompt from '@/components/InstallPrompt.vue'
 
 export default {
 	name: 'App',
 	components: {
-		ThemeToggle,
 		ToastNotification,
 		InstallPrompt
+	},
+	data() {
+		return {
+			githubLink: 'https://github.com/uilicious/inboxkitten',
+			githubAriaLabel: 'View source on Github'
+		}
 	}
 }
 </script>

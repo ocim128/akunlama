@@ -18,7 +18,16 @@ import {
     faCat,
     faServer,
     faSun,
-    faMoon
+    faMoon,
+    faCopy,
+    faPrint,
+    faDownload,
+    faCheck,
+    faArrowUp,
+    faArrowDown,
+    faEnvelopeOpenText,
+    faHome,
+    faChevronDown
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -33,7 +42,16 @@ library.add(
     faCat,
     faServer,
     faSun,
-    faMoon
+    faMoon,
+    faCopy,
+    faPrint,
+    faDownload,
+    faCheck,
+    faArrowUp,
+    faArrowDown,
+    faEnvelopeOpenText,
+    faHome,
+    faChevronDown
 )
 
 // Export the component for global registration

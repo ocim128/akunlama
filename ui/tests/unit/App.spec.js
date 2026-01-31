@@ -2,7 +2,7 @@
  * Unit Tests for App.vue (Vue 3)
  */
 import { describe, it, expect } from 'vitest'
-import { shallowMount } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import App from '@/App.vue'
 
@@ -15,11 +15,13 @@ const router = createRouter({
 })
 
 describe('App.vue', () => {
-    it('renders correctly', () => {
-        const wrapper = shallowMount(App, {
+    it('renders correctly', async () => {
+        router.push('/')
+        await router.isReady()
+        const wrapper = mount(App, {
             global: {
                 plugins: [router],
-                stubs: ['router-view', 'ThemeToggle']
+                stubs: ['ThemeToggle', 'ToastNotification', 'InstallPrompt']
             }
         })
 
@@ -34,10 +36,10 @@ describe('App.vue', () => {
     })
 
     it('contains correct data from config', () => {
-        const wrapper = shallowMount(App, {
+        const wrapper = mount(App, {
             global: {
                 plugins: [router],
-                stubs: ['router-view', 'ThemeToggle']
+                stubs: ['ThemeToggle', 'ToastNotification', 'InstallPrompt']
             }
         })
 

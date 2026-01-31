@@ -20,7 +20,7 @@
       <!-- Empty state for split view when no message selected -->
       <main class="detail-panel detail-empty" v-else-if="showSplitView">
         <div class="empty-detail">
-          <i class="fas fa-envelope-open-text"></i>
+          <font-awesome-icon icon="envelope-open-text" />
           <h3>Select an email to read</h3>
           <p>Choose an email from the list to view its contents here</p>
         </div>
@@ -34,7 +34,7 @@
 
 <script>
   import NavBar from '../NavBar.vue'
-  import MessageList from './message_list.vue'
+  import MessageList from './MessageList.vue'
   import MobileNav from '../MobileNav.vue'
 
   export default {
@@ -135,24 +135,24 @@
     }
 
     .list-panel {
-      flex: 0 0 420px;
-      max-width: 450px;
+      flex: 0 0 350px;
+      max-width: 400px;
       border-right: 1px solid $gray-200;
       background: var(--color-surface);
       
       @media (min-width: 1280px) {
-        flex: 0 0 480px;
-        max-width: 520px;
+        flex: 0 0 400px;
+        max-width: 480px;
       }
       
       @media (min-width: 1536px) {
-        flex: 0 0 550px;
-        max-width: 600px;
+        flex: 0 0 450px;
+        max-width: 550px;
       }
       
       @media (min-width: 1800px) {
-        flex: 0 0 650px;
-        max-width: 700px;
+        flex: 0 0 500px;
+        max-width: 650px;
       }
     }
 

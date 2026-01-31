@@ -1,10 +1,12 @@
 {
-  "name": "inboxkitten-ui",
+  "name": "akunlama-ui",
   "version": "1.1.1",
   "type": "module",
-  "description": "UI for Inboxkitten - A personal disposable email",
+  "description": "UI for Akunlama - Disposable email service powered by Cloudflare",
   "keywords": [
-    "inboxkitten"
+    "akunlama",
+    "disposable-email",
+    "cloudflare"
   ],
   "author": "uilicious",
   "license": "MIT",

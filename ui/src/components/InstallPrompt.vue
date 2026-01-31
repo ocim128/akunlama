@@ -14,7 +14,7 @@
             Later
           </button>
           <button class="btn-install" @click="installApp">
-            <i class="fas fa-download"></i>
+            <font-awesome-icon icon="download" />
             Install
           </button>
         </div>

@@ -9,7 +9,7 @@ import { shallowMount, flushPromises } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import axios from 'axios'
 import mitt from 'mitt'
-import MessageList from '@/components/mail/message_list.vue'
+import MessageList from '@/components/mail/MessageList.vue'
 
 // Mock axios
 vi.mock('axios')
