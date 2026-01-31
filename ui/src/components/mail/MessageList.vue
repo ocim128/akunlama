@@ -152,6 +152,13 @@ export default {
       return this.lastRefreshed.format('HH:mm:ss')
     }
   },
+  watch: {
+    '$route.params.email'(newEmail) {
+      if (newEmail) {
+        this.getMessageList()
+      }
+    }
+  },
   mounted () {
     let currentEmail = this.$route.params.email
     if (currentEmail === '') {

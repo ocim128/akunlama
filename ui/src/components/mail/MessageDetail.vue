@@ -6,76 +6,87 @@
 			<span>Back</span>
 		</button>
 
-		<!-- Loading state -->
-		<div v-if="loading" class="loading-container">
-			<div class="loading-spinner"></div>
-			<p>Loading message...</p>
-		</div>
-
-		<!-- Message content -->
-		<div v-else class="message-container">
+		<div class="message-container">
 			<!-- Message header -->
 			<div class="message-header">
-				<div class="message-subject">
-					<h1>{{emailContent.subject || '(No Subject)'}}</h1>
-				</div>
-				
-				<div class="message-meta">
-					<div class="sender-info">
-						<div class="sender-avatar" :style="{ backgroundColor: getAvatarColor(emailContent.emailAddress) }">
-							<span class="avatar-initials">{{ getInitials(emailContent.emailAddress, emailContent.name) }}</span>
-						</div>
-						<div class="sender-details">
-							<div class="sender-name">
-								<strong>{{emailContent.name || extractName(emailContent.emailAddress)}}</strong>
-								<span class="sender-email">&lt;{{emailContent.emailAddress}}&gt;</span>
-							</div>
-							<div class="recipients">
-								<span class="label">to:</span>
-								<span class="recipient-list">{{emailContent.recipients}}</span>
-							</div>
+				<!-- Loading Skeleton -->
+				<div v-if="loading" class="header-skeleton">
+					<div class="skeleton-subject"></div>
+					<div class="skeleton-meta">
+						<div class="skeleton-avatar"></div>
+						<div class="skeleton-info">
+							<div class="skeleton-line w-40"></div>
+							<div class="skeleton-line w-20"></div>
 						</div>
 					</div>
-					<div class="message-date">{{formatDate(emailContent.Date)}}</div>
 				</div>
 
-				<!-- Enhanced Action toolbar -->
-				<div class="message-actions">
-					<div class="actions-left">
-						<button class="action-btn" @click="goBack" title="Back to inbox">
-							<font-awesome-icon icon="arrow-left" />
-							<span>Back</span>
-						</button>
-						<button class="action-btn" @click="refreshMessage" :disabled="refreshing" title="Refresh message">
-							<font-awesome-icon icon="sync-alt" :spin="refreshing" />
-							<span>Refresh</span>
-						</button>
+				<!-- Actual Content -->
+				<template v-else>
+					<div class="message-subject">
+						<h1>{{emailContent.subject || '(No Subject)'}}</h1>
 					</div>
-					<div class="actions-right">
-						<button 
-							class="action-btn action-btn--icon" 
-							@click="copyEmailContent" 
-							title="Copy email content"
-							:class="{ 'copied': showCopiedFeedback }"
-						>
-							<font-awesome-icon :icon="showCopiedFeedback ? 'check' : 'copy'" />
-							<span class="action-tooltip">{{ showCopiedFeedback ? 'Copied!' : 'Copy' }}</span>
-						</button>
-						<button class="action-btn action-btn--icon" @click="printEmail" title="Print email">
-							<font-awesome-icon icon="print" />
-							<span class="action-tooltip">Print</span>
-						</button>
-						<button class="action-btn action-btn--icon" @click="downloadEmail" title="Download as HTML">
-							<font-awesome-icon icon="download" />
-							<span class="action-tooltip">Download</span>
-						</button>
+					
+					<div class="message-meta">
+						<div class="sender-info">
+							<div class="sender-avatar" :style="{ backgroundColor: getAvatarColor(emailContent.emailAddress) }">
+								<span class="avatar-initials">{{ getInitials(emailContent.emailAddress, emailContent.name) }}</span>
+							</div>
+							<div class="sender-details">
+								<div class="sender-name">
+									<strong>{{emailContent.name || extractName(emailContent.emailAddress)}}</strong>
+									<span class="sender-email">&lt;{{emailContent.emailAddress}}&gt;</span>
+								</div>
+								<div class="recipients">
+									<span class="label">to:</span>
+									<span class="recipient-list">{{emailContent.recipients}}</span>
+								</div>
+							</div>
+						</div>
+						<div class="message-date">{{formatDate(emailContent.Date)}}</div>
 					</div>
-				</div>
+
+					<!-- Enhanced Action toolbar -->
+					<div class="message-actions">
+						<div class="actions-left">
+							<button class="action-btn" @click="goBack" title="Back to inbox">
+								<font-awesome-icon icon="arrow-left" />
+								<span>Back</span>
+							</button>
+							<button class="action-btn" @click="refreshMessage" :disabled="refreshing" title="Refresh message">
+								<font-awesome-icon icon="sync-alt" :spin="refreshing" />
+								<span>Refresh</span>
+							</button>
+						</div>
+						<div class="actions-right">
+							<button 
+								class="action-btn action-btn--icon" 
+								@click="copyEmailContent" 
+								title="Copy email content"
+								:class="{ 'copied': showCopiedFeedback }"
+							>
+								<font-awesome-icon :icon="showCopiedFeedback ? 'check' : 'copy'" />
+								<span class="action-tooltip">{{ showCopiedFeedback ? 'Copied!' : 'Copy' }}</span>
+							</button>
+							<button class="action-btn action-btn--icon" @click="printEmail" title="Print email">
+								<font-awesome-icon icon="print" />
+								<span class="action-tooltip">Print</span>
+							</button>
+							<button class="action-btn action-btn--icon" @click="downloadEmail" title="Download as HTML">
+								<font-awesome-icon icon="download" />
+								<span class="action-tooltip">Download</span>
+							</button>
+						</div>
+					</div>
+				</template>
 			</div>
 
 			<!-- Message content with enhanced styling -->
 			<div class="message-body">
 				<div class="iframe-container">
+					<div v-if="iframeLoading" class="iframe-loading-overlay">
+						<div class="loading-spinner"></div>
+					</div>
 					<!-- 
 						Security Note: Content is sanitized on the server with DOMPurify.
 						The sandbox attribute provides defense-in-depth:
@@ -91,6 +102,7 @@
 						sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
 						referrerpolicy="no-referrer"
 						title="Email content"
+						:class="{ 'is-loading': iframeLoading }"
 					></iframe>
 				</div>
 			</div>
@@ -115,6 +127,7 @@
 				emailContent: {},
 				src: '',
 				loading: true,
+				iframeLoading: true,
 				refreshing: false,
 				showCopiedFeedback: false,
 				windowWidth: window.innerWidth
@@ -140,14 +153,19 @@
 			this.$eventHub.off('refresh', this.refreshMessage)
 			window.removeEventListener('resize', this.handleResize)
 		},
+		watch: {
+			'$route.params.key': 'getMessage'
+		},
 		methods: {
 			getMessage () {
 				this.loading = true
 				let region = this.$route.params.region
 				let key = this.$route.params.key
 				
+				this.iframeLoading = true
 				this.src = `${config.apiUrl}/getHtml?region=${region}&key=${key}`
 				
+				// Fetch metadata in parallel
 				axios.get(`${config.apiUrl}/getKey?region=${region}&key=${key}`)
 					.then(res => {
 						this.emailContent = res.data
@@ -200,7 +218,7 @@
 			},
 
 			onIframeLoad() {
-				// Optional: Add any iframe load handling here
+				this.iframeLoading = false
 			},
 
 			goBack() {
@@ -723,6 +741,90 @@
 
 		.action-btn span {
 			display: none;
+		}
+	}
+
+	// Skeletons
+	.header-skeleton {
+		padding: 1rem;
+		animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	}
+
+	.skeleton-subject {
+		height: 28px;
+		background: $gray-200;
+		border-radius: 6px;
+		width: 60%;
+		margin-bottom: 24px;
+	}
+
+	.skeleton-meta {
+		display: flex;
+		gap: 16px;
+	}
+
+	.skeleton-avatar {
+		width: 48px;
+		height: 48px;
+		border-radius: 50%;
+		background: $gray-200;
+		flex-shrink: 0;
+	}
+
+	.skeleton-info {
+		flex: 1;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		justify-content: center;
+	}
+
+	.skeleton-line {
+		height: 16px;
+		background: $gray-200;
+		border-radius: 4px;
+		
+		&.w-40 { width: 40%; }
+		&.w-20 { width: 20%; }
+	}
+
+	.iframe-container {
+		position: relative; // Ensure overlay is positioned correctly
+	}
+
+	.iframe-loading-overlay {
+		position: absolute;
+		top: 0;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		background: rgba(255, 255, 255, 0.8);
+		z-index: 10;
+		transition: opacity 0.3s ease;
+		
+		[data-theme='dark'] & {
+			background: rgba(30, 41, 59, 0.8);
+		}
+		
+		.loading-spinner {
+			width: 32px;
+			height: 32px;
+			border: 3px solid $gray-200;
+			border-top: 3px solid $primary;
+			border-radius: 50%;
+			animation: spin 1s linear infinite;
+		}
+	}
+
+	#message-content {
+		opacity: 1;
+		transition: opacity 0.3s ease;
+		
+		&.is-loading {
+			opacity: 0;
 		}
 	}
 </style>

@@ -86,6 +86,13 @@
 				return this.$route.name === 'List' ? 'Back to home' : 'Back to inbox'
 			}
 		},
+		watch: {
+			'$route.params.email'(newEmail) {
+				if (newEmail) {
+					this.email = newEmail
+				}
+			}
+		},
 		mounted () {
 			this.email = this.$route.params.email || ''
 			if (this.email === '') {
