@@ -24,9 +24,9 @@ akunlama/
 ├── README.md            # Updated for Cloudflare deployment
 ├── cloudflare-email/    # Cloudflare Worker
 │   ├── README.md        # Worker documentation
+│   ├── src/             # Source code (handlers, routes, services)
 │   ├── mime-utils.js    # MIME parsing
 │   ├── schema.sql       # D1 database schema
-│   ├── unified-worker.js # Main worker (email + API + cleanup)
 │   └── wrangler.toml    # Wrangler config
 └── ui/                  # Vue.js Frontend
     ├── config/

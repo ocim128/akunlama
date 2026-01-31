@@ -6,8 +6,11 @@ Combined email handler + API worker for Akunlama disposable email service.
 
 | File | Description |
 |------|-------------|
-| `unified-worker.js` | Main worker - email handler + API + rate limiting + cleanup |
-| `mime-utils.js` | MIME parsing utilities for email content |
+| `src/index.js` | Main worker entry point |
+| `src/handlers/` | Email, API, and scheduled task handlers |
+| `src/routes/` | API route implementations |
+| `src/services/` | Business logic (Rate limiting, Cleanup, Filtering) |
+| `mime-utils.js` | MIME parsing utilities (shared) |
 | `wrangler.toml` | Wrangler deployment configuration |
 | `schema.sql` | D1 database schema |
 
