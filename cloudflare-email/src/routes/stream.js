@@ -1,6 +1,6 @@
 // stream.js - /api/stream SSE route handler
 
-import { decodeMimeWords } from '../../mime-utils.js';
+import { decodeMimeWords } from '../utils/mime.js';
 import { jsonResponse, getClientIP } from '../utils/http.js';
 import { validateUsername, extractUsername } from '../utils/validation.js';
 import { checkRateLimit } from '../services/rate-limiter.js';

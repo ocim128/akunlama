@@ -7,6 +7,36 @@ import { handleGetEmail, handleMarkRead } from '../routes/email-content.js';
 import { handleList, handleGetKey, handleGetHtml } from '../routes/legacy.js';
 import { handleHealth, handleDebug, handleCleanup } from '../routes/admin.js';
 
+// Route Registry
+const ROUTES = {
+    // ============================================
+    // LEGACY REDIRECTS (301)
+    // ============================================
+    '/api/v1/mail/list': { redirect: '/api/list', status: 301 },
+    '/api/v1/mail/getHtml': { redirect: '/api/getHtml', status: 301 },
+    '/api/v1/mail/getKey': { redirect: '/api/getKey', status: 301 },
+
+    // ============================================
+    // MAIN API ROUTES
+    // ============================================
+    '/api/events': { handler: handleEvents, methods: ['GET'] },
+    '/api/stream': { handler: handleStream, methods: ['GET'] },
+
+    // ============================================
+    // LEGACY API ROUTES
+    // ============================================
+    '/api/list': { handler: handleList, methods: ['GET'] },
+    '/api/getKey': { handler: handleGetKey, methods: ['GET'] },
+    '/api/getHtml': { handler: handleGetHtml, methods: ['GET'] },
+
+    // ============================================
+    // ADMIN ROUTES
+    // ============================================
+    '/api/health': { handler: handleHealth, methods: ['GET'] },
+    '/api/debug': { handler: handleDebug, methods: ['GET'] },
+    '/api/cleanup': { handler: handleCleanup, methods: ['POST'] }
+};
+
 /**
  * HTTP fetch handler - API router
  */
@@ -20,104 +50,45 @@ export async function handleFetch(request, env, ctx) {
     }
 
     try {
-        // ============================================
-        // LEGACY REDIRECTS (301 permanent)
-        // ============================================
+        // 1. Check Route Registry
+        const route = ROUTES[path];
 
-        // Redirect old /api/v1/mail/list to /api/list
-        if (path === '/api/v1/mail/list') {
-            const newUrl = new URL(url);
-            newUrl.pathname = '/api/list';
-            return Response.redirect(newUrl.toString(), 301);
+        if (route) {
+            // Handle Redirects
+            if (route.redirect) {
+                const newUrl = new URL(url);
+                newUrl.pathname = route.redirect;
+                return Response.redirect(newUrl.toString(), route.status);
+            }
+
+            // Handle Methods
+            if (route.handler) {
+                if (route.methods && !route.methods.includes(request.method)) {
+                    return jsonResponse({ error: 'Method not allowed' }, 405);
+                }
+                return route.handler(request, url, env, ctx);
+            }
         }
 
-        // Redirect old /api/v1/mail/getHtml to /api/getHtml
-        if (path === '/api/v1/mail/getHtml') {
-            const newUrl = new URL(url);
-            newUrl.pathname = '/api/getHtml';
-            return Response.redirect(newUrl.toString(), 301);
-        }
+        // 2. Handle Dynamic Routes
 
-        // Redirect old /api/v1/mail/getKey to /api/getKey
-        if (path === '/api/v1/mail/getKey') {
-            const newUrl = new URL(url);
-            newUrl.pathname = '/api/getKey';
-            return Response.redirect(newUrl.toString(), 301);
-        }
-
-        // ============================================
-        // MAIN API ROUTES
-        // ============================================
-
-        // GET /api/events - List emails (Mailgun-compatible)
-        if (path === '/api/events') {
-            return handleEvents(request, url, env);
-        }
-
-        // GET /api/stream - SSE for real-time updates
-        if (path === '/api/stream') {
-            return handleStream(request, url, env, ctx);
-        }
-
-        // GET /api/email/:id - Get email content
+        // GET /api/email/:id
         if (path.startsWith('/api/email/') && !path.includes('/read')) {
             const emailId = path.replace('/api/email/', '');
             return handleGetEmail(request, url, emailId, env);
         }
 
-        // PATCH /api/email/:id/read - Mark email as read
-        if (path.match(/^\/api\/email\/[^/]+\/read$/) && request.method === 'PATCH') {
+        // PATCH /api/email/:id/read
+        if (path.match(/^\/api\/email\/[^/]+\/read$/)) {
+            if (request.method !== 'PATCH') {
+                return jsonResponse({ error: 'Method not allowed' }, 405);
+            }
             const pathParts = path.split('/');
             const emailId = pathParts[3];
             return handleMarkRead(request, url, emailId, env);
         }
 
-        // ============================================
-        // LEGACY API ROUTES (backward compatibility)
-        // ============================================
-
-        // Redirect old /api/v1/mail/list to /api/list
-        if (path === '/api/v1/mail/list') {
-            const newUrl = new URL(request.url);
-            newUrl.pathname = '/api/list';
-            return Response.redirect(newUrl.toString(), 301);
-        }
-
-        // GET /api/list - Legacy email list
-        if (path === '/api/list') {
-            return handleList(request, url, env);
-        }
-
-        // GET /api/getKey - Legacy email metadata
-        if (path === '/api/getKey') {
-            return handleGetKey(request, url, env);
-        }
-
-        // GET /api/getHtml - Legacy HTML content
-        if (path === '/api/getHtml') {
-            return handleGetHtml(request, url, env);
-        }
-
-        // ============================================
-        // ADMIN ROUTES
-        // ============================================
-
-        // GET /api/health - Health check
-        if (path === '/api/health') {
-            return handleHealth(request, env);
-        }
-
-        // GET /api/debug - Debug info
-        if (path === '/api/debug') {
-            return handleDebug(request, env);
-        }
-
-        // POST /api/cleanup - Manual cleanup trigger
-        if (path === '/api/cleanup' && request.method === 'POST') {
-            return handleCleanup(request, url, env, ctx);
-        }
-
-        // 404 for unknown routes
+        // 3. Fallback
         return jsonResponse({ error: 'Not found' }, 404);
 
     } catch (error) {
@@ -125,3 +96,4 @@ export async function handleFetch(request, env, ctx) {
         return jsonResponse({ error: 'Internal server error' }, 500);
     }
 }
+

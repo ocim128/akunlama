@@ -13,6 +13,7 @@ Combined email handler + API worker for Akunlama disposable email service.
 | `mime-utils.js` | MIME parsing utilities (shared) |
 | `wrangler.toml` | Wrangler deployment configuration |
 | `schema.sql` | D1 database schema |
+| `../docs/` | [Full Documentation](../docs/) |
 
 ## Quick Start
 

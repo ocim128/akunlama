@@ -5,7 +5,7 @@ import {
     parseMultipartBody,
     decodeContent,
     truncate
-} from '../../mime-utils.js';
+} from '../utils/mime.js';
 import { jsonResponse, cachedJsonResponse } from '../utils/http.js';
 import { validateUsername, extractUsername } from '../utils/validation.js';
 

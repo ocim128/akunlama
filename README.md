@@ -140,6 +140,16 @@ npm run test:e2e
 - **CORS**: Configurable cross-origin access
 - **ETag Caching**: 304 responses for unchanged data
 
+## 📚 Documentation
+
+Detailed documentation is available in the `docs/` directory:
+
+- [Developer Guide](docs/developer-guide.md) - Setup and contribution guide
+- [API Documentation](docs/api.md) - Endpoints and usage
+- [Architecture](docs/architecture.md) - System design and data flow
+- [Configuration](docs/configuration.md) - Environment variables and secrets
+- [Troubleshooting](docs/troubleshooting.md) - Common issues and fixes
+
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

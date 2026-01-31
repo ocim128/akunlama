@@ -1,4 +1,4 @@
-// mime-utils.js - Shared MIME parsing utilities for Cloudflare Email Workers
+// mime.js - Shared MIME parsing utilities for Cloudflare Email Workers
 
 export const MAX_BODY_LENGTH = 50000;
 

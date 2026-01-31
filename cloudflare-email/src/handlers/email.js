@@ -8,7 +8,7 @@ import {
     decodeMimeWords,
     parseMultipartBody,
     truncate
-} from '../../mime-utils.js';
+} from '../utils/mime.js';
 import { shouldBlockEmail } from '../services/email-filter.js';
 
 /**

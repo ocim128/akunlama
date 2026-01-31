@@ -1,7 +1,7 @@
 // legacy.js - Legacy endpoint handlers (/api/list, /api/getKey, /api/getHtml)
 // For backward compatibility with older frontend versions
 
-import { decodeMimeWords, decodeContent } from '../../mime-utils.js';
+import { decodeMimeWords, decodeContent } from '../utils/mime.js';
 import { jsonResponse, cachedJsonResponse, getClientIP, generateETag } from '../utils/http.js';
 import { validateUsername } from '../utils/validation.js';
 import { checkRateLimit } from '../services/rate-limiter.js';

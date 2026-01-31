@@ -57,3 +57,5 @@ Set environment variables via Cloudflare Pages or in `.env`:
 VITE_API_URL=https://akunlama.com/api
 VITE_WEBSITE_DOMAIN=akunlama.com
 ```
+
+For a complete list of configuration options, see the [Configuration Reference](../docs/configuration.md).
