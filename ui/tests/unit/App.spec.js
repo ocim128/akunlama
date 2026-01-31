@@ -1,8 +1,9 @@
 /**
  * Unit Tests for App.vue (Vue 3)
+ * Tests the main application wrapper component
  */
 import { describe, it, expect } from 'vitest'
-import { mount } from '@vue/test-utils'
+import { mount, shallowMount } from '@vue/test-utils'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import App from '@/App.vue'
 
@@ -21,7 +22,7 @@ describe('App.vue', () => {
         const wrapper = mount(App, {
             global: {
                 plugins: [router],
-                stubs: ['ThemeToggle', 'ToastNotification', 'InstallPrompt']
+                stubs: ['ToastNotification', 'InstallPrompt']
             }
         })
 
@@ -30,20 +31,55 @@ describe('App.vue', () => {
 
         // Check if router-view is present
         expect(wrapper.find('.app-router-view').exists()).toBe(true)
-
-        // Check github corner
-        expect(wrapper.find('.github-corner').exists()).toBe(true)
     })
 
-    it('contains correct data from config', () => {
-        const wrapper = mount(App, {
+    it('has correct component structure', async () => {
+        router.push('/')
+        await router.isReady()
+
+        const wrapper = shallowMount(App, {
             global: {
                 plugins: [router],
-                stubs: ['ThemeToggle', 'ToastNotification', 'InstallPrompt']
+                stubs: ['ToastNotification', 'InstallPrompt']
             }
         })
 
-        expect(wrapper.vm.githubLink).toBeDefined()
-        expect(wrapper.vm.githubAriaLabel).toBeDefined()
+        // Check component name
+        expect(wrapper.vm.$options.name).toBe('App')
+
+        // Check that ToastNotification stub is present
+        expect(wrapper.findComponent({ name: 'ToastNotification' }).exists()).toBe(true)
+
+        // Check that InstallPrompt stub is present
+        expect(wrapper.findComponent({ name: 'InstallPrompt' }).exists()).toBe(true)
+    })
+
+    it('renders router-view with transition', async () => {
+        router.push('/')
+        await router.isReady()
+
+        const wrapper = mount(App, {
+            global: {
+                plugins: [router],
+                stubs: ['ToastNotification', 'InstallPrompt']
+            }
+        })
+
+        // Transition wrapper should exist
+        expect(wrapper.find('transition-stub, .app-router-view').exists()).toBe(true)
+    })
+
+    it('mounts without errors', async () => {
+        router.push('/')
+        await router.isReady()
+
+        expect(() => {
+            mount(App, {
+                global: {
+                    plugins: [router],
+                    stubs: ['ToastNotification', 'InstallPrompt']
+                }
+            })
+        }).not.toThrow()
     })
 })

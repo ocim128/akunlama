@@ -1,0 +1,15 @@
+{
+    "name": "akunlama-worker",
+    "version": "1.0.0",
+    "type": "module",
+    "description": "Cloudflare Worker for Akunlama disposable email service",
+    "scripts": {
+        "test": "vitest",
+        "test:run": "vitest run",
+        "test:coverage": "vitest run --coverage"
+    },
+    "devDependencies": {
+        "vitest": "^1.0.4",
+        "@vitest/coverage-v8": "^1.0.4"
+    }
+}
