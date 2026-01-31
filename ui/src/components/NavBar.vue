@@ -190,12 +190,13 @@
 		transition: all 0.3s ease;
 
 		.nav-container {
-			max-width: 1200px;
-			margin: 0 auto;
-			padding: 1rem;
+			width: 100%;
+			max-width: 100%;
+			padding: 0.75rem 1.5rem;
+			margin: 0;
 			display: flex;
 			align-items: center;
-			gap: 1rem;
+			gap: 1.5rem;
 		}
 	}
 
@@ -268,14 +269,14 @@
 
 	.nav-email-section {
 		flex: 1;
-		max-width: 600px;
-		margin: 0 auto;
+		margin: 0;
 	}
 
 	.email-form {
 		display: flex;
 		flex-direction: column;
 		gap: 0.75rem;
+		width: 100%;
 
 		@media (min-width: 768px) {
 			flex-direction: row;

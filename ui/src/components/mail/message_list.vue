@@ -538,6 +538,23 @@ export default {
     }
   }
 
+  	.iframe-container {
+		flex: 1;
+		background: #ffffff;
+		border-radius: $radius;
+		box-shadow: 
+			0 1px 3px rgba(0, 0, 0, 0.08);
+		overflow: hidden;
+		border: 1px solid $gray-200;
+		transition: all 0.3s ease;
+		display: flex;
+		flex-direction: column;
+		min-height: 300px;
+    border-bottom: 1px solid $gray-100;
+    
+    &:last-child {
+      border-bottom: none;
+    }
   .skeleton-list {
     background: var(--color-surface);
     border-radius: $radius-lg;
@@ -655,6 +672,10 @@ export default {
 
   .email-list-container {
     margin: 0.75rem;
+
+    @media (min-width: 1024px) {
+      margin: 1rem 0.5rem;
+    }
   }
 
   .email-list-header {

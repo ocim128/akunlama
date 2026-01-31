@@ -135,24 +135,24 @@
     }
 
     .list-panel {
-      flex: 0 0 380px;
-      max-width: 420px;
+      flex: 0 0 420px;
+      max-width: 450px;
       border-right: 1px solid $gray-200;
       background: var(--color-surface);
       
       @media (min-width: 1280px) {
-        flex: 0 0 420px;
-        max-width: 480px;
+        flex: 0 0 480px;
+        max-width: 520px;
       }
       
       @media (min-width: 1536px) {
-        flex: 0 0 480px;
-        max-width: 550px;
+        flex: 0 0 550px;
+        max-width: 600px;
       }
       
       @media (min-width: 1800px) {
-        flex: 0 0 550px;
-        max-width: 600px;
+        flex: 0 0 650px;
+        max-width: 700px;
       }
     }
 

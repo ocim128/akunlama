@@ -332,6 +332,8 @@
 
 	.message-details {
 		height: 100%;
+		width: 100%;
+		flex: 1;
 		display: flex;
 		flex-direction: column;
 		background: var(--color-background);
@@ -598,12 +600,12 @@
 		flex: 1;
 		display: flex;
 		flex-direction: column;
-		margin: 0 1rem 1rem;
+		margin: 0 0.5rem 0.5rem;
 		min-height: 0;
 		overflow: hidden;
 		
 		@media (min-width: 1024px) {
-			margin: 0 1.25rem 1.25rem;
+			margin: 0 0.75rem 0.75rem;
 		}
 	}
 

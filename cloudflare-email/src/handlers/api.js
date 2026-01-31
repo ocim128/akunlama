@@ -51,6 +51,13 @@ export async function handleFetch(request, env, ctx) {
         // LEGACY API ROUTES (backward compatibility)
         // ============================================
 
+        // Redirect old /api/v1/mail/list to /api/list
+        if (path === '/api/v1/mail/list') {
+            const newUrl = new URL(request.url);
+            newUrl.pathname = '/api/list';
+            return Response.redirect(newUrl.toString(), 301);
+        }
+
         // GET /api/list - Legacy email list
         if (path === '/api/list') {
             return handleList(request, url, env);

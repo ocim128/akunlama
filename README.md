@@ -72,6 +72,8 @@ npx wrangler deploy
 
 ### 3. Deploy the UI
 
+For a detailed step-by-step guide, check the [UI Deployment Workflow](.agent/workflows/deploy-ui.md).
+
 ```bash
 cd ui
 
