@@ -62,13 +62,14 @@ export async function handleList(request, url, env) {
         const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
         const normalizedRecipient = trimmedRecipient.toLowerCase();
 
+        // Use direct matches only - LIKE with leading wildcard causes full table scans
         result = await env.DB.prepare(`
             SELECT id, recipient, sender, subject, preview, received_at, read_at 
             FROM emails 
-            WHERE recipient = ? OR recipient = ? OR recipient LIKE ?
+            WHERE recipient = ? OR recipient = ?
             ORDER BY received_at DESC 
             LIMIT 50
-        `).bind(normalizedRecipient, fullEmail, '%' + rawUsername + '@%').all();
+        `).bind(normalizedRecipient, fullEmail).all();
     }
 
     // Format as array of messages

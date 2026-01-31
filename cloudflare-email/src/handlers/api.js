@@ -21,6 +21,31 @@ export async function handleFetch(request, env, ctx) {
 
     try {
         // ============================================
+        // LEGACY REDIRECTS (301 permanent)
+        // ============================================
+
+        // Redirect old /api/v1/mail/list to /api/list
+        if (path === '/api/v1/mail/list') {
+            const newUrl = new URL(url);
+            newUrl.pathname = '/api/list';
+            return Response.redirect(newUrl.toString(), 301);
+        }
+
+        // Redirect old /api/v1/mail/getHtml to /api/getHtml
+        if (path === '/api/v1/mail/getHtml') {
+            const newUrl = new URL(url);
+            newUrl.pathname = '/api/getHtml';
+            return Response.redirect(newUrl.toString(), 301);
+        }
+
+        // Redirect old /api/v1/mail/getKey to /api/getKey
+        if (path === '/api/v1/mail/getKey') {
+            const newUrl = new URL(url);
+            newUrl.pathname = '/api/getKey';
+            return Response.redirect(newUrl.toString(), 301);
+        }
+
+        // ============================================
         // MAIN API ROUTES
         // ============================================
 
