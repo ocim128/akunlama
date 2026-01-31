@@ -1,13 +1,23 @@
 <template>
   <div class="landing-page">
     <header class="hero-section">
+      <!-- Floating animated elements -->
+      <div class="floating-elements">
+        <div class="float-item float-1">🐱</div>
+        <div class="float-item float-2">✉️</div>
+        <div class="float-item float-3">🐾</div>
+        <div class="float-item float-4">💌</div>
+        <div class="float-item float-5">😺</div>
+        <div class="float-item float-6">📧</div>
+      </div>
+      
       <div class="hero-content">
         <img class="logo" src="@/assets/inbox_kitten.png" alt="Akunlama Logo" />
         <h1>Open-Source <span class="highlight">Disposable Email</span></h1>
         <h2>(Served by Adorably Lazy Kittens 🐱)</h2>
         
-        <!-- EMAIL FORM - REDESIGNED FOR BETTER SPACING -->
-        <div class="email-form-container">
+        <!-- EMAIL FORM - GLASSMORPHISM DESIGN -->
+        <div class="email-form-container glass-card">
           <div class="form-header">
             <p class="form-instruction">🐾 Claim your cat-tastic identity!</p>
           </div>
@@ -41,7 +51,7 @@
               </button>
               
               <button type="button" class="btn-shuffle" @click="generateNewName">
-                <i class="fas fa-dice"></i>
+                <i class="fas fa-dice dice-icon"></i>
                 Cat-shuffle!
               </button>
             </div>
@@ -273,8 +283,85 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  overflow: auto;
+  overflow: hidden;
   transition: background 0.5s ease;
+  position: relative;
+}
+
+// Floating animated elements
+.floating-elements {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.float-item {
+  position: absolute;
+  font-size: 2rem;
+  opacity: 0.3;
+  animation: floatAround 20s ease-in-out infinite;
+  
+  &.float-1 {
+    top: 10%;
+    left: 10%;
+    animation-delay: 0s;
+    animation-duration: 18s;
+  }
+  
+  &.float-2 {
+    top: 20%;
+    right: 15%;
+    animation-delay: -3s;
+    animation-duration: 22s;
+  }
+  
+  &.float-3 {
+    bottom: 30%;
+    left: 20%;
+    animation-delay: -6s;
+    animation-duration: 16s;
+  }
+  
+  &.float-4 {
+    top: 60%;
+    right: 10%;
+    animation-delay: -9s;
+    animation-duration: 24s;
+  }
+  
+  &.float-5 {
+    bottom: 15%;
+    left: 5%;
+    animation-delay: -12s;
+    animation-duration: 20s;
+  }
+  
+  &.float-6 {
+    top: 5%;
+    right: 30%;
+    animation-delay: -15s;
+    animation-duration: 19s;
+  }
+}
+
+@keyframes floatAround {
+  0%, 100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  25% {
+    transform: translate(30px, -20px) rotate(10deg);
+  }
+  50% {
+    transform: translate(-10px, 30px) rotate(-5deg);
+  }
+  75% {
+    transform: translate(-30px, -10px) rotate(5deg);
+  }
 }
 
 .hero-content {
@@ -309,19 +396,46 @@ h2 {
   opacity: 0.9;
 }
 
-// REDESIGNED EMAIL FORM - COMPACT AND WELL-SPACED
+// GLASSMORPHISM EMAIL FORM
 .email-form-container {
-  background: var(--color-surface);
-  border-radius: 16px;
-  padding: 1.8rem 1.5rem;
+  position: relative;
+  z-index: 1;
+  border-radius: 20px;
+  padding: 2rem 1.5rem;
   margin: 1.5rem auto;
   max-width: 480px;
   width: 90%;
-  box-shadow: $shadow-xl;
   color: $dark-text;
   text-align: center;
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+  
+  // Glassmorphism effect
+  &.glass-card {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(255, 255, 255, 0.2) inset,
+      0 4px 16px rgba(79, 70, 229, 0.1);
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: 20px;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.4) 0%,
+        rgba(255, 255, 255, 0.1) 100%
+      );
+      pointer-events: none;
+      z-index: -1;
+    }
+  }
 }
 
 .form-header {
@@ -456,12 +570,38 @@ h2 {
   background: white;
   color: #4F46E5;
   border: 2px solid #4F46E5;
+  
+  .dice-icon {
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  
+  &:hover {
+    background: #4F46E5;
+    color: white;
+    transform: translateY(-1px);
+    
+    .dice-icon {
+      animation: diceRoll 0.6s ease-in-out;
+    }
+  }
 }
 
-.btn-shuffle:hover {
-  background: #4F46E5;
-  color: white;
-  transform: translateY(-1px);
+@keyframes diceRoll {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.2);
+  }
+  50% {
+    transform: rotate(180deg) scale(1);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.2);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
 }
 
 

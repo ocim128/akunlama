@@ -31,7 +31,12 @@ export default createRouter({
         {
           path: 'message/:region/:key',
           name: 'Message',
-          component: MessageDetail
+          component: MessageDetail,
+          props: route => ({
+            region: route.params.region,
+            key: route.params.key,
+            email: route.params.email
+          })
         },
         {
           path: ':pathMatch(.*)*',

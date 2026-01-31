@@ -16,8 +16,8 @@
 				
 				<div class="message-meta">
 					<div class="sender-info">
-						<div class="sender-avatar">
-							<i class="fas fa-user-circle"></i>
+						<div class="sender-avatar" :style="{ backgroundColor: getAvatarColor(emailContent.emailAddress) }">
+							<span class="avatar-initials">{{ getInitials(emailContent.emailAddress, emailContent.name) }}</span>
 						</div>
 						<div class="sender-details">
 							<div class="sender-name">
@@ -33,37 +33,60 @@
 					<div class="message-date">{{formatDate(emailContent.Date)}}</div>
 				</div>
 
-				<!-- Action buttons -->
+				<!-- Enhanced Action toolbar -->
 				<div class="message-actions">
-					<button class="action-btn" @click="goBack" title="Back to inbox">
-						<i class="fas fa-arrow-left"></i>
-						<span>Back</span>
-					</button>
-					<button class="action-btn" @click="refreshMessage" :disabled="refreshing" title="Refresh message">
-						<i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
-						<span>Refresh</span>
-					</button>
+					<div class="actions-left">
+						<button class="action-btn" @click="goBack" title="Back to inbox">
+							<i class="fas fa-arrow-left"></i>
+							<span>Back</span>
+						</button>
+						<button class="action-btn" @click="refreshMessage" :disabled="refreshing" title="Refresh message">
+							<i class="fas fa-sync-alt" :class="{'fa-spin': refreshing}"></i>
+							<span>Refresh</span>
+						</button>
+					</div>
+					<div class="actions-right">
+						<button 
+							class="action-btn action-btn--icon" 
+							@click="copyEmailContent" 
+							title="Copy email content"
+							:class="{ 'copied': showCopiedFeedback }"
+						>
+							<i class="fas" :class="showCopiedFeedback ? 'fa-check' : 'fa-copy'"></i>
+							<span class="action-tooltip">{{ showCopiedFeedback ? 'Copied!' : 'Copy' }}</span>
+						</button>
+						<button class="action-btn action-btn--icon" @click="printEmail" title="Print email">
+							<i class="fas fa-print"></i>
+							<span class="action-tooltip">Print</span>
+						</button>
+						<button class="action-btn action-btn--icon" @click="downloadEmail" title="Download as HTML">
+							<i class="fas fa-download"></i>
+							<span class="action-tooltip">Download</span>
+						</button>
+					</div>
 				</div>
 			</div>
 
-			<!-- Message content -->
+			<!-- Message content with enhanced styling -->
 			<div class="message-body">
-				<!-- 
-					Security Note: Content is sanitized on the server with DOMPurify.
-					The sandbox attribute provides defense-in-depth:
-					- allow-same-origin: Required for proper styling
-					- allow-popups-to-escape-sandbox: Allow links to open in new tabs
-					Scripts are blocked as content is sanitized server-side.
-				-->
-				<iframe 
-					id="message-content" 
-					:src="src" 
-					@load="onIframeLoad"
-					scrolling="yes"
-					sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
-					referrerpolicy="no-referrer"
-					title="Email content"
-				></iframe>
+				<div class="iframe-container">
+					<!-- 
+						Security Note: Content is sanitized on the server with DOMPurify.
+						The sandbox attribute provides defense-in-depth:
+						- allow-same-origin: Required for proper styling
+						- allow-popups-to-escape-sandbox: Allow links to open in new tabs
+						Scripts are blocked as content is sanitized server-side.
+					-->
+					<iframe 
+						id="message-content" 
+						:src="src" 
+						@load="onIframeLoad"
+						scrolling="yes"
+						sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+						referrerpolicy="no-referrer"
+						title="Email content"
+					></iframe>
+				</div>
 			</div>
 		</div>
 	</div>
@@ -82,7 +105,8 @@
 				emailContent: {},
 				src: '',
 				loading: true,
-				refreshing: false
+				refreshing: false,
+				showCopiedFeedback: false
 			}
 		},
 		mounted () {
@@ -197,6 +221,89 @@
 				} else {
 					return date.format('MMM DD, YYYY [at] h:mm A')
 				}
+			},
+
+			// Avatar color based on email hash
+			getAvatarColor(email) {
+				const colors = [
+					'#4F46E5', '#7C3AED', '#EC4899', '#EF4444', '#F97316',
+					'#F59E0B', '#10B981', '#14B8A6', '#06B6D4', '#3B82F6',
+					'#8B5CF6', '#6366F1', '#D946EF', '#0EA5E9', '#22C55E'
+				]
+				
+				if (!email) return colors[0]
+				
+				let hash = 0
+				for (let i = 0; i < email.length; i++) {
+					hash = email.charCodeAt(i) + ((hash << 5) - hash)
+				}
+				
+				return colors[Math.abs(hash) % colors.length]
+			},
+
+			// Get initials from name or email
+			getInitials(email, name) {
+				if (name && name.trim()) {
+					const parts = name.trim().split(/\s+/)
+					if (parts.length >= 2) {
+						return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+					}
+					return name.substring(0, 2).toUpperCase()
+				}
+				
+				if (!email) return '?'
+				const username = email.split('@')[0]
+				return username.substring(0, 2).toUpperCase()
+			},
+
+			// Copy email content to clipboard
+			async copyEmailContent() {
+				try {
+					const iframe = document.getElementById('message-content')
+					let textContent = ''
+					
+					if (iframe && iframe.contentDocument) {
+						textContent = iframe.contentDocument.body.innerText || iframe.contentDocument.body.textContent
+					}
+					
+					// Also include subject and sender info
+					const fullContent = `Subject: ${this.emailContent.subject}\nFrom: ${this.emailContent.emailAddress}\nTo: ${this.emailContent.recipients}\nDate: ${this.emailContent.Date}\n\n${textContent}`
+					
+					await navigator.clipboard.writeText(fullContent)
+					
+					this.showCopiedFeedback = true
+					setTimeout(() => {
+						this.showCopiedFeedback = false
+					}, 2000)
+				} catch (err) {
+					console.error('Failed to copy:', err)
+				}
+			},
+
+			// Print email
+			printEmail() {
+				const iframe = document.getElementById('message-content')
+				if (iframe && iframe.contentWindow) {
+					iframe.contentWindow.print()
+				}
+			},
+
+			// Download email as HTML
+			downloadEmail() {
+				const iframe = document.getElementById('message-content')
+				if (iframe && iframe.contentDocument) {
+					const htmlContent = iframe.contentDocument.documentElement.outerHTML
+					const blob = new Blob([htmlContent], { type: 'text/html' })
+					const url = URL.createObjectURL(blob)
+					
+					const a = document.createElement('a')
+					a.href = url
+					a.download = `${this.emailContent.subject || 'email'}.html`
+					document.body.appendChild(a)
+					a.click()
+					document.body.removeChild(a)
+					URL.revokeObjectURL(url)
+				}
 			}
 		}
 	}
@@ -257,23 +364,28 @@
 		position: relative;
 		z-index: 1;
 		transition: background 0.3s ease;
+		flex-shrink: 0;
 	}
 
 	.message-subject {
-		padding: 1.5rem 2rem 1rem;
+		padding: 1rem 1.25rem 0.75rem;
 		border-bottom: 1px solid $gray-100;
 
 		h1 {
 			margin: 0;
-			font-size: 1.5rem;
+			font-size: 1.25rem;
 			font-weight: 600;
 			color: $dark-text;
 			line-height: 1.3;
+			
+			@media (min-width: 1280px) {
+				font-size: 1.35rem;
+			}
 		}
 	}
 
 	.message-meta {
-		padding: 1rem 2rem;
+		padding: 0.75rem 1.25rem;
 		display: flex;
 		justify-content: space-between;
 		align-items: flex-start;
@@ -289,16 +401,19 @@
 	.sender-avatar {
 		width: 48px;
 		height: 48px;
-		background: $primary;
 		color: white;
 		border-radius: 50%;
 		display: flex;
 		align-items: center;
 		justify-content: center;
 		flex-shrink: 0;
+		font-weight: 600;
+		font-size: 1rem;
+		letter-spacing: 0.5px;
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 
-		i {
-			font-size: 1.75rem;
+		.avatar-initials {
+			user-select: none;
 		}
 	}
 
@@ -340,9 +455,17 @@
 	}
 
 	.message-actions {
-		padding: 0 2rem 1rem;
+		padding: 0 1.25rem 0.75rem;
 		display: flex;
+		justify-content: space-between;
+		align-items: center;
 		gap: 0.5rem;
+		
+		.actions-left,
+		.actions-right {
+			display: flex;
+			gap: 0.5rem;
+		}
 	}
 
 	.action-btn {
@@ -357,6 +480,7 @@
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
+		position: relative;
 
 		&:hover:not(:disabled) {
 			background: $gray-200;
@@ -371,22 +495,68 @@
 		.fa-spin {
 			animation-duration: 1s;
 		}
+		
+		// Icon-only button variant
+		&--icon {
+			padding: 0.5rem 0.75rem;
+			
+			.action-tooltip {
+				display: none;
+				position: absolute;
+				bottom: -2rem;
+				left: 50%;
+				transform: translateX(-50%);
+				background: $gray-800;
+				color: white;
+				padding: 0.25rem 0.5rem;
+				border-radius: $radius;
+				font-size: 0.75rem;
+				white-space: nowrap;
+				z-index: 10;
+			}
+			
+			&:hover .action-tooltip {
+				display: block;
+			}
+		}
+		
+		// Copied state
+		&.copied {
+			background: $success;
+			border-color: $success;
+			color: white;
+		}
 	}
 
 	.message-body {
 		flex: 1;
 		display: flex;
 		flex-direction: column;
+		margin: 0 1rem 1rem;
+		min-height: 0;
+		overflow: hidden;
+		
+		@media (min-width: 1024px) {
+			margin: 0 1.25rem 1.25rem;
+		}
+	}
+
+	.iframe-container {
+		flex: 1;
 		background: #ffffff;
-		margin: 0 1.5rem 1.5rem;
 		border-radius: $radius-lg;
-		box-shadow: $shadow-lg;
+		box-shadow: 
+			0 1px 3px rgba(0, 0, 0, 0.08),
+			0 1px 2px rgba(0, 0, 0, 0.04);
 		overflow: hidden;
 		border: 1px solid $gray-200;
 		transition: all 0.3s ease;
+		display: flex;
+		flex-direction: column;
+		min-height: 300px;
 
 		[data-theme='dark'] & {
-			background: #f8fafc; // Slightly off-white for better contrast in dark mode
+			background: #f8fafc;
 			border-color: $gray-700;
 		}
 	}
@@ -398,6 +568,7 @@
 		border: none;
 		background: #ffffff;
 		display: block;
+		border-radius: $radius-lg;
 	}
 
 	// Mobile optimizations

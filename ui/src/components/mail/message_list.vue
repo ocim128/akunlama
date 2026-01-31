@@ -8,10 +8,22 @@
         </div>
       </div>
 
-      <!-- Loading state -->
-      <div v-if="refreshing" class="loading-container">
-        <div class="pulse-spinner"><span></span><span></span><span></span></div>
-        <p class="loading-text">Checking for new messages...</p>
+      <!-- Skeleton loading state -->
+      <div v-if="refreshing" class="skeleton-container">
+        <div class="skeleton-header">
+          <div class="skeleton-title"></div>
+          <div class="skeleton-subtitle"></div>
+        </div>
+        <div class="skeleton-list">
+          <div class="skeleton-item" v-for="i in 4" :key="i">
+            <div class="skeleton-avatar"></div>
+            <div class="skeleton-content">
+              <div class="skeleton-line skeleton-sender"></div>
+              <div class="skeleton-line skeleton-subject"></div>
+              <div class="skeleton-line skeleton-preview"></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Email list -->
@@ -41,8 +53,8 @@
             @click="handleRowClick($event, msg)"
             :class="{ 'email-item--read': msg.read_at !== null }"
           >
-            <div class="email-avatar">
-              <i class="fas fa-user-circle"></i>
+            <div class="email-avatar" :style="{ backgroundColor: getAvatarColor(msg.message.headers.from) }">
+              <span class="avatar-initials">{{ getInitials(msg.message.headers.from) }}</span>
             </div>
             
             <div class="email-content">
@@ -208,6 +220,63 @@ export default {
         return emails[0]
       }
       return sender
+    },
+
+    // Generate a unique color based on sender email
+    getAvatarColor (sender) {
+      const colors = [
+        '#4F46E5', // Indigo
+        '#7C3AED', // Violet
+        '#EC4899', // Pink
+        '#EF4444', // Red
+        '#F97316', // Orange
+        '#F59E0B', // Amber
+        '#10B981', // Emerald
+        '#14B8A6', // Teal
+        '#06B6D4', // Cyan
+        '#3B82F6', // Blue
+        '#8B5CF6', // Purple
+        '#6366F1', // Indigo lighter
+        '#D946EF', // Fuchsia
+        '#0EA5E9', // Sky
+        '#22C55E', // Green
+      ]
+      
+      // Simple hash based on email string
+      const email = this.extractEmail(sender)
+      let hash = 0
+      for (let i = 0; i < email.length; i++) {
+        hash = email.charCodeAt(i) + ((hash << 5) - hash)
+      }
+      
+      return colors[Math.abs(hash) % colors.length]
+    },
+
+    // Get initials from sender name/email
+    getInitials (sender) {
+      if (!sender) return '?'
+      
+      // Try to extract name from "Name <email>" format
+      const nameMatch = sender.match(/^([^<]+)</)
+      if (nameMatch && nameMatch[1].trim()) {
+        const name = nameMatch[1].trim()
+        const parts = name.split(/\s+/)
+        if (parts.length >= 2) {
+          return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+        }
+        return name.substring(0, 2).toUpperCase()
+      }
+      
+      // Fall back to email username
+      const email = this.extractEmail(sender)
+      if (email) {
+        const username = email.split('@')[0]
+        // Remove common prefixes like noreply, no-reply, etc.
+        const cleanName = username.replace(/^(noreply|no-reply|info|support|hello|contact|admin)[-_]?/i, '')
+        return (cleanName.substring(0, 2) || username.substring(0, 2)).toUpperCase()
+      }
+      
+      return '?'
     }
   }
 }
@@ -241,55 +310,122 @@ export default {
     }
   }
 
-  // Pulse spinner (replacement for vue-spinner)
-  .pulse-spinner {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 1rem;
+  // Skeleton loading styles
+  .skeleton-container {
+    padding: 1rem;
+  }
+
+  .skeleton-header {
+    margin-bottom: 1.5rem;
     
-    span {
-      width: 12px;
-      height: 12px;
-      background: $primary;
-      border-radius: 50%;
-      animation: pulse-bounce 1.4s ease-in-out infinite both;
-      
-      &:nth-child(1) { animation-delay: -0.32s; }
-      &:nth-child(2) { animation-delay: -0.16s; }
-      &:nth-child(3) { animation-delay: 0s; }
+    .skeleton-title {
+      height: 24px;
+      width: 150px;
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      border-radius: $radius;
+      margin-bottom: 0.5rem;
+    }
+    
+    .skeleton-subtitle {
+      height: 14px;
+      width: 200px;
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      border-radius: $radius;
     }
   }
 
-  @keyframes pulse-bounce {
-    0%, 80%, 100% { 
-      transform: scale(0);
-      opacity: 0.5;
+  .skeleton-list {
+    background: var(--color-surface);
+    border-radius: $radius-lg;
+    box-shadow: $shadow;
+    overflow: hidden;
+  }
+
+  .skeleton-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid $gray-100;
+    
+    &:last-child {
+      border-bottom: none;
     }
-    40% { 
-      transform: scale(1);
-      opacity: 1;
+    
+    .skeleton-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      margin-right: 1rem;
+      flex-shrink: 0;
+    }
+    
+    .skeleton-content {
+      flex: 1;
+    }
+    
+    .skeleton-line {
+      background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+      background-size: 200% 100%;
+      animation: skeleton-shimmer 1.5s ease-in-out infinite;
+      border-radius: $radius;
+      margin-bottom: 0.5rem;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    
+    .skeleton-sender {
+      height: 14px;
+      width: 40%;
+    }
+    
+    .skeleton-subject {
+      height: 16px;
+      width: 80%;
+    }
+    
+    .skeleton-preview {
+      height: 12px;
+      width: 60%;
+    }
+  }
+
+  @keyframes skeleton-shimmer {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
     }
   }
 
   .advisory-banner {
     background: linear-gradient(135deg, #FEF3C7, #FCD34D);
     border: 1px solid #F59E0B;
-    border-radius: $radius-lg;
-    margin: 1rem;
-    padding: 1rem;
+    border-radius: $radius;
+    margin: 0.75rem;
+    padding: 0.6rem 0.75rem;
 
     .advisory-content {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 0.75rem;
+      gap: 0.5rem;
       color: #92400E;
-      font-size: 0.9rem;
+      font-size: 0.8rem;
       text-align: center;
 
       i {
         color: #F59E0B;
-        font-size: 1.1rem;
+        font-size: 1rem;
         flex-shrink: 0;
       }
 
@@ -318,34 +454,35 @@ export default {
   }
 
   .email-list-container {
-    margin: 1rem;
+    margin: 0.75rem;
   }
 
   .email-list-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 1rem 0;
+    padding: 0.5rem 0;
     border-bottom: 1px solid $gray-200;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
 
     .header-main {
       display: flex;
       flex-direction: column;
-      gap: 0.25rem;
+      gap: 0.15rem;
     }
 
     h3 {
       margin: 0;
       color: $dark-text;
-      font-size: 1.25rem;
+      font-size: 1rem;
       font-weight: 600;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.4rem;
 
       i {
         color: $primary;
+        font-size: 0.9rem;
       }
     }
 
@@ -405,7 +542,7 @@ export default {
   .email-item {
     display: flex;
     align-items: center;
-      padding: 1rem;
+    padding: 0.75rem 1rem;
     border-bottom: 1px solid $gray-100;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -416,8 +553,7 @@ export default {
 
     &:hover {
       background: $gray-50;
-      transform: translateX(4px);
-      box-shadow: $shadow-sm;
+      transform: translateX(2px);
     }
 
     &--read {
@@ -429,16 +565,24 @@ export default {
     flex-shrink: 0;
     width: 40px;
     height: 40px;
-    background: $primary;
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-right: 1rem;
+    margin-right: 0.75rem;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    transition: transform 0.2s ease;
 
-    i {
-      font-size: 1.5rem;
+    .avatar-initials {
+      user-select: none;
+    }
+
+    .email-item:hover & {
+      transform: scale(1.05);
     }
   }
 
