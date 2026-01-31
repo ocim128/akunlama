@@ -1,6 +1,6 @@
 {
   "name": "inboxkitten-ui",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "description": "UI for Inboxkitten - A personal disposable email",
   "keywords": [

@@ -1,0 +1,24 @@
+﻿🪵  Writing logs to "C:\Users\user\AppData\Roaming\xdg.config\.wrangler\logs\wrangler-2026-01-30_16-38-47_652.log"
+.env file not found at "C:\Users\user\Documents\Repo\akunlama\cloudflare-email\.env". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+.env file not found at "C:\Users\user\Documents\Repo\akunlama\cloudflare-email\.env.local". Continuing... For more details, refer to https://developers.cloudflare.com/workers/wrangler/system-environment-variables/
+
+ ⛅️ wrangler 4.61.1
+───────────────────
+Metrics dispatcher: Posting data {"deviceId":"e24a7f0c-f9e2-473d-810e-11b8961cc45e","event":"wrangler command started","timestamp":1769791127768,"properties":{"amplitude_session_id":1769791127767,"amplitude_event_id":0,"wranglerVersion":"4.61.1","wranglerMajorVersion":4,"wranglerMinorVersion":61,"wranglerPatchVersion":1,"osPlatform":"Windows","osVersion":"Windows 11 Education","nodeVersion":22,"packageManager":"npm","isFirstUsage":false,"configFileType":"toml","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"argsUsed":[],"argsCombination":"","agent":null,"sanitizedCommand":"d1 list","sanitizedArgs":{}}}
+-- START CF API REQUEST: GET https://api.cloudflare.com/client/v4/accounts/891353158c32ea8344666fffe1db86f9/d1/database
+QUERY STRING: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+INIT: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+-- END CF API REQUEST
+-- START CF API RESPONSE: OK 200
+HEADERS: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+RESPONSE: omitted; set WRANGLER_LOG_SANITIZE=false to include sanitized data
+-- END CF API RESPONSE
+┌──────────────────────────────────────┬───────────────┬──────────────────────────┬────────────┬────────────┬────────────┬──────────────┐
+│ uuid                                 │ name          │ created_at               │ version    │ num_tables │ file_size  │ jurisdiction │
+├──────────────────────────────────────┼───────────────┼──────────────────────────┼────────────┼────────────┼────────────┼──────────────┤
+│ f71f4888-5156-49d2-a679-17aae49f2600 │ akunlama      │ 2026-01-29T10:45:18.733Z │ production │ 0          │ 5991985152 │              │
+├──────────────────────────────────────┼───────────────┼──────────────────────────┼────────────┼────────────┼────────────┼──────────────┤
+│ 0a90f976-6a9e-416b-a574-95be4e03d780 │ email-storage │ 2026-01-11T10:48:13.885Z │ production │ 0          │ 40189952   │              │
+└──────────────────────────────────────┴───────────────┴──────────────────────────┴────────────┴────────────┴────────────┴──────────────┘
+Metrics dispatcher: Posting data {"deviceId":"e24a7f0c-f9e2-473d-810e-11b8961cc45e","event":"wrangler command completed","timestamp":1769791128201,"properties":{"amplitude_session_id":1769791127767,"amplitude_event_id":1,"wranglerVersion":"4.61.1","wranglerMajorVersion":4,"wranglerMinorVersion":61,"wranglerPatchVersion":1,"osPlatform":"Windows","osVersion":"Windows 11 Education","nodeVersion":22,"packageManager":"npm","isFirstUsage":false,"configFileType":"toml","isCI":false,"isPagesCI":false,"isWorkersCI":false,"isInteractive":false,"hasAssets":false,"argsUsed":[],"argsCombination":"","agent":null,"sanitizedCommand":"d1 list","sanitizedArgs":{},"durationMs":440,"durationSeconds":0.44,"durationMinutes":0.007333333333333333}}

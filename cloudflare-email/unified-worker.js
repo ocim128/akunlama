@@ -16,8 +16,8 @@ import {
 // CONFIGURATION
 // ============================================
 
-// Email retention period: 7 days in milliseconds
-const EMAIL_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+// Email retention period: 3 days in milliseconds (reduced from 7 for storage control)
+const EMAIL_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
 
 // Rate limiting configuration (ported from backend/src/shared/rateLimit.js)
 const RATE_LIMITS = {
@@ -355,7 +355,7 @@ const createHeaders = (additionalHeaders = {}) => ({
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Headers': 'Content-Type, If-None-Match',
     // Security headers (HTML sanitization)
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
@@ -363,6 +363,22 @@ const createHeaders = (additionalHeaders = {}) => ({
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     ...additionalHeaders
 });
+
+/**
+ * Generate a simple ETag from data
+ * @param {any} data
+ * @returns {string}
+ */
+const generateETag = (data) => {
+    const str = JSON.stringify(data);
+    // Simple hash for ETag - FNV-1a variant
+    let hash = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+        hash ^= str.charCodeAt(i);
+        hash = (hash * 16777619) >>> 0;
+    }
+    return `"${hash.toString(16)}"`;
+};
 
 /**
  * Create JSON response
@@ -376,6 +392,99 @@ const jsonResponse = (data, status = 200, additionalHeaders = {}) => {
         status,
         headers: createHeaders(additionalHeaders)
     });
+};
+
+/**
+ * Create cached JSON response with ETag support for 304
+ * @param {Request} request - The incoming request
+ * @param {any} data - Response data
+ * @param {number} status - HTTP status code
+ * @param {number} maxAge - Cache max-age in seconds (default 10s for dynamic content)
+ * @returns {Response}
+ */
+const cachedJsonResponse = (request, data, status = 200, maxAge = 10) => {
+    const etag = generateETag(data);
+    const ifNoneMatch = request.headers.get('If-None-Match');
+
+    // Return 304 Not Modified if ETag matches
+    if (ifNoneMatch && ifNoneMatch === etag) {
+        return new Response(null, {
+            status: 304,
+            headers: createHeaders({
+                'ETag': etag,
+                'Cache-Control': `public, max-age=${maxAge}, stale-while-revalidate=60`
+            })
+        });
+    }
+
+    return new Response(JSON.stringify(data), {
+        status,
+        headers: createHeaders({
+            'ETag': etag,
+            'Cache-Control': `public, max-age=${maxAge}, stale-while-revalidate=60`,
+            'Vary': 'Accept, If-None-Match'
+        })
+    });
+};
+
+// ============================================
+// CLEANUP LOGIC
+// ============================================
+
+const runCleanup = async (env) => {
+    const cutoffTime = Date.now() - EMAIL_RETENTION_MS;
+    let totalDeleted = 0;
+    let deletedBatch = 0;
+
+    console.log('[CLEANUP] Starting cleanup...');
+
+    try {
+        // 1. Delete spam/blocked senders (aggressive)
+        // Batched delete for spam
+        const spamPatterns = [
+            '%friendsuggestion@facebookmail.com%',
+            '%reminders@facebookmail.com%',
+            '%groupupdates@facebookmail.com%',
+            '%pageupdates@facebookmail.com%',
+            '%notification@facebookmail.com%',
+            '%friendupdates@facebookmail.com%',
+            '%friends@facebookmail.com%',
+            '%close_friend_updates@facebookmail.com%',
+            '%posts-recaps@mail.instagram.com%',
+            '%registration@facebookmail.com%'
+        ];
+
+        for (const pattern of spamPatterns) {
+            const result = await env.DB.prepare(`
+                DELETE FROM emails WHERE sender LIKE ?
+             `).bind(pattern).run();
+            console.log(`[CLEANUP] Deleted spam pattern ${pattern}: ${result.meta.changes} rows`);
+        }
+
+        // 2. Delete old emails in batches of 1000 to avoid timeout
+        do {
+            const result = await env.DB.prepare(`
+                DELETE FROM emails 
+                WHERE id IN (
+                    SELECT id FROM emails 
+                    WHERE received_at < ? 
+                    LIMIT 1000
+                )
+            `).bind(cutoffTime).run();
+
+            deletedBatch = result.meta.changes;
+            totalDeleted += deletedBatch;
+            console.log(`[CLEANUP] Batch deleted: ${deletedBatch}`);
+
+        } while (deletedBatch > 0 && totalDeleted < 20000); // Limit to 20k per run to prevent timeout
+
+        console.log(`[CLEANUP] Completed. Total old emails deleted: ${totalDeleted}`);
+        return { success: true, deleted: totalDeleted };
+
+    } catch (error) {
+        console.error('[CLEANUP] Error:', error);
+        return { success: false, error: error.message };
+    }
 };
 
 // ============================================
@@ -395,8 +504,20 @@ export default {
             const subjectRaw = headers['subject'] || message.headers?.get?.('subject') || '(No Subject)';
             const subject = decodeMimeWords(subjectRaw) || '(No Subject)';
 
-            const sender = headers['from'] || normalizeAddress(message.from);
-            const recipient = headers['to'] || normalizeAddress(message.to);
+            const sender = headers['from'] || message.from;
+
+            // Extract clean email address from "To" header (may be "Name <email>" format)
+            const rawTo = headers['to'] || message.to;
+            let recipient = rawTo;
+            const emailMatch = rawTo.match(/<([^>]+)>/);
+            if (emailMatch) {
+                recipient = emailMatch[1]; // Extract email from <email>
+            } else if (rawTo.includes('@')) {
+                // Already just an email address
+                recipient = rawTo.trim();
+            }
+            // Normalize to lowercase for consistent matching
+            recipient = recipient.toLowerCase();
 
             const { html, text } = extractBodiesFromRaw(rawEmail);
 
@@ -409,9 +530,16 @@ export default {
 
             const emailId = crypto.randomUUID();
 
+            // Generate preview from text (first 100 chars, stripped of extra whitespace)
+            const previewText = (text || html || '')
+                .replace(/<[^>]*>/g, '') // Strip HTML tags
+                .replace(/\s+/g, ' ')    // Normalize whitespace
+                .trim()
+                .substring(0, 100);
+
             await env.DB.prepare(`
-                INSERT INTO emails (id, recipient, sender, subject, body_html, body_text, received_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO emails (id, recipient, sender, subject, body_html, body_text, preview, received_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `).bind(
                 emailId,
                 recipient,
@@ -419,6 +547,7 @@ export default {
                 subject,
                 truncate(html),
                 truncate(text),
+                previewText || null,
                 Date.now()
             ).run();
 
@@ -508,20 +637,25 @@ export default {
                     // Authorized admin access - return all emails
                     console.log('[ADMIN] Authorized - Fetching all emails');
                     result = await env.DB.prepare(`
-                        SELECT id, recipient, sender, subject, received_at 
+                        SELECT id, recipient, sender, subject, preview, received_at, read_at 
                         FROM emails 
                         ORDER BY received_at DESC 
                         LIMIT 100
                     `).all();
                 } else {
-                    // Regular user access - filter by specific recipient
+                    // Regular user access - search for recipient using case-insensitive matching
+                    // Normalize to lowercase since recipients are stored lowercase (line 520)
+                    const rawUsername = lookupRecipient.split('@')[0].toLowerCase();
+                    const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
+                    const normalizedRecipient = lookupRecipient.toLowerCase();
+
                     result = await env.DB.prepare(`
-                        SELECT id, recipient, sender, subject, received_at 
+                        SELECT id, recipient, sender, subject, preview, received_at, read_at 
                         FROM emails 
-                        WHERE recipient = ? 
+                        WHERE recipient = ? OR recipient = ? OR recipient LIKE ?
                         ORDER BY received_at DESC 
                         LIMIT 50
-                    `).bind(lookupRecipient).all();
+                    `).bind(normalizedRecipient, fullEmail, '%' + rawUsername + '@%').all();
                 }
 
                 // Format response like Mailgun events API (for compatibility)
@@ -529,6 +663,8 @@ export default {
                     id: row.id,
                     timestamp: row.received_at / 1000,
                     event: 'stored',
+                    read_at: row.read_at ? row.read_at / 1000 : null,
+                    preview: row.preview || null,
                     message: {
                         headers: {
                             from: row.sender,
@@ -542,7 +678,192 @@ export default {
                     }
                 }));
 
-                return jsonResponse({ items });
+                return cachedJsonResponse(request, { items }, 200, 15);
+            }
+
+            // ============================================
+            // GET /api/stream?recipient=user@domain.com
+            // Server-Sent Events for real-time email notifications
+            // Polls D1 every 3s for ~25s, then client should reconnect
+            // Admin access: recipient=* AND admin_key=<secret>
+            // ============================================
+            if (path === '/api/stream') {
+                const recipient = url.searchParams.get('recipient');
+                if (!recipient) {
+                    return jsonResponse({ error: 'Missing recipient parameter' }, 400);
+                }
+
+                const trimmedRecipient = recipient.trim();
+                if (!trimmedRecipient) {
+                    return jsonResponse({ error: 'Missing recipient parameter' }, 400);
+                }
+
+                // Check for admin access (wildcard)
+                const isAdminRequest = trimmedRecipient === '*' || trimmedRecipient === 'all';
+                let lookupRecipient = trimmedRecipient;
+
+                // For non-admin requests, validate username
+                if (!isAdminRequest) {
+                    const username = lookupRecipient.includes('@')
+                        ? lookupRecipient.split('@')[0]
+                        : lookupRecipient;
+
+                    const validation = validateUsername(username, env);
+                    if (!validation.valid) {
+                        return jsonResponse({ error: validation.error }, 400);
+                    }
+
+                    // Rate limit (lighter for SSE - counts as 1 request for the whole stream)
+                    const clientIP = getClientIP(request);
+                    const rateCheck = checkRateLimit(username, clientIP);
+                    if (!rateCheck.allowed) {
+                        return jsonResponse({ error: rateCheck.error }, 429);
+                    }
+
+                    if (!lookupRecipient.includes('@')) {
+                        if (env.EMAIL_DOMAIN) {
+                            lookupRecipient = `${lookupRecipient}@${env.EMAIL_DOMAIN}`;
+                        } else {
+                            return jsonResponse({ error: 'EMAIL_DOMAIN is not configured' }, 400);
+                        }
+                    }
+                } else {
+                    // Admin wildcard requires key
+                    const adminKey = url.searchParams.get('admin_key');
+                    const validAdminKey = env.ADMIN_ACCESS_KEY;
+                    if (!validAdminKey || !adminKey || adminKey !== validAdminKey) {
+                        return jsonResponse({ error: 'Unauthorized' }, 403);
+                    }
+                }
+
+                // SSE Response with streaming
+                const { readable, writable } = new TransformStream();
+                const writer = writable.getWriter();
+                const encoder = new TextEncoder();
+
+                // Helper to send SSE event
+                const sendEvent = async (eventType, data) => {
+                    const message = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
+                    await writer.write(encoder.encode(message));
+                };
+
+                // Start the SSE stream in background
+                ctx.waitUntil((async () => {
+                    try {
+                        let lastEmailId = null;
+                        // Normalize for case-insensitive matching
+                        const rawUsername = lookupRecipient.split('@')[0].toLowerCase();
+                        const fullEmail = (rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com')).toLowerCase();
+                        const normalizedRecipient = lookupRecipient.toLowerCase();
+                        const pollInterval = 3000; // 3 seconds
+                        const maxDuration = 25000; // 25 seconds total
+                        const startTime = Date.now();
+
+                        // Send initial connection event
+                        await sendEvent('connected', { recipient: lookupRecipient, timestamp: Date.now() });
+
+                        while (Date.now() - startTime < maxDuration) {
+                            let result;
+
+                            if (isAdminRequest) {
+                                result = await env.DB.prepare(`
+                                    SELECT id, recipient, sender, subject, received_at, read_at 
+                                    FROM emails 
+                                    ORDER BY received_at DESC 
+                                    LIMIT 20
+                                `).all();
+                            } else {
+                                const normalizedRecipient = lookupRecipient.toLowerCase();
+                                result = await env.DB.prepare(`
+                                    SELECT id, recipient, sender, subject, received_at, read_at 
+                                    FROM emails 
+                                    WHERE recipient = ? OR recipient = ? OR recipient LIKE ?
+                                    ORDER BY received_at DESC 
+                                    LIMIT 20
+                                `).bind(normalizedRecipient, fullEmail, '%' + rawUsername + '@%').all();
+                            }
+
+                            const emails = result.results || [];
+
+                            // Check for new emails (compare with last known ID)
+                            if (emails.length > 0) {
+                                const newestId = emails[0].id;
+
+                                if (lastEmailId === null) {
+                                    // First poll - send all current emails
+                                    const items = emails.map(row => ({
+                                        id: row.id,
+                                        timestamp: row.received_at / 1000,
+                                        event: 'stored',
+                                        read_at: row.read_at ? row.read_at / 1000 : null,
+                                        message: {
+                                            headers: {
+                                                from: row.sender,
+                                                to: row.recipient,
+                                                subject: decodeMimeWords(row.subject || '')
+                                            }
+                                        },
+                                        storage: { key: row.id }
+                                    }));
+                                    await sendEvent('initial', { items, count: items.length });
+                                    lastEmailId = newestId;
+                                } else if (newestId !== lastEmailId) {
+                                    // New email(s) detected - find and send new ones
+                                    const newEmails = [];
+                                    for (const row of emails) {
+                                        if (row.id === lastEmailId) break;
+                                        newEmails.push({
+                                            id: row.id,
+                                            timestamp: row.received_at / 1000,
+                                            event: 'stored',
+                                            read_at: row.read_at ? row.read_at / 1000 : null,
+                                            message: {
+                                                headers: {
+                                                    from: row.sender,
+                                                    to: row.recipient,
+                                                    subject: decodeMimeWords(row.subject || '')
+                                                }
+                                            },
+                                            storage: { key: row.id }
+                                        });
+                                    }
+                                    if (newEmails.length > 0) {
+                                        await sendEvent('new_email', { items: newEmails, count: newEmails.length });
+                                    }
+                                    lastEmailId = newestId;
+                                }
+                            }
+
+                            // Send heartbeat to keep connection alive
+                            await sendEvent('heartbeat', { timestamp: Date.now() });
+
+                            // Wait before next poll
+                            await new Promise(resolve => setTimeout(resolve, pollInterval));
+                        }
+
+                        // Stream ending - client should reconnect
+                        await sendEvent('reconnect', { message: 'Stream timeout, please reconnect' });
+                        await writer.close();
+                    } catch (error) {
+                        console.error('[SSE] Stream error:', error);
+                        try {
+                            await sendEvent('error', { message: error.message });
+                            await writer.close();
+                        } catch (e) {
+                            // Connection already closed
+                        }
+                    }
+                })());
+
+                return new Response(readable, {
+                    headers: {
+                        'Content-Type': 'text/event-stream',
+                        'Cache-Control': 'no-cache',
+                        'Connection': 'keep-alive',
+                        'Access-Control-Allow-Origin': '*',
+                        'X-Accel-Buffering': 'no' // Disable nginx buffering
+                    }
+                });
             }
 
             // ============================================
@@ -559,20 +880,31 @@ export default {
 
                 // Check if this is an authorized admin request
                 let isAuthorizedAdmin = false;
+                let debugReason = 'User access';
 
                 if (validAdminKey) {
                     // Check if recipient matches the admin key directly
                     if (trimmedRecipient === validAdminKey) {
                         isAuthorizedAdmin = true;
+                        debugReason = 'Admin key match';
                     }
                     // Check wildcard with admin_key param
                     else if (trimmedRecipient === '*' || trimmedRecipient === 'all') {
                         const providedKey = url.searchParams.get('admin_key');
                         if (providedKey === validAdminKey) {
                             isAuthorizedAdmin = true;
+                            debugReason = 'Admin wildcard match';
                         }
                     }
+                } else {
+                    debugReason = 'ADMIN_ACCESS_KEY not configured';
                 }
+
+                // DEBUG: Add headers to trace auth issues
+                const debugHeaders = {
+                    'X-Debug-Auth': isAuthorizedAdmin ? 'Admin' : 'User',
+                    'X-Debug-Reason': debugReason
+                };
 
                 // Validate if not authorized admin
                 if (!isAuthorizedAdmin) {
@@ -591,33 +923,39 @@ export default {
                 if (isAuthorizedAdmin) {
                     // Fetch all emails (admin view)
                     result = await env.DB.prepare(`
-                        SELECT id, recipient, sender, subject, received_at 
+                        SELECT id, recipient, sender, subject, preview, received_at, read_at 
                         FROM emails 
                         ORDER BY received_at DESC 
                         LIMIT 100
                     `).all();
                 } else {
                     // Fetch specific recipient emails
+                    // Normalize to lowercase since recipients are stored lowercase
+                    const rawUsername = trimmedRecipient.split('@')[0].toLowerCase();
+                    const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
+                    const normalizedRecipient = trimmedRecipient.toLowerCase();
+
                     result = await env.DB.prepare(`
-                        SELECT id, recipient, sender, subject, received_at 
+                        SELECT id, recipient, sender, subject, preview, received_at, read_at 
                         FROM emails 
-                        WHERE recipient = ? 
+                        WHERE recipient = ? OR recipient = ? OR recipient LIKE ?
                         ORDER BY received_at DESC 
                         LIMIT 50
-                    `).bind(trimmedRecipient).all();
+                    `).bind(normalizedRecipient, fullEmail, '%' + rawUsername + '@%').all();
                 }
 
                 // Format as array of messages with 'storage' keys
                 const items = result.results.map(row => ({
                     url: `/api/list?recipient=${row.recipient}`,
                     timestamp: row.received_at / 1000,
+                    read_at: row.read_at ? row.read_at / 1000 : null,
+                    preview: row.preview || null,
                     message: {
                         headers: {
                             from: row.sender,
                             to: row.recipient,
                             subject: decodeMimeWords(row.subject || '')
-                        },
-                        preview: '(No preview)' // D1 doesn't fetch body here for performance
+                        }
                     },
                     storage: {
                         key: row.id,
@@ -625,7 +963,7 @@ export default {
                     }
                 }));
 
-                return jsonResponse(items);
+                return cachedJsonResponse(request, items, 200, 15);
             }
 
             // ============================================
@@ -646,13 +984,13 @@ export default {
                 const name = nameMatch ? nameMatch[1] : (fromRaw.split('<')[0].trim() || 'Unknown');
                 const emailAddress = emailMatch ? emailMatch[1] : (fromRaw || 'Unknown');
 
-                return jsonResponse({
+                return cachedJsonResponse(request, {
                     subject: decodeMimeWords(row.subject || ''),
                     name: name,
                     emailAddress: emailAddress,
                     recipients: row.recipient,
                     Date: new Date(row.received_at).toISOString()
-                });
+                }, 200, 60);
             }
 
             // ============================================
@@ -689,10 +1027,28 @@ export default {
                     }
                 }
 
-                return new Response(html || '', {
+                // Generate ETag for HTML content
+                const htmlContent = html || '';
+                const htmlEtag = generateETag(htmlContent);
+                const ifNoneMatch = request.headers.get('If-None-Match');
+
+                // Return 304 if content hasn't changed
+                if (ifNoneMatch && ifNoneMatch === htmlEtag) {
+                    return new Response(null, {
+                        status: 304,
+                        headers: {
+                            'ETag': htmlEtag,
+                            'Cache-Control': 'public, max-age=300, stale-while-revalidate=60'
+                        }
+                    });
+                }
+
+                return new Response(htmlContent, {
                     headers: {
                         'Content-Type': 'text/html; charset=utf-8',
-                        'X-Frame-Options': 'SAMEORIGIN' // Allow same origin framing
+                        'X-Frame-Options': 'SAMEORIGIN',
+                        'ETag': htmlEtag,
+                        'Cache-Control': 'public, max-age=300, stale-while-revalidate=60' // 5 min cache
                     }
                 });
             }
@@ -733,9 +1089,15 @@ export default {
                 }
 
                 // Validate both ID AND recipient match (compound key security)
+                // FIX: Check multiple variations of the recipient for security check
+                const rawUsername = lookupRecipient.split('@')[0];
+                const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
+
                 const result = await env.DB.prepare(`
-                    SELECT * FROM emails WHERE id = ? AND recipient = ?
-                `).bind(emailId, lookupRecipient).first();
+                    SELECT * FROM emails 
+                    WHERE id = ? 
+                    AND (recipient = ? OR recipient = ? OR recipient = ?)
+                `).bind(emailId, lookupRecipient, rawUsername, fullEmail).first();
 
                 if (!result) {
                     return jsonResponse({ error: 'Email not found' }, 404);
@@ -754,22 +1116,109 @@ export default {
                     }
                 }
 
-                return jsonResponse({
+                return cachedJsonResponse(request, {
                     from: result.sender,
                     to: result.recipient,
                     subject: decodeMimeWords(result.subject || ''),
                     'body-html': truncate(bodyHtml),
                     'body-plain': truncate(bodyText),
                     timestamp: result.received_at
-                });
+                }, 200, 300); // 5 minute cache - email content is immutable
+            }
+
+            // ============================================
+            // PATCH /api/email/:id/read?recipient=user@domain.com
+            // Mark email as read
+            // ============================================
+            if (path.match(/^\/api\/email\/[^/]+\/read$/) && request.method === 'PATCH') {
+                const pathParts = path.split('/');
+                const emailId = pathParts[3]; // /api/email/{id}/read
+                const recipient = url.searchParams.get('recipient');
+
+                if (!recipient) {
+                    return jsonResponse({ error: 'Missing recipient parameter' }, 400);
+                }
+
+                let lookupRecipient = recipient.trim();
+                const username = lookupRecipient.includes('@')
+                    ? lookupRecipient.split('@')[0]
+                    : lookupRecipient;
+
+                const validation = validateUsername(username, env);
+                if (!validation.valid) {
+                    return jsonResponse({ error: validation.error }, 400);
+                }
+
+                if (!lookupRecipient.includes('@')) {
+                    if (env.EMAIL_DOMAIN) {
+                        lookupRecipient = `${lookupRecipient}@${env.EMAIL_DOMAIN}`;
+                    } else {
+                        return jsonResponse({ error: 'EMAIL_DOMAIN is not configured' }, 400);
+                    }
+                }
+
+                // Security: Verify email belongs to this recipient (case-insensitive)
+                const rawUsername = lookupRecipient.split('@')[0];
+                const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
+
+                const result = await env.DB.prepare(`
+                    UPDATE emails 
+                    SET read_at = ? 
+                    WHERE id = ? 
+                    AND read_at IS NULL
+                    AND (recipient LIKE ? OR recipient LIKE ? OR recipient LIKE ?)
+                `).bind(Date.now(), emailId, lookupRecipient, rawUsername, fullEmail).run();
+
+                if (result.meta.changes === 0) {
+                    // Check if email exists at all
+                    const exists = await env.DB.prepare(`
+                        SELECT id FROM emails WHERE id = ?
+                    `).bind(emailId).first();
+
+                    if (!exists) {
+                        return jsonResponse({ error: 'Email not found' }, 404);
+                    }
+                    // Email exists but either already read or wrong recipient
+                    return jsonResponse({ success: true, message: 'Already read or not authorized' });
+                }
+
+                return jsonResponse({ success: true, read_at: Date.now() });
             }
 
             // ============================================
             // GET /api/health
             // Health check endpoint
             // ============================================
-            if (path === '/api/health') {
-                return jsonResponse({ status: 'ok' });
+            // ============================================
+            // GET /api/debug
+            // Check env vars
+            // ============================================
+            if (path === '/api/debug') {
+                return jsonResponse({
+                    EMAIL_DOMAIN: env.EMAIL_DOMAIN,
+                    computedFullEmail: ('test' + '@' + (env.EMAIL_DOMAIN || 'akunlama.com')).toLowerCase()
+                });
+            }
+
+            // ============================================
+            // POST /api/cleanup?key=...
+            // Manual cleanup trigger
+            // ============================================
+            if (path === '/api/cleanup' && request.method === 'POST') {
+                const key = url.searchParams.get('key');
+                if (key !== env.ADMIN_ACCESS_KEY) {
+                    return jsonResponse({ error: 'Unauthorized' }, 403);
+                }
+
+                // Run cleanup (async to not block response if possible, 
+                // but waitUntil is better for long tasks)
+                if (ctx.waitUntil) {
+                    ctx.waitUntil(runCleanup(env));
+                    return jsonResponse({ status: 'Cleanup started in background' });
+                } else {
+                    const result = await runCleanup(env);
+                    return jsonResponse(result);
+                }
             }
 
             // 404 for unknown routes
@@ -788,28 +1237,6 @@ export default {
      * crons = ["0 0 * * *"]  # Runs at midnight UTC daily
      */
     async scheduled(event, env, ctx) {
-        const cutoffTime = Date.now() - EMAIL_RETENTION_MS;
-
-        try {
-            // Count emails to be deleted (for logging)
-            const countResult = await env.DB.prepare(`
-                SELECT COUNT(*) as count FROM emails WHERE received_at < ?
-            `).bind(cutoffTime).first();
-
-            const count = countResult?.count || 0;
-
-            if (count > 0) {
-                // Delete emails older than retention period
-                await env.DB.prepare(`
-                    DELETE FROM emails WHERE received_at < ?
-                `).bind(cutoffTime).run();
-
-                console.log(`[CLEANUP] Deleted ${count} emails older than 7 days`);
-            } else {
-                console.log('[CLEANUP] No old emails to delete');
-            }
-        } catch (error) {
-            console.error('[CLEANUP] Error during email cleanup:', error);
-        }
+        ctx.waitUntil(runCleanup(env));
     }
 };

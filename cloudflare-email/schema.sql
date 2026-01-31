@@ -9,7 +9,9 @@ CREATE TABLE IF NOT EXISTS emails (
     subject TEXT,
     body_html TEXT,
     body_text TEXT,
-    received_at INTEGER NOT NULL
+    preview TEXT DEFAULT NULL,  -- First 100 chars of body for list view
+    received_at INTEGER NOT NULL,
+    read_at INTEGER DEFAULT NULL  -- NULL = unread, timestamp = when read
 );
 
 -- Index for fast lookups by recipient (most common query)
@@ -20,3 +22,6 @@ CREATE INDEX IF NOT EXISTS idx_emails_received_at ON emails(received_at);
 
 -- Compound index for recipient + time ordering
 CREATE INDEX IF NOT EXISTS idx_emails_recipient_time ON emails(recipient, received_at DESC);
+
+-- Index for sender-based spam cleanup queries
+CREATE INDEX IF NOT EXISTS idx_emails_sender ON emails(sender);

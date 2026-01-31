@@ -38,8 +38,8 @@
             class="email-item" 
             v-for="msg in listOfMessages" 
             :key="msg.url"
-            @click="getMessage(msg)"
-            :class="{ 'email-item--read': msg.read }"
+            @click="handleRowClick($event, msg)"
+            :class="{ 'email-item--read': msg.read_at !== null }"
           >
             <div class="email-avatar">
               <i class="fas fa-user-circle"></i>
@@ -50,11 +50,12 @@
                 <div class="email-sender">{{extractEmail(msg.message.headers.from)}}</div>
                 <div class="email-time">{{calculateTime(msg)}}</div>
               </div>
-              <div class="email-subject">{{msg.message.headers.subject || '(No Subject)'}}</div>
-              <div class="email-preview" v-if="msg.message.preview">{{msg.message.preview}}</div>
+              <div class="email-subject selectable-text" @click.stop>{{msg.message.headers.subject || '(No Subject)'}}</div>
+              <div class="email-preview selectable-text" v-if="msg.preview" @click.stop>{{msg.preview}}</div>
             </div>
 
             <div class="email-actions">
+              <span class="unread-badge" v-if="msg.read_at === null" title="Unread"></span>
               <i class="fas fa-chevron-right"></i>
             </div>
           </div>
@@ -159,6 +160,15 @@ export default {
           this.$eventHub.emit('refreshEnd')
           console.error('Failed to fetch messages:', e)
         })
+    },
+
+    handleRowClick (event, msg) {
+      // Only navigate if clicking on row background, not on selectable text
+      const target = event.target
+      if (target.classList.contains('selectable-text')) {
+        return // Allow text selection
+      }
+      this.getMessage(msg)
     },
 
     getMessage (msg) {
@@ -462,17 +472,34 @@ export default {
     color: $dark-text;
     margin-bottom: 0.25rem;
     overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    
+    &.selectable-text {
+      cursor: text;
+      user-select: text;
+      
+      &:hover {
+        text-decoration: underline;
+        text-decoration-color: $gray-300;
+      }
+    }
   }
 
   .email-preview {
+    display: block;
     color: $muted-text;
     font-size: 0.85rem;
     line-height: 1.4;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-top: 0.25rem;
+    
+    &.selectable-text {
+      cursor: text;
+      user-select: text;
+    }
   }
 
   .email-actions {
@@ -480,11 +507,27 @@ export default {
     color: $gray-400;
     margin-left: 1rem;
     transition: color 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    .unread-badge {
+      width: 8px;
+      height: 8px;
+      background: $primary;
+      border-radius: 50%;
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
 
     .email-item:hover & {
       color: $primary;
-        }
-      }
+    }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba($primary, 0.4); }
+    50% { box-shadow: 0 0 0 4px rgba($primary, 0); }
+  }
 
   .empty-state {
     display: flex;

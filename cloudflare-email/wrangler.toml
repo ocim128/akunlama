@@ -1,7 +1,7 @@
 # wrangler.toml - Cloudflare Worker configuration for akunlama
 # Documentation: https://developers.cloudflare.com/workers/wrangler/configuration/
 
-name = "akunlama-worker"
+name = "akunlama-prod"
 main = "unified-worker.js"
 compatibility_date = "2024-01-01"
 
@@ -10,12 +10,12 @@ compatibility_date = "2024-01-01"
 [[d1_databases]]
 binding = "DB"
 database_name = "akunlama"
-database_id = "687a7407-1606-4444-9694-52d3aa050a49"
+database_id = "f71f4888-5156-49d2-a679-17aae49f2600"
 
 # Scheduled cron trigger for email cleanup
-# Runs daily at midnight UTC to delete emails older than 7 days
+# Runs every 12 hours (midnight and noon UTC) to delete emails older than 3 days
 [triggers]
-crons = ["0 0 * * *"]
+crons = ["0 0,12 * * *"]
 
 # Environment variables (non-sensitive)
 # For sensitive values like ADMIN_ACCESS_KEY, use:
@@ -27,8 +27,8 @@ EMAIL_DOMAIN = "akunlama.com"
 # BANNED_USERNAMES = "admin,postmaster,abuse,root"
 
 # Optional: Additional blocked keywords for email filtering
-# BLOCKED_SENDER_KEYWORDS = "spam,noreply"
-# BLOCKED_SUBJECT_KEYWORDS = "lottery,winner"
+BLOCKED_SENDER_KEYWORDS = "messages@facebookmail.com,stories-recap@mail.instagram.com,posts-recap@mail.instagram.com,follow-suggestions@mail.instagram.com,friendsuggestion@facebookmail.com,reminders@facebookmail.com,groupupdates@facebookmail.com,pageupdates@facebookmail.com,notification@facebookmail.com,friendupdates@facebookmail.com"
+BLOCKED_SUBJECT_KEYWORDS = "lainnya di beranda Anda,lihat apa yang sedang terjadi,unread message,lihat kembali momen,membangikan postingan baru,catch up on moments,been happening on Instagram,more in your feed,started following you,pesan yang belum dibaca,melihat reel dari,shared something new,Pesan penting tentang,anlara göz at,Anda memiliki pesan,added to their stories,yang Anda lewatkan,otros en tu feed,pilihan dari jaringan Anda,pembaruan populer dari,commented on a post,berkomentar ::,Apakah Anda kenal,menyukai postingan Anda,pembaruan untuk Anda,saran Grup baru untuk Anda,postingan pop uler,pemberitahuan baru,new notifications,is a suggestion,foto baru,teman baru untuk Anda,dan lainnya"
 # BLOCKED_BODY_KEYWORDS = "click here to claim"
 
 # ============================================

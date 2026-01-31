@@ -98,6 +98,9 @@ run-local.bat
 .temp/
 .tmp/
 
+# Cloudflare Wrangler local state
+.wrangler/
+
 # Vercel
 .vercel/
 
