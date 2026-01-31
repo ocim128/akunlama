@@ -1,21 +1,43 @@
-# inboxkitten
+# Akunlama UI
 
-> A personal disposable email ui
+Vue.js frontend for the Akunlama disposable email service.
 
-## Build Setup
+## Development
 
-``` bash
-# install dependencies
+```bash
+# Install dependencies
 npm install
 
-# serve with hot reload at localhost:8080
+# Start dev server (localhost:5173)
 npm run dev
 
-# build for production with minification
+# Build for production
 npm run build
-
-# build for production and view the bundle analyzer report
-npm run build --report
 ```
 
-For a detailed explanation on how things work, check out the [guide](http://vuejs-templates.github.io/webpack/) and [docs for vue-loader](http://vuejs.github.io/vue-loader).
+## Testing
+
+```bash
+# Unit tests
+npm test
+
+# E2E tests
+npm run test:e2e
+```
+
+## Deployment
+
+```bash
+# Build and deploy to Cloudflare Pages
+npm run build
+npx wrangler pages deploy dist --project-name=akunlama-ui --branch=main
+```
+
+## Configuration
+
+Set environment variables via Cloudflare Pages or in `.env`:
+
+```env
+VITE_API_URL=https://akunlama.com/api
+VITE_WEBSITE_DOMAIN=akunlama.com
+```

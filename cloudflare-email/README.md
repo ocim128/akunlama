@@ -1,17 +1,15 @@
-# Cloudflare Email Worker Setup
+# Cloudflare Email Worker
 
-This folder contains the Cloudflare Worker for inbound email storage and API endpoints.
+Combined email handler + API worker for Akunlama disposable email service.
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| `unified-worker.js` | **Main worker** - Combined email + API handler with rate limiting |
+| `unified-worker.js` | Main worker - email handler + API + rate limiting + cleanup |
 | `mime-utils.js` | MIME parsing utilities for email content |
 | `wrangler.toml` | Wrangler deployment configuration |
-| `schema.sql` | D1 database schema initialization |
-| `email-worker.js` | *(Legacy)* Standalone inbound email handler |
-| `api-worker.js` | *(Legacy)* Standalone API worker |
+| `schema.sql` | D1 database schema |
 
 ## Quick Start
 
@@ -20,12 +18,12 @@ This folder contains the Cloudflare Worker for inbound email storage and API end
 npx wrangler login
 
 # 2. Create D1 database
-npx wrangler d1 create akunlama-emails
+npx wrangler d1 create akunlama
 
-# 3. Update wrangler.toml with your database_id from step 2
+# 3. Update wrangler.toml with your database_id
 
 # 4. Initialize database schema
-npx wrangler d1 execute akunlama-emails --file=./schema.sql
+npx wrangler d1 execute akunlama --remote --file=schema.sql
 
 # 5. Set secrets
 npx wrangler secret put ADMIN_ACCESS_KEY
@@ -37,143 +35,54 @@ npx wrangler deploy
 npx wrangler dev
 ```
 
-## Architecture
+## Worker Features
 
-The `unified-worker.js` combines all functionality:
-- **Email handler** (`email()`) - Receives inbound emails from Cloudflare Email Routing
-- **API handler** (`fetch()`) - HTTP endpoints for the frontend with rate limiting
-- **Scheduled handler** (`scheduled()`) - Daily cleanup of old emails (7-day retention)
+### Email Handler (`email()`)
+- Receives inbound emails from Cloudflare Email Routing
+- Parses MIME content (multipart, quoted-printable, base64)
+- Filters spam (Meta/Facebook) before storage
+- Stores emails in D1 database
 
-### 2. Configure D1 Database
+### API Handler (`fetch()`)
+- `GET /api/events?recipient=user@domain.com` - List emails
+- `GET /api/email/:id?recipient=...` - Get email content
+- `GET /api/stream?recipient=...` - SSE for real-time updates
+- `GET /api/health` - Health check
+- Built-in rate limiting (75 req/min per IP)
 
-Both workers require a D1 database binding named `DB` with the following schema:
+### Scheduled Handler (`scheduled()`)
+- Runs via cron trigger (configured in wrangler.toml)
+- Deletes emails older than 3 days
+- Cleans up spam patterns
 
-```sql
-CREATE TABLE emails (
-    id TEXT PRIMARY KEY,
-    recipient TEXT NOT NULL,
-    sender TEXT,
-    subject TEXT,
-    body_html TEXT,
-    body_text TEXT,
-    received_at INTEGER NOT NULL
-);
-
-CREATE INDEX idx_emails_recipient ON emails(recipient);
-CREATE INDEX idx_emails_received_at ON emails(received_at);
-```
-
-### 3. Set Admin Access Key (IMPORTANT - Security)
-
-To prevent unauthorized access to all emails, you MUST set the `ADMIN_ACCESS_KEY` secret:
-
-**Via Cloudflare Dashboard:**
-1. Go to Workers → Your Worker → Settings → Variables
-2. Add a new **Secret**: `ADMIN_ACCESS_KEY`
-3. Set value to a secure random string (e.g., `openssl rand -hex 32`)
-
-**Via Wrangler CLI:**
-```bash
-wrangler secret put ADMIN_ACCESS_KEY
-```
-
-### 4. Set Backend Environment Variable
-
-In your backend deployment (Vercel, Docker, etc.), set the same key:
-
-```env
-ADMIN_ACCESS_KEY=your-secret-key-here
-```
-
-### 5. Email Filtering (Optional - Saves D1 Quota)
-
-The email worker includes built-in filtering to block unwanted emails **before** they are stored in D1.
-
-**Default blocked patterns (always active):**
-- Meta/Facebook registration emails
-- Instagram/Threads verification codes
-
-**Configurable filtering via environment variables:**
+## Environment Variables
 
 | Variable | Description |
 |----------|-------------|
-| `BLOCKED_SENDER_KEYWORDS` | Comma-separated keywords to block in sender address |
-| `BLOCKED_SUBJECT_KEYWORDS` | Comma-separated keywords to block in subject |
-| `BLOCKED_BODY_KEYWORDS` | Comma-separated keywords to block in email body |
+| `EMAIL_DOMAIN` | Your email domain (e.g., `akunlama.com`) |
+| `ADMIN_ACCESS_KEY` | Secret key for admin access (wildcard queries) |
+| `BANNED_USERNAMES` | Comma-separated banned usernames |
+| `BLOCKED_SENDER_KEYWORDS` | Comma-separated sender keywords to block |
+| `BLOCKED_SUBJECT_KEYWORDS` | Comma-separated subject keywords to block |
 
-**Example configuration:**
-```bash
-# Block newsletters and marketing
-BLOCKED_SENDER_KEYWORDS=noreply,newsletter,marketing,spam
+## Configuration
 
-# Block promotional subject lines
-BLOCKED_SUBJECT_KEYWORDS=unsubscribe,promotional offer,limited time
+### Email Routing
 
-# Block automated message content
-BLOCKED_BODY_KEYWORDS=click here to unsubscribe,automated message
-```
+1. Cloudflare Dashboard → Email → Email Routing
+2. Create catch-all rule: `*@yourdomain.com` → Send to Worker
 
-**Set via Cloudflare Dashboard:**
-1. Go to Workers → Your Worker → Settings → Variables
-2. Add environment variables (plain text, not secrets)
+### Cron Trigger
 
-**Set via Wrangler CLI:**
-```bash
-wrangler secret put BLOCKED_SENDER_KEYWORDS
-# Enter: noreply,newsletter,marketing
-```
-
-## API Endpoints
-
-### GET /api/events?recipient=user@domain.com
-Returns emails for a specific recipient.
-
-### GET /api/events?recipient=*&admin_key=YOUR_SECRET
-Returns ALL emails (admin access). Requires valid `admin_key`.
-
-### GET /api/email/:id
-Returns full email content by ID.
-
-### GET /api/health
-Health check endpoint.
-
-## Security Notes
-
-- The `*` and `all` wildcards require authentication via `admin_key`
-- Never expose `ADMIN_ACCESS_KEY` in client-side code
-- Admin access is only used server-to-server (backend → worker)
-- Blocked emails are logged but not stored (check Cloudflare Logs)
-
-## Auto-Delete (7-Day Retention)
-
-Emails are automatically deleted after 7 days to save D1 storage quota.
-
-### Setup Cron Trigger
-
-**Via Cloudflare Dashboard:**
-1. Go to Workers → Your API Worker → Triggers
-2. Add a new Cron Trigger: `0 0 * * *` (runs at midnight UTC daily)
-
-**Via Wrangler CLI (wrangler.toml):**
+Already configured in `wrangler.toml`:
 ```toml
 [triggers]
-crons = ["0 0 * * *"]
+crons = ["0 3 * * *"]  # 3 AM UTC daily
 ```
 
-### How It Works
+## Security
 
-- The `scheduled` handler runs daily at midnight UTC
-- Deletes all emails where `received_at` is older than 7 days
-- Logs the count of deleted emails to Cloudflare Logs
-
-### Customizing Retention Period
-
-To change the retention period, modify `EMAIL_RETENTION_MS` in `unified-worker.js`:
-
-```javascript
-// Examples:
-const EMAIL_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;  // 7 days (default)
-const EMAIL_RETENTION_MS = 14 * 24 * 60 * 60 * 1000; // 14 days
-const EMAIL_RETENTION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
-```
-
+- Admin access (`recipient=*`) requires `admin_key` parameter
+- Rate limiting: 75 requests/min, 10 unique usernames/min
+- Input validation on usernames
+- CORS headers for cross-origin access
