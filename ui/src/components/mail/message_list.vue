@@ -1,12 +1,37 @@
 <template>
-    <div class="message-list-scroll">
-      <!-- Advisory notice -->
-      <div class="advisory-banner">
-        <div class="advisory-content">
-          <i class="fas fa-cat"></i>
-          <span>🐱 Meow! This is for fun emails only - not for banking or your secret catnip orders! Our kittens are judgmental about boring stuff.</span>
+    <div 
+      class="message-list-scroll" 
+      ref="scrollContainer"
+      @touchstart="handleTouchStart"
+      @touchmove="handleTouchMove"
+      @touchend="handleTouchEnd"
+    >
+      <!-- Pull-to-refresh indicator - Centered overlay style -->
+      <transition name="pull-fade">
+        <div 
+          v-if="pullDistance > 20 || isRefreshingPull"
+          class="pull-refresh-overlay"
+        >
+          <div class="pull-refresh-card" :class="{ 'ready': isPullReady, 'refreshing': isRefreshingPull }">
+            <div class="pull-spinner">
+              <i class="fas" :class="isRefreshingPull ? 'fa-sync-alt fa-spin' : (isPullReady ? 'fa-arrow-up' : 'fa-arrow-down')"></i>
+            </div>
+            <span class="pull-label">
+              {{ isRefreshingPull ? 'Refreshing...' : (isPullReady ? 'Release!' : 'Pull down') }}
+            </span>
+          </div>
         </div>
-      </div>
+      </transition>
+
+      <!-- Main content wrapper that moves when pulling -->
+      <div class="pull-content-wrapper" :style="{ transform: `translateY(${Math.min(pullDistance * 0.3, 30)}px)` }">
+        <!-- Advisory notice -->
+        <div class="advisory-banner">
+          <div class="advisory-content">
+            <i class="fas fa-cat"></i>
+            <span>🐱 Meow! This is for fun emails only - not for banking or your secret catnip orders! Our kittens are judgmental about boring stuff.</span>
+          </div>
+        </div>
 
       <!-- Skeleton loading state -->
       <div v-if="refreshing" class="skeleton-container">
@@ -95,6 +120,7 @@
           </button>
         </div>
       </div>
+      </div> <!-- End of pull-content-wrapper -->
     </div>
 </template>
 
@@ -112,7 +138,13 @@ export default {
       refreshing: false,
       lastRefreshed: dayjs(),
       countdown: 10,
-      countdownTimer: null
+      countdownTimer: null,
+      // Pull-to-refresh state
+      pullStartY: 0,
+      pullDistance: 0,
+      isPullReady: false,
+      isRefreshingPull: false,
+      pullThreshold: 60
     }
   },
   computed: {
@@ -277,6 +309,83 @@ export default {
       }
       
       return '?'
+    },
+
+    // Pull-to-refresh touch handlers
+    handleTouchStart(e) {
+      const scrollContainer = this.$refs.scrollContainer
+      // Only enable pull-to-refresh when at top of scroll
+      if (scrollContainer && scrollContainer.scrollTop === 0) {
+        this.pullStartY = e.touches[0].clientY
+      }
+    },
+
+    handleTouchMove(e) {
+      if (this.pullStartY === 0 || this.isRefreshingPull) return
+      
+      const scrollContainer = this.$refs.scrollContainer
+      if (scrollContainer && scrollContainer.scrollTop > 0) {
+        this.pullStartY = 0
+        this.pullDistance = 0
+        return
+      }
+
+      const currentY = e.touches[0].clientY
+      const diff = currentY - this.pullStartY
+      
+      if (diff > 0) {
+        // Apply resistance to pull (slower as you pull further)
+        this.pullDistance = Math.min(diff * 0.5, 100)
+        this.isPullReady = this.pullDistance >= this.pullThreshold
+        
+        // Prevent scroll while pulling
+        if (this.pullDistance > 10) {
+          e.preventDefault()
+        }
+      }
+    },
+
+    handleTouchEnd() {
+      if (this.isPullReady && !this.isRefreshingPull) {
+        this.triggerPullRefresh()
+      } else {
+        this.resetPull()
+      }
+    },
+
+    async triggerPullRefresh() {
+      this.isRefreshingPull = true
+      this.pullDistance = this.pullThreshold
+      
+      // Haptic feedback if supported
+      this.triggerHaptic()
+      
+      // Trigger refresh
+      await this.refreshList()
+      
+      // Small delay to show completion
+      setTimeout(() => {
+        this.resetPull()
+      }, 300)
+    },
+
+    resetPull() {
+      this.pullDistance = 0
+      this.isPullReady = false
+      this.isRefreshingPull = false
+      this.pullStartY = 0
+    },
+
+    // Haptic feedback for touch interactions
+    triggerHaptic(type = 'light') {
+      if ('vibrate' in navigator) {
+        const patterns = {
+          light: [10],
+          medium: [20],
+          heavy: [30]
+        }
+        navigator.vibrate(patterns[type] || patterns.light)
+      }
     }
   }
 }
@@ -291,6 +400,10 @@ export default {
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: #cbd5e0 transparent;
+    position: relative;
+    // Improve touch scrolling
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
     
     &::-webkit-scrollbar {
       width: 6px;
@@ -308,6 +421,93 @@ export default {
         background: #a0aec0;
       }
     }
+  }
+
+  // Pull-to-refresh overlay - centered card style
+  .pull-refresh-overlay {
+    position: fixed;
+    top: 80px; // Below navbar
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  .pull-refresh-card {
+    background: white;
+    border-radius: 24px;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    box-shadow: 
+      0 4px 20px rgba(0, 0, 0, 0.15),
+      0 0 0 1px rgba(0, 0, 0, 0.05);
+    animation: pulseGlow 1.5s ease-in-out infinite;
+
+    &.ready {
+      background: linear-gradient(135deg, #4F46E5, #6366F1);
+      color: white;
+
+      .pull-spinner {
+        background: rgba(white, 0.2);
+        color: white;
+      }
+    }
+
+    &.refreshing {
+      background: $primary;
+      color: white;
+
+      .pull-spinner {
+        background: rgba(white, 0.2);
+        color: white;
+      }
+    }
+  }
+
+  .pull-spinner {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: $gray-100;
+    color: $primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+
+    i {
+      font-size: 0.9rem;
+    }
+  }
+
+  .pull-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15), 0 0 0 1px rgba(0, 0, 0, 0.05); }
+    50% { box-shadow: 0 6px 30px rgba(79, 70, 229, 0.25), 0 0 0 1px rgba(79, 70, 229, 0.1); }
+  }
+
+  // Pull fade transition
+  .pull-fade-enter-active,
+  .pull-fade-leave-active {
+    transition: all 0.2s ease;
+  }
+
+  .pull-fade-enter-from,
+  .pull-fade-leave-to {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-20px);
+  }
+
+  // Content wrapper for pull animation
+  .pull-content-wrapper {
+    transition: transform 0.1s ease-out;
+    will-change: transform;
   }
 
   // Skeleton loading styles
@@ -514,10 +714,19 @@ export default {
       display: flex;
       align-items: center;
       gap: 0.5rem;
+      // Improved touch target
+      min-height: 44px;
+      min-width: 44px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
 
       &:hover:not(:disabled) {
         background: $gray-200;
         color: $gray-800;
+      }
+
+      &:active:not(:disabled) {
+        transform: scale(0.97);
       }
 
       &:disabled {
@@ -546,6 +755,11 @@ export default {
     border-bottom: 1px solid $gray-100;
     cursor: pointer;
     transition: all 0.2s ease;
+    // Improved touch target - minimum 44px height
+    min-height: 64px;
+    // Better touch feedback
+    -webkit-tap-highlight-color: rgba($primary, 0.1);
+    touch-action: manipulation;
     
     &:last-child {
       border-bottom: none;
@@ -554,6 +768,12 @@ export default {
     &:hover {
       background: $gray-50;
       transform: translateX(2px);
+    }
+
+    // Active state for touch
+    &:active {
+      background: $gray-100;
+      transform: scale(0.99);
     }
 
     &--read {
@@ -774,11 +994,19 @@ export default {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    // Improved touch target
+    min-height: 48px;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
 
     &:hover:not(:disabled) {
       background: $primary-dark;
       transform: translateY(-1px);
       box-shadow: $shadow;
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.97);
     }
 
     &:disabled {
@@ -793,18 +1021,30 @@ export default {
 
   // Mobile optimizations
   @media (max-width: 768px) {
+    .message-list-scroll {
+      // Add padding for mobile nav
+      padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    }
+
     .email-list-header {
       flex-direction: column;
       align-items: stretch;
-      gap: 1rem;
+      gap: 0.75rem;
+      padding: 0.75rem;
 
+      // Hide inline refresh button since we have bottom nav
       .refresh-btn-inline {
-        align-self: center;
+        display: none;
       }
+    }
+
+    .inbox-title {
+      font-size: 1.25rem;
     }
 
     .email-item {
       padding: 0.75rem;
+      min-height: 56px; // Slightly smaller on mobile
     }
 
     .email-avatar {
@@ -826,32 +1066,42 @@ export default {
     .email-time {
       margin-left: 0;
       align-self: flex-start;
+      font-size: 0.7rem;
+    }
+
+    .email-sender {
+      font-size: 0.9rem;
+    }
+
+    .email-subject {
+      font-size: 0.85rem;
+    }
+
+    .email-preview {
+      font-size: 0.8rem;
+      -webkit-line-clamp: 1; // Only show 1 line on mobile
     }
 
     .advisory-banner {
       margin: 0.5rem;
-      padding: 0.75rem;
+      padding: 0.6rem;
+      border-radius: 8px;
 
       .advisory-content {
         gap: 0.5rem;
-        font-size: 0.8rem;
+        font-size: 0.75rem;
+
+        i {
+          font-size: 1rem;
+        }
       }
     }
-  }
 
-  @media (max-width: 480px) {
-    .email-list-container {
-      margin: 0.5rem;
+    .empty-state {
+      padding: 2rem 1rem;
     }
 
     .empty-state-content {
-      padding: 1rem;
-
-      i {
-        font-size: 3rem;
-        margin-bottom: 1rem;
-      }
-
       h3 {
         font-size: 1.25rem;
       }
@@ -859,6 +1109,53 @@ export default {
       p {
         font-size: 0.9rem;
       }
+    }
+
+    .kitten-animation-container {
+      margin-bottom: 1.5rem;
+      
+      .sleeping-kitten {
+        width: 100px;
+      }
+    }
+  }
+
+  @media (max-width: 480px) {
+    .email-list-container {
+      margin: 0.25rem;
+      border-radius: 12px;
+    }
+
+    .email-item {
+      padding: 0.6rem;
+    }
+
+    .email-avatar {
+      width: 32px;
+      height: 32px;
+      margin-right: 0.5rem;
+    }
+
+    .empty-state-content {
+      padding: 1rem;
+
+      i {
+        font-size: 2.5rem;
+        margin-bottom: 0.75rem;
+      }
+
+      h3 {
+        font-size: 1.1rem;
+      }
+
+      p {
+        font-size: 0.85rem;
+      }
+    }
+
+    .refresh-button {
+      font-size: 0.85rem;
+      padding: 0.75rem 1.25rem;
     }
   }
 </style>

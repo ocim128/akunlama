@@ -523,6 +523,10 @@ h2 {
     padding: 0.9rem 0.5rem;
   }
 
+  .domain-display:active {
+    background: #e2e8f0;
+  }
+
 // Action buttons
 .action-buttons {
   display: flex;
@@ -548,6 +552,10 @@ h2 {
   font-family: inherit;
   max-width: 160px;
   white-space: nowrap;
+  // Improved touch targets
+  min-height: 48px;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .btn-get-mail {
@@ -559,6 +567,11 @@ h2 {
 .btn-get-mail:hover:not(:disabled) {
   transform: translateY(-1px);
   box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4);
+}
+
+.btn-get-mail:active:not(:disabled) {
+  transform: scale(0.97);
+  box-shadow: 0 2px 8px rgba(255, 107, 157, 0.3);
 }
 
 .btn-get-mail:disabled {
@@ -583,6 +596,10 @@ h2 {
     .dice-icon {
       animation: diceRoll 0.6s ease-in-out;
     }
+  }
+
+  &:active {
+    transform: scale(0.97);
   }
 }
 
@@ -773,19 +790,46 @@ h2 {
 // Mobile responsive design for new form
 @media (max-width: 768px) {
   h1 {
-    font-size: 2rem;
+    font-size: 1.75rem;
+    line-height: 1.3;
+  }
+
+  h2 {
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .logo {
+    width: 140px;
+    margin-bottom: 1.5rem;
   }
   
   .hero-section {
     padding: 2rem 1rem;
+    padding-top: calc(2rem + env(safe-area-inset-top, 0px));
     min-height: 100vh;
+    min-height: 100dvh; // Dynamic viewport height for mobile browsers
+  }
+
+  // Reduce floating elements on mobile for performance
+  .floating-elements {
+    .float-item {
+      font-size: 1.25rem;
+      opacity: 0.15;
+    }
+    
+    // Hide some floating items on mobile
+    .float-3, .float-5 {
+      display: none;
+    }
   }
   
   .email-form-container {
-    padding: 1.2rem 1rem;
+    padding: 1.25rem 1rem;
     margin: 1rem auto;
     max-width: 95vw;
     width: 95%;
+    border-radius: 16px;
   }
   
   .email-form {
@@ -793,7 +837,7 @@ h2 {
   }
   
   .form-header {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
   
   .form-instruction {
@@ -803,43 +847,138 @@ h2 {
   .email-input-wrapper {
     max-width: 100%;
   }
+
+  .email-input-group {
+    border-radius: 8px;
+  }
   
   .main-email-input {
-    font-size: 0.9rem !important;
-    padding: 0.8rem 0.1rem !important; // Minimal padding to maximize domain space
+    font-size: 1rem !important;
+    padding: 0.9rem 0.75rem !important;
   }
   
   .domain-display {
-    padding: 0.8rem 0.2rem; // Ultra minimal padding for maximum domain text space
-    font-size: 0.75rem; // Smaller but still readable
+    padding: 0.9rem 0.5rem;
+    font-size: 0.8rem;
   }
   
   .action-buttons {
-    flex-direction: column;
-    gap: 0.6rem;
+    flex-direction: row;
+    gap: 0.5rem;
     max-width: 100%;
   }
   
   .btn-get-mail, .btn-shuffle {
-    max-width: 100%;
-    padding: 0.8rem 1rem;
-    font-size: 0.85rem;
+    max-width: none;
+    flex: 1;
+    padding: 0.9rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: 10px;
   }
   
   .content-section {
-    padding: 3rem 1rem;
+    padding: 2.5rem 1rem;
   }
   
   .fun-facts {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+    gap: 1rem;
+  }
+
+  .fact-card {
+    padding: 1.5rem;
+    
+    .fact-emoji {
+      font-size: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+    }
+
+    p {
+      font-size: 0.9rem;
+    }
+  }
+
+  .use-cases-section {
+    margin-bottom: 2.5rem;
+
+    h2 {
+      font-size: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
   }
   
   .use-cases-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .use-case {
+    padding: 1rem;
+    font-size: 0.85rem;
+  }
+
+  .faq-section {
+    h2 {
+      font-size: 1.25rem;
+    }
   }
   
   .faq-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .faq-item {
+    padding: 1.25rem;
+
+    h4 {
+      font-size: 1rem;
+    }
+
+    p {
+      font-size: 0.9rem;
+    }
+  }
+
+  .footer-section {
+    padding: 1.5rem 1rem;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+
+    p {
+      font-size: 0.85rem;
+    }
+
+    .footer-note {
+      font-size: 0.8rem;
+    }
+  }
+}
+
+// Extra small devices
+@media (max-width: 380px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  .logo {
+    width: 120px;
+  }
+
+  .email-form-container {
+    padding: 1rem 0.75rem;
+  }
+
+  .btn-get-mail, .btn-shuffle {
+    padding: 0.85rem 0.5rem;
+    font-size: 0.75rem;
+    gap: 0.25rem;
+  }
+
+  .use-cases-grid {
     grid-template-columns: 1fr;
   }
 }

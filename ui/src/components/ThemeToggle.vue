@@ -132,4 +132,30 @@ export default {
   opacity: 0;
   transform: rotate(90deg) scale(0.5);
 }
+
+// Mobile optimizations
+@media (max-width: 768px) {
+  .theme-toggle {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .toggle-track {
+    width: 44px;
+    height: 24px;
+  }
+
+  .toggle-thumb {
+    width: 18px;
+    height: 18px;
+
+    &.is-dark {
+      transform: translateX(20px);
+    }
+
+    i {
+      font-size: 0.7rem;
+    }
+  }
+}
 </style>

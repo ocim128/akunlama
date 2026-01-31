@@ -1,5 +1,5 @@
 <template>
-  <div class="inbox-wrapper" :class="{ 'split-view': showSplitView }">
+  <div class="inbox-wrapper" :class="{ 'split-view': showSplitView, 'has-mobile-nav': showMobileNav }">
     <nav-bar class="nav-bar"></nav-bar>
     
     <div class="inbox-content">
@@ -26,18 +26,23 @@
         </div>
       </main>
     </div>
+
+    <!-- Mobile Bottom Navigation -->
+    <mobile-nav />
   </div>
 </template>
 
 <script>
   import NavBar from '../NavBar.vue'
   import MessageList from './message_list.vue'
+  import MobileNav from '../MobileNav.vue'
 
   export default {
     name: 'inbox',
     components: {
       NavBar,
-      MessageList
+      MessageList,
+      MobileNav
     },
     data() {
       return {
@@ -60,6 +65,10 @@
       // On mobile, hide list when viewing message
       isMobileMessageView() {
         return !this.showSplitView && this.isViewingMessage
+      },
+      // Show mobile nav on small screens
+      showMobileNav() {
+        return this.windowWidth < 768
       }
     },
     mounted() {
@@ -88,6 +97,11 @@
     width: 100%;
     height: 100%;
     background: var(--color-background);
+
+    // Add padding for mobile nav
+    &.has-mobile-nav {
+      padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+    }
   }
 
   .nav-bar {

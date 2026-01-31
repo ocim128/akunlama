@@ -1,5 +1,11 @@
 <template>
-	<div class="message-details">
+	<div class="message-details" :class="{ 'has-mobile-nav': isMobile }">
+		<!-- Mobile floating back button -->
+		<button v-if="isMobile" class="floating-back-btn" @click="goBack">
+			<i class="fas fa-arrow-left"></i>
+			<span>Back</span>
+		</button>
+
 		<!-- Loading state -->
 		<div v-if="loading" class="loading-container">
 			<div class="loading-spinner"></div>
@@ -106,7 +112,13 @@
 				src: '',
 				loading: true,
 				refreshing: false,
-				showCopiedFeedback: false
+				showCopiedFeedback: false,
+				windowWidth: window.innerWidth
+			}
+		},
+		computed: {
+			isMobile() {
+				return this.windowWidth < 768
 			}
 		},
 		mounted () {
@@ -118,9 +130,11 @@
 
 			this.getMessage()
 			this.$eventHub.on('refresh', this.refreshMessage)
+			window.addEventListener('resize', this.handleResize)
 		},
 		beforeUnmount () {
 			this.$eventHub.off('refresh', this.refreshMessage)
+			window.removeEventListener('resize', this.handleResize)
 		},
 		methods: {
 			getMessage () {
@@ -196,6 +210,10 @@
 				} else {
 					this.$router.go(-1)
 				}
+			},
+
+			handleResize() {
+				this.windowWidth = window.innerWidth
 			},
 
 			extractName(email) {
@@ -318,6 +336,44 @@
 		flex-direction: column;
 		background: var(--color-background);
 		transition: background 0.3s ease;
+		position: relative;
+
+		// Add padding for mobile nav
+		&.has-mobile-nav {
+			padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+		}
+	}
+
+	// Floating back button for mobile
+	.floating-back-btn {
+		position: fixed;
+		top: 1rem;
+		left: 1rem;
+		z-index: 100;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.6rem 1rem;
+		background: linear-gradient(135deg, #4F46E5, #6366F1);
+		color: white;
+		border: none;
+		border-radius: 24px;
+		font-weight: 600;
+		font-size: 0.85rem;
+		cursor: pointer;
+		box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
+		transition: all 0.2s ease;
+
+		i {
+			font-size: 0.9rem;
+		}
+
+		&:active {
+			transform: scale(0.95);
+			box-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
+		}
 	}
 
 	.loading-container {
@@ -481,10 +537,20 @@
 		align-items: center;
 		gap: 0.5rem;
 		position: relative;
+		// Improved touch targets
+		min-height: 44px;
+		min-width: 44px;
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
 
 		&:hover:not(:disabled) {
 			background: $gray-200;
 			color: $gray-800;
+		}
+
+		&:active:not(:disabled) {
+			background: $gray-300;
+			transform: scale(0.97);
 		}
 
 		&:disabled {
@@ -616,6 +682,11 @@
 		.message-actions {
 			padding: 0 1rem 1rem;
 			
+			// Hide back/refresh buttons since we have floating back and bottom nav
+			.actions-left {
+				display: none;
+			}
+
 			.action-btn {
 				flex: 1;
 				justify-content: center;

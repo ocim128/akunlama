@@ -1,9 +1,10 @@
 <template>
 	<nav class="modern-nav">
 		<div class="nav-container">
-			<!-- Back button -->
+			<!-- Back button with label -->
 			<button class="nav-back-btn" @click="backAPage" :aria-label="backButtonLabel">
 				<i class="fas fa-arrow-left"></i>
+				<span class="back-label">{{ $route.name === 'List' ? 'Home' : 'Back' }}</span>
 			</button>
 
 			<!-- Logo -->
@@ -199,36 +200,64 @@
 	}
 
 	.nav-back-btn {
-		background: $gray-100;
-		border: 1px solid $gray-200;
+		background: linear-gradient(135deg, #4F46E5, #6366F1);
+		border: none;
 		border-radius: $radius-lg;
-		padding: 0.75rem;
+		padding: 0.6rem 1rem;
 		cursor: pointer;
 		transition: all 0.2s ease;
-		color: $muted-text;
+		color: white;
 		display: flex;
 		align-items: center;
 		justify-content: center;
+		gap: 0.5rem;
 		min-width: 44px;
-		height: 44px;
+		min-height: 44px;
+		box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
+		// Better touch handling
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
+
+		.back-label {
+			font-weight: 600;
+			font-size: 0.85rem;
+		}
 
 		&:hover {
-			background: $gray-200;
-			color: $dark-text;
+			background: linear-gradient(135deg, #3730A3, #4F46E5);
 			transform: translateX(-2px);
+			box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
+		}
+
+		&:active {
+			transform: scale(0.95);
+			box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
 		}
 
 		i {
-			font-size: 1rem;
+			font-size: 0.9rem;
 		}
 	}
 
 	.nav-logo {
 		cursor: pointer;
 		transition: transform 0.2s ease;
+		// Improved touch area
+		padding: 0.25rem;
+		min-width: 44px;
+		min-height: 44px;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		touch-action: manipulation;
+		-webkit-tap-highlight-color: transparent;
 
 		&:hover {
 			transform: scale(1.05);
+		}
+
+		&:active {
+			transform: scale(0.95);
 		}
 
 		.logo-img {
@@ -295,10 +324,18 @@
 			position: relative;
 			transition: all 0.2s ease;
 			font-size: 0.9rem;
+			// Improved touch target
+			min-height: 44px;
+			touch-action: manipulation;
+			-webkit-tap-highlight-color: transparent;
 
 			&:hover {
 				background: $gray-100;
 				color: $primary;
+			}
+
+			&:active {
+				background: $gray-200;
 			}
 
 			&.copied {
@@ -347,6 +384,10 @@
 			cursor: pointer;
 			border: none;
 			font-size: 0.9rem;
+			// Improved touch handling
+			min-height: 44px;
+			touch-action: manipulation;
+			-webkit-tap-highlight-color: transparent;
 
 			.btn-text {
 				@media (max-width: 480px) {
@@ -357,6 +398,10 @@
 			&:disabled {
 				opacity: 0.6;
 				cursor: not-allowed;
+			}
+
+			&:active:not(:disabled) {
+				transform: scale(0.95);
 			}
 		}
 
@@ -369,15 +414,15 @@
 				transform: translateY(-1px);
 			}
 		}
-
 		.refresh-btn {
-			background: $gray-100;
-			color: $dark-text;
-			border: 1px solid $gray-300;
+			background: linear-gradient(135deg, #10B981, #14B8A6);
+			color: white;
+			border: none;
+			box-shadow: 0 2px 8px rgba(16, 185, 129, 0.3);
 
 			&:hover:not(:disabled) {
-				background: $gray-200;
-				color: $dark-text;
+				background: linear-gradient(135deg, #059669, #0D9488);
+				box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
 			}
 
 			.fa-spin {
@@ -390,23 +435,52 @@
 	@media (max-width: 768px) {
 		.nav-container {
 			padding: 0.75rem;
-			flex-wrap: wrap;
+			flex-wrap: nowrap; // Keep on one line
+			gap: 0.5rem;
 		}
 
 		.nav-email-section {
-			order: 3;
-			width: 100%;
-			margin-top: 0.5rem;
+			flex: 1;
+			order: 2;
 		}
 
 		.email-form {
 			gap: 0.5rem;
 		}
 
+		// Hide Go/Refresh buttons on mobile since we have bottom nav
 		.action-buttons {
-			button {
-				padding: 0.75rem;
-				min-width: 44px;
+			display: none;
+		}
+
+		.email-input-group {
+			border-radius: 8px;
+		}
+
+		.email-input {
+			font-size: 0.9rem;
+			padding: 0.6rem 0.75rem;
+		}
+
+		.domain-suffix {
+			font-size: 0.8rem;
+			padding: 0.6rem 0.5rem;
+		}
+
+		.nav-back-btn {
+			padding: 0.5rem 0.75rem;
+			
+			.back-label {
+				display: none; // Hide label on mobile
+			}
+		}
+
+		.nav-logo {
+			min-width: auto;
+			padding: 0.25rem;
+
+			.logo-img {
+				height: 2rem;
 			}
 		}
 	}
@@ -419,11 +493,21 @@
 		.nav-back-btn {
 			padding: 0.5rem;
 			min-width: 40px;
-			height: 40px;
+			min-height: 40px;
+		}
+
+		.email-input {
+			font-size: 0.85rem;
+			padding: 0.5rem;
+		}
+
+		.domain-suffix {
+			font-size: 0.75rem;
+			padding: 0.5rem 0.4rem;
 		}
 
 		.nav-logo .logo-img {
-			height: 2rem;
+			height: 1.75rem;
 		}
 	}
 </style>
