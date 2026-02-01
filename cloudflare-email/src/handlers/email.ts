@@ -1,4 +1,4 @@
-// email.js - Inbound email handler
+// email.ts - Inbound email handler
 
 import {
     splitHeadersAndBody,
@@ -7,14 +7,26 @@ import {
     decodeContent,
     decodeMimeWords,
     parseMultipartBody,
-    truncate
-} from '../utils/mime.js';
-import { shouldBlockEmail } from '../services/email-filter.js';
+    truncate,
+    type MultipartResult
+} from '../utils/mime.ts';
+import { shouldBlockEmail } from '../services/email-filter.ts';
+import type { Env, IncomingEmail } from '../types/index.d.ts';
+
+/** Extended environment with EMAIL_DOMAIN */
+interface EmailHandlerEnv extends Env {
+    EMAIL_DOMAIN?: string;
+}
+
+/** Execution context with waitUntil */
+interface ExecutionContext {
+    waitUntil(promise: Promise<unknown>): void;
+}
 
 /**
  * Extract bodies (html, text) from raw email content
  */
-const extractBodiesFromRaw = (rawEmail) => {
+const extractBodiesFromRaw = (rawEmail: string): MultipartResult => {
     const [headerText, bodyText] = splitHeadersAndBody(rawEmail);
     const headers = parseHeaders(headerText);
     const contentType = parseContentType(headers['content-type']);
@@ -34,7 +46,11 @@ const extractBodiesFromRaw = (rawEmail) => {
 /**
  * Email handler - processes inbound emails from Cloudflare Email Routing
  */
-export async function handleEmail(message, env, ctx) {
+export async function handleEmail(
+    message: IncomingEmail,
+    env: EmailHandlerEnv,
+    ctx: ExecutionContext
+): Promise<void> {
     try {
         const rawEmail = await new Response(message.raw).text();
         const [headerText] = splitHeadersAndBody(rawEmail);
@@ -59,7 +75,7 @@ export async function handleEmail(message, env, ctx) {
         const { html, text } = extractBodiesFromRaw(rawEmail);
 
         // EMAIL FILTERING - Block unwanted emails before storage
-        const filterResult = shouldBlockEmail(sender, subject, text || html, env);
+        const filterResult = shouldBlockEmail(sender, subject, text || html, env as unknown as Record<string, unknown>);
         if (filterResult.blocked) {
             console.log(`[FILTER] Email blocked for ${recipient}: ${filterResult.reason}`);
             return; // Don't store - saves D1 quota

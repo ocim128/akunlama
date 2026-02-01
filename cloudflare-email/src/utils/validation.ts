@@ -1,10 +1,25 @@
-// validation.js - Username validation utilities
+// validation.ts - Username validation utilities
+
+import type { Env } from '../types/index.d.ts';
+
+/** Result of username validation */
+export interface ValidationResult {
+    valid: boolean;
+    error: string | null;
+}
+
+/** Result of recipient normalization */
+export interface NormalizeResult {
+    success: boolean;
+    recipient?: string;
+    error?: string;
+}
 
 /**
  * Load banned usernames from environment variable
  */
-export const getBannedUsernames = (env) => {
-    const bannedUsernamesEnv = env.BANNED_USERNAMES || '';
+export const getBannedUsernames = (env: Env): Set<string> => {
+    const bannedUsernamesEnv = (env as { BANNED_USERNAMES?: string }).BANNED_USERNAMES || '';
     if (bannedUsernamesEnv) {
         return new Set(bannedUsernamesEnv.split(',').map(name => name.trim().toLowerCase()));
     }
@@ -13,9 +28,8 @@ export const getBannedUsernames = (env) => {
 
 /**
  * Validate username format and check if banned
- * @returns {{valid: boolean, error: string|null}}
  */
-export const validateUsername = (username, env) => {
+export const validateUsername = (username: string, env: Env): ValidationResult => {
     if (!username || !username.trim()) {
         return { valid: false, error: 'Username is required.' };
     }
@@ -37,12 +51,13 @@ export const validateUsername = (username, env) => {
 /**
  * Normalize recipient address (add domain if missing, lowercase)
  */
-export const normalizeRecipient = (recipient, env) => {
+export const normalizeRecipient = (recipient: string, env: Env): NormalizeResult => {
     let normalized = recipient.trim().toLowerCase();
 
     if (!normalized.includes('@')) {
-        if (env.EMAIL_DOMAIN) {
-            normalized = `${normalized}@${env.EMAIL_DOMAIN}`;
+        const emailDomain = (env as { EMAIL_DOMAIN?: string }).EMAIL_DOMAIN;
+        if (emailDomain) {
+            normalized = `${normalized}@${emailDomain}`;
         } else {
             return { success: false, error: 'EMAIL_DOMAIN is not configured' };
         }
@@ -54,6 +69,6 @@ export const normalizeRecipient = (recipient, env) => {
 /**
  * Extract username from recipient
  */
-export const extractUsername = (recipient) => {
+export const extractUsername = (recipient: string): string => {
     return recipient.includes('@') ? recipient.split('@')[0] : recipient;
 };

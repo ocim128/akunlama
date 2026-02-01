@@ -5,7 +5,7 @@ import {
     generateETag,
     jsonResponse,
     cachedJsonResponse
-} from '../../src/utils/http.js';
+} from '../../src/utils/http.ts';
 import { expect, test, describe, vi } from 'vitest';
 
 describe('HTTP Utils', () => {

@@ -1,8 +1,20 @@
-// mime.js - Shared MIME parsing utilities for Cloudflare Email Workers
+// mime.ts - Shared MIME parsing utilities for Cloudflare Email Workers
+
+/** Parsed content type with MIME and parameters */
+export interface ParsedContentType {
+    mime: string;
+    params: Record<string, string>;
+}
+
+/** Parsed multipart body result */
+export interface MultipartResult {
+    html: string;
+    text: string;
+}
 
 export const MAX_BODY_LENGTH = 50000;
 
-export const splitHeadersAndBody = (raw) => {
+export const splitHeadersAndBody = (raw: string): [string, string] => {
     const crlfIndex = raw.indexOf('\r\n\r\n');
     if (crlfIndex !== -1) {
         return [raw.slice(0, crlfIndex), raw.slice(crlfIndex + 4)];
@@ -14,8 +26,8 @@ export const splitHeadersAndBody = (raw) => {
     return [raw, ''];
 };
 
-export const parseHeaders = (headerText) => {
-    const headers = {};
+export const parseHeaders = (headerText: string): Record<string, string> => {
+    const headers: Record<string, string> = {};
     if (!headerText) {
         return headers;
     }
@@ -36,11 +48,11 @@ export const parseHeaders = (headerText) => {
     return headers;
 };
 
-export const parseContentType = (value) => {
+export const parseContentType = (value: string | undefined): ParsedContentType => {
     if (!value) return { mime: 'text/plain', params: {} };
     const parts = value.split(';');
-    const mime = parts.shift().trim().toLowerCase();
-    const params = {};
+    const mime = parts.shift()?.trim().toLowerCase() || 'text/plain';
+    const params: Record<string, string> = {};
     for (const part of parts) {
         const eq = part.indexOf('=');
         if (eq === -1) continue;
@@ -54,16 +66,16 @@ export const parseContentType = (value) => {
     return { mime, params };
 };
 
-export const decodeBytes = (bytes, charset) => {
+export const decodeBytes = (bytes: Uint8Array, charset?: string): string => {
     const cs = (charset || 'utf-8').toLowerCase();
     try {
         return new TextDecoder(cs).decode(bytes);
-    } catch (err) {
+    } catch {
         return new TextDecoder('utf-8').decode(bytes);
     }
 };
 
-export const decodeBase64ToBytes = (input) => {
+export const decodeBase64ToBytes = (input: string): Uint8Array => {
     const clean = input.replace(/\s+/g, '');
     const bin = atob(clean);
     const bytes = new Uint8Array(bin.length);
@@ -73,9 +85,9 @@ export const decodeBase64ToBytes = (input) => {
     return bytes;
 };
 
-export const decodeQuotedPrintableToBytes = (input) => {
+export const decodeQuotedPrintableToBytes = (input: string): Uint8Array => {
     const cleaned = input.replace(/=\r?\n/g, '');
-    const bytes = [];
+    const bytes: number[] = [];
     for (let i = 0; i < cleaned.length; i++) {
         const ch = cleaned[i];
         if (ch === '=' && /^[0-9A-Fa-f]{2}$/.test(cleaned.slice(i + 1, i + 3))) {
@@ -88,7 +100,7 @@ export const decodeQuotedPrintableToBytes = (input) => {
     return new Uint8Array(bytes);
 };
 
-export const decodeContent = (body, encoding, charset) => {
+export const decodeContent = (body: string, encoding?: string, charset?: string): string => {
     const enc = (encoding || '').trim().toLowerCase();
     if (enc === 'base64') {
         return decodeBytes(decodeBase64ToBytes(body), charset);
@@ -99,9 +111,9 @@ export const decodeContent = (body, encoding, charset) => {
     return body;
 };
 
-export const decodeMimeWords = (value) => {
-    if (!value || typeof value !== 'string') return value;
-    return value.replace(/=\?([^?]+)\?([bBqQ])\?([^?]*)\?=/g, (match, charset, encoding, text) => {
+export const decodeMimeWords = (value: unknown): string => {
+    if (!value || typeof value !== 'string') return '';
+    return value.replace(/=\?([^?]+)\?([bBqQ])\?([^?]*)\?=/g, (match, charset: string, encoding: string, text: string) => {
         const enc = encoding.toUpperCase();
         if (enc === 'B') {
             return decodeBytes(decodeBase64ToBytes(text), charset);
@@ -114,12 +126,12 @@ export const decodeMimeWords = (value) => {
     });
 };
 
-export const parseMultipartBody = (body, boundary) => {
+export const parseMultipartBody = (body: string, boundary: string | undefined): MultipartResult => {
     if (!boundary) return { html: '', text: '' };
     const boundaryText = `--${boundary}`;
     const parts = body.split(boundaryText);
-    const htmlParts = [];
-    const textParts = [];
+    const htmlParts: string[] = [];
+    const textParts: string[] = [];
 
     for (let i = 1; i < parts.length; i++) {
         let part = parts[i];
@@ -157,7 +169,7 @@ export const parseMultipartBody = (body, boundary) => {
     };
 };
 
-export const truncate = (value) => {
+export const truncate = (value: string | undefined): string => {
     if (!value) return '';
     return value.length > MAX_BODY_LENGTH ? value.slice(0, MAX_BODY_LENGTH) : value;
 };

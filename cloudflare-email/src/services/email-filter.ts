@@ -1,12 +1,26 @@
-// email-filter.js - Email filtering/blocking service
+// email-filter.ts - Email filtering/blocking service
 
-import { DEFAULT_BLOCKED_SENDER_PATTERNS, DEFAULT_BLOCKED_SUBJECT_PATTERNS } from '../config.js';
+import { DEFAULT_BLOCKED_SENDER_PATTERNS, DEFAULT_BLOCKED_SUBJECT_PATTERNS } from '../config.ts';
+
+/** Email filter result */
+export interface FilterResult {
+    blocked: boolean;
+    reason: string | null;
+}
+
+/** Environment with optional blocking keywords */
+interface FilterEnv {
+    BLOCKED_SENDER_KEYWORDS?: string;
+    BLOCKED_SUBJECT_KEYWORDS?: string;
+    BLOCKED_BODY_KEYWORDS?: string;
+    [key: string]: unknown;
+}
 
 /**
  * Load comma-separated keywords from environment variable
  */
-export const loadKeywordsFromEnv = (env, key) => {
-    const value = env[key] || '';
+export const loadKeywordsFromEnv = (env: FilterEnv, key: string): string[] => {
+    const value = (env[key] as string) || '';
     if (!value.trim()) return [];
     return value.split(',')
         .map(keyword => keyword.trim().toLowerCase())
@@ -15,9 +29,13 @@ export const loadKeywordsFromEnv = (env, key) => {
 
 /**
  * Check if an email should be filtered (blocked) before storage
- * @returns {{blocked: boolean, reason: string|null}}
  */
-export const shouldBlockEmail = (sender, subject, body, env) => {
+export const shouldBlockEmail = (
+    sender: string | null,
+    subject: string | null,
+    body: string | null,
+    env: FilterEnv
+): FilterResult => {
     const senderLower = (sender || '').toLowerCase();
     const subjectLower = (subject || '').toLowerCase();
     const bodyLower = (body || '').toLowerCase();

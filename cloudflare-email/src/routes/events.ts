@@ -1,19 +1,45 @@
-// events.js - /api/events route handler
+// events.ts - /api/events route handler
 
-import { decodeMimeWords } from '../utils/mime.js';
-import { jsonResponse, cachedJsonResponse, getClientIP } from '../utils/http.js';
-import { validateUsername, extractUsername } from '../utils/validation.js';
-import { checkRateLimit } from '../services/rate-limiter.js';
+import { decodeMimeWords } from '../utils/mime.ts';
+import { jsonResponse, cachedJsonResponse, getClientIP } from '../utils/http.ts';
+import { validateUsername, extractUsername } from '../utils/validation.ts';
+import { checkRateLimit } from '../services/rate-limiter.ts';
+import type { Env } from '../types/index.d.ts';
 
-/**
- * GET /api/events?recipient=user@domain.com
- * Returns list of emails for a recipient (Mailgun-compatible format)
- * Admin access: recipient=* AND admin_key=<secret>
- */
+/** Extended Env with additional config */
+interface EventsEnv extends Env {
+    EMAIL_DOMAIN?: string;
+    ADMIN_ACCESS_KEY?: string;
+}
+
+/** Email row from database */
+interface EmailSummaryRow {
+    id: string;
+    recipient: string;
+    sender: string;
+    subject: string;
+    preview: string | null;
+    received_at: number;
+    read_at: number | null;
+}
+
+/** Database query result */
+interface DBResult {
+    results: EmailSummaryRow[];
+}
+
+/** Handler result for internal use */
+interface HandlerResult {
+    success: boolean;
+    result?: DBResult;
+    error?: string;
+    status?: number;
+}
+
 /**
  * Handle admin request for all emails
  */
-async function handleAdminRequest(url, env) {
+async function handleAdminRequest(url: URL, env: EventsEnv): Promise<HandlerResult> {
     const adminKey = url.searchParams.get('admin_key');
     const validAdminKey = env.ADMIN_ACCESS_KEY;
 
@@ -28,21 +54,25 @@ async function handleAdminRequest(url, env) {
         FROM emails 
         ORDER BY received_at DESC 
         LIMIT 100
-    `).all();
+    `).all<EmailSummaryRow>();
 
-    return { success: true, result };
+    return { success: true, result: result as DBResult };
 }
 
 /**
  * Handle regular user request for specific recipient
  */
-async function handleUserRequest(recipient, request, env) {
+async function handleUserRequest(
+    recipient: string,
+    request: Request,
+    env: EventsEnv
+): Promise<HandlerResult> {
     const username = extractUsername(recipient);
 
     // Validate username format
     const validation = validateUsername(username, env);
     if (!validation.valid) {
-        return { success: false, error: validation.error, status: 400 };
+        return { success: false, error: validation.error || 'Invalid username', status: 400 };
     }
 
     // Apply rate limiting
@@ -50,7 +80,7 @@ async function handleUserRequest(recipient, request, env) {
     const rateCheck = checkRateLimit(username, clientIP);
     if (!rateCheck.allowed) {
         console.log(`[RATE LIMIT] ${clientIP} exceeded limit for ${username}`);
-        return { success: false, error: rateCheck.error, status: 429 };
+        return { success: false, error: rateCheck.error || 'Rate limit exceeded', status: 429 };
     }
 
     // Add domain if missing
@@ -75,15 +105,19 @@ async function handleUserRequest(recipient, request, env) {
         WHERE recipient = ? OR recipient = ?
         ORDER BY received_at DESC 
         LIMIT 50
-    `).bind(normalizedRecipient, fullEmail).all();
+    `).bind(normalizedRecipient, fullEmail).all<EmailSummaryRow>();
 
-    return { success: true, result };
+    return { success: true, result: result as DBResult };
 }
 
 /**
  * GET /api/events?recipient=user@domain.com
  */
-export async function handleEvents(request, url, env) {
+export async function handleEvents(
+    request: Request,
+    url: URL,
+    env: EventsEnv
+): Promise<Response> {
     const recipient = url.searchParams.get('recipient');
     if (!recipient) {
         return jsonResponse({ error: 'Missing recipient parameter' }, 400);
@@ -97,20 +131,20 @@ export async function handleEvents(request, url, env) {
     // Check for admin access (wildcard)
     const isAdminRequest = trimmedRecipient === '*' || trimmedRecipient === 'all';
 
-    let dbResult;
+    let dbResult: DBResult;
 
     if (isAdminRequest) {
         const adminResponse = await handleAdminRequest(url, env);
         if (!adminResponse.success) {
-            return jsonResponse({ error: adminResponse.error }, adminResponse.status);
+            return jsonResponse({ error: adminResponse.error }, adminResponse.status || 500);
         }
-        dbResult = adminResponse.result;
+        dbResult = adminResponse.result!;
     } else {
         const userResponse = await handleUserRequest(trimmedRecipient, request, env);
         if (!userResponse.success) {
-            return jsonResponse({ error: userResponse.error }, userResponse.status);
+            return jsonResponse({ error: userResponse.error }, userResponse.status || 500);
         }
-        dbResult = userResponse.result;
+        dbResult = userResponse.result!;
     }
 
     // Format response like Mailgun events API

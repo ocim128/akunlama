@@ -11,7 +11,7 @@ import {
     parseMultipartBody,
     truncate,
     MAX_BODY_LENGTH
-} from '../../src/utils/mime.js';
+} from '../../src/utils/mime.ts';
 import { expect, test, describe } from 'vitest';
 
 describe('MIME Utils - Extended Tests', () => {
@@ -249,7 +249,7 @@ describe('MIME Utils - Extended Tests', () => {
         });
 
         test('handles null input', () => {
-            expect(decodeMimeWords(null)).toBe(null);
+            expect(decodeMimeWords(null)).toBe('');
         });
 
         test('handles empty string', () => {
@@ -257,7 +257,7 @@ describe('MIME Utils - Extended Tests', () => {
         });
 
         test('handles non-string input', () => {
-            expect(decodeMimeWords(123)).toBe(123);
+            expect(decodeMimeWords(123)).toBe('');
         });
     });
 

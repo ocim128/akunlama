@@ -1,6 +1,6 @@
 // rate-limiter-extended.test.js - Comprehensive rate limiter tests
-import { checkRateLimit, cleanupRateLimits } from '../../src/services/rate-limiter.js';
-import { RATE_LIMITS } from '../../src/config.js';
+import { checkRateLimit, cleanupRateLimits } from '../../src/services/rate-limiter.ts';
+import { RATE_LIMITS } from '../../src/config.ts';
 import { expect, test, describe, beforeEach, vi, afterEach } from 'vitest';
 
 describe('Rate Limiter Service', () => {

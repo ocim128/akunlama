@@ -1,16 +1,59 @@
-// stream.js - /api/stream SSE route handler
+// stream.ts - /api/stream SSE route handler
 
-import { decodeMimeWords } from '../utils/mime.js';
-import { jsonResponse, getClientIP } from '../utils/http.js';
-import { validateUsername, extractUsername } from '../utils/validation.js';
-import { checkRateLimit } from '../services/rate-limiter.js';
+import { decodeMimeWords } from '../utils/mime.ts';
+import { jsonResponse, getClientIP } from '../utils/http.ts';
+import { validateUsername, extractUsername } from '../utils/validation.ts';
+import { checkRateLimit } from '../services/rate-limiter.ts';
+import type { Env } from '../types/index.d.ts';
+
+/** Extended Env with additional config */
+interface StreamEnv extends Env {
+    EMAIL_DOMAIN?: string;
+    ADMIN_ACCESS_KEY?: string;
+}
+
+/** Execution context with waitUntil */
+interface ExecutionContext {
+    waitUntil(promise: Promise<unknown>): void;
+}
+
+/** Email row from database */
+interface EmailRow {
+    id: string;
+    recipient: string;
+    sender: string;
+    subject: string;
+    received_at: number;
+    read_at: number | null;
+}
+
+/** SSE event data types */
+interface SSEEmailItem {
+    id: string;
+    timestamp: number;
+    event: string;
+    read_at: number | null;
+    message: {
+        headers: {
+            from: string;
+            to: string;
+            subject: string;
+        };
+    };
+    storage: { key: string };
+}
 
 /**
  * GET /api/stream?recipient=user@domain.com
  * Server-Sent Events for real-time email notifications
  * Polls D1 every 3s for ~25s, then client should reconnect
  */
-export async function handleStream(request, url, env, ctx) {
+export async function handleStream(
+    request: Request,
+    url: URL,
+    env: StreamEnv,
+    ctx: ExecutionContext
+): Promise<Response> {
     const recipient = url.searchParams.get('recipient');
     if (!recipient) {
         return jsonResponse({ error: 'Missing recipient parameter' }, 400);
@@ -58,12 +101,12 @@ export async function handleStream(request, url, env, ctx) {
     }
 
     // SSE Response with streaming
-    const { readable, writable } = new TransformStream();
+    const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
     const writer = writable.getWriter();
     const encoder = new TextEncoder();
 
     // Helper to send SSE event
-    const sendEvent = async (eventType, data) => {
+    const sendEvent = async (eventType: string, data: unknown): Promise<void> => {
         const message = `event: ${eventType}\ndata: ${JSON.stringify(data)}\n\n`;
         await writer.write(encoder.encode(message));
     };
@@ -71,7 +114,7 @@ export async function handleStream(request, url, env, ctx) {
     // Start the SSE stream in background
     ctx.waitUntil((async () => {
         try {
-            let lastEmailId = null;
+            let lastEmailId: string | null = null;
             const rawUsername = lookupRecipient.split('@')[0].toLowerCase();
             const fullEmail = (rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com')).toLowerCase();
             const normalizedRecipient = lookupRecipient.toLowerCase();
@@ -83,7 +126,7 @@ export async function handleStream(request, url, env, ctx) {
             await sendEvent('connected', { recipient: lookupRecipient, timestamp: Date.now() });
 
             while (Date.now() - startTime < maxDuration) {
-                let result;
+                let result: { results: EmailRow[] };
 
                 if (isAdminRequest) {
                     result = await env.DB.prepare(`
@@ -91,7 +134,7 @@ export async function handleStream(request, url, env, ctx) {
                         FROM emails 
                         ORDER BY received_at DESC 
                         LIMIT 20
-                    `).all();
+                    `).all<EmailRow>();
                 } else {
                     result = await env.DB.prepare(`
                         SELECT id, recipient, sender, subject, received_at, read_at 
@@ -99,7 +142,7 @@ export async function handleStream(request, url, env, ctx) {
                         WHERE recipient = ? OR recipient = ? OR recipient LIKE ?
                         ORDER BY received_at DESC 
                         LIMIT 20
-                    `).bind(normalizedRecipient, fullEmail, '%' + rawUsername + '@%').all();
+                    `).bind(normalizedRecipient, fullEmail, '%' + rawUsername + '@%').all<EmailRow>();
                 }
 
                 const emails = result.results || [];
@@ -110,7 +153,7 @@ export async function handleStream(request, url, env, ctx) {
 
                     if (lastEmailId === null) {
                         // First poll - send all current emails
-                        const items = emails.map(row => ({
+                        const items: SSEEmailItem[] = emails.map(row => ({
                             id: row.id,
                             timestamp: row.received_at / 1000,
                             event: 'stored',
@@ -128,7 +171,7 @@ export async function handleStream(request, url, env, ctx) {
                         lastEmailId = newestId;
                     } else if (newestId !== lastEmailId) {
                         // New email(s) detected
-                        const newEmails = [];
+                        const newEmails: SSEEmailItem[] = [];
                         for (const row of emails) {
                             if (row.id === lastEmailId) break;
                             newEmails.push({
@@ -166,9 +209,9 @@ export async function handleStream(request, url, env, ctx) {
         } catch (error) {
             console.error('[SSE] Stream error:', error);
             try {
-                await sendEvent('error', { message: error.message });
+                await sendEvent('error', { message: (error as Error).message });
                 await writer.close();
-            } catch (e) {
+            } catch {
                 // Connection already closed
             }
         }

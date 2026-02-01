@@ -4,7 +4,7 @@ import {
     validateUsername,
     normalizeRecipient,
     extractUsername
-} from '../../src/utils/validation.js';
+} from '../../src/utils/validation.ts';
 import { expect, test, describe } from 'vitest';
 
 describe('Validation Utils', () => {

@@ -1,5 +1,5 @@
 // mime.test.js
-import { parseHeaders, decodeMimeWords } from '../../src/utils/mime.js';
+import { parseHeaders, decodeMimeWords } from '../../src/utils/mime.ts';
 import { expect, test, describe } from 'vitest';
 
 describe('MIME Utils', () => {

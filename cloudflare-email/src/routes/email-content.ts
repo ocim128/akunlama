@@ -1,18 +1,34 @@
-// email-content.js - /api/email/:id route handlers
+// email-content.ts - /api/email/:id route handlers
 
 import {
     decodeMimeWords,
     parseMultipartBody,
-    decodeContent,
     truncate
-} from '../utils/mime.js';
-import { jsonResponse, cachedJsonResponse } from '../utils/http.js';
-import { validateUsername, extractUsername } from '../utils/validation.js';
+} from '../utils/mime.ts';
+import { jsonResponse, cachedJsonResponse } from '../utils/http.ts';
+import { validateUsername, extractUsername } from '../utils/validation.ts';
+import type { Env } from '../types/index.d.ts';
+
+/** Extended Env with EMAIL_DOMAIN */
+interface EmailEnv extends Env {
+    EMAIL_DOMAIN?: string;
+}
+
+/** Email row from database */
+interface EmailRow {
+    id: string;
+    sender: string;
+    recipient: string;
+    subject: string;
+    body_html: string | null;
+    body_text: string | null;
+    received_at: number;
+}
 
 /**
  * Detect boundary in multipart body text
  */
-const detectBoundary = (body) => {
+const detectBoundary = (body: string | null): string => {
     if (!body) return '';
     const direct = body.match(/^\s*--([^\r\n]+)/);
     if (direct) return direct[1].trim();
@@ -23,7 +39,7 @@ const detectBoundary = (body) => {
 /**
  * Extract bodies from stored text
  */
-const extractBodiesFromStoredText = (bodyText) => {
+const extractBodiesFromStoredText = (bodyText: string | null): { html: string; text: string } => {
     if (!bodyText) return { html: '', text: '' };
     const boundary = detectBoundary(bodyText);
     if (!boundary) {
@@ -36,7 +52,12 @@ const extractBodiesFromStoredText = (bodyText) => {
  * GET /api/email/:id?recipient=user@domain.com
  * Returns full email content
  */
-export async function handleGetEmail(request, url, emailId, env) {
+export async function handleGetEmail(
+    request: Request,
+    url: URL,
+    emailId: string,
+    env: EmailEnv
+): Promise<Response> {
     const recipient = url.searchParams.get('recipient');
 
     if (!recipient) {
@@ -67,7 +88,7 @@ export async function handleGetEmail(request, url, emailId, env) {
         SELECT * FROM emails 
         WHERE id = ? 
         AND (recipient = ? OR recipient = ? OR recipient = ?)
-    `).bind(emailId, lookupRecipient, rawUsername, fullEmail).first();
+    `).bind(emailId, lookupRecipient, rawUsername, fullEmail).first<EmailRow>();
 
     if (!result) {
         return jsonResponse({ error: 'Email not found' }, 404);
@@ -100,7 +121,12 @@ export async function handleGetEmail(request, url, emailId, env) {
  * PATCH /api/email/:id/read?recipient=user@domain.com
  * Mark email as read
  */
-export async function handleMarkRead(request, url, emailId, env) {
+export async function handleMarkRead(
+    request: Request,
+    url: URL,
+    emailId: string,
+    env: EmailEnv
+): Promise<Response> {
     const recipient = url.searchParams.get('recipient');
 
     if (!recipient) {

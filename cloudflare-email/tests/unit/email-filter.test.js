@@ -2,11 +2,11 @@
 import {
     loadKeywordsFromEnv,
     shouldBlockEmail
-} from '../../src/services/email-filter.js';
+} from '../../src/services/email-filter.ts';
 import { expect, test, describe, vi, beforeEach } from 'vitest';
 
 // Mock the config module
-vi.mock('../../src/config.js', () => ({
+vi.mock('../../src/config.ts', () => ({
     DEFAULT_BLOCKED_SENDER_PATTERNS: [
         'registration@facebook',
         'notification@facebookmail.com',

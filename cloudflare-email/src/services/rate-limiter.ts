@@ -1,18 +1,31 @@
-// rate-limiter.js - In-memory rate limiting service
+// rate-limiter.ts - In-memory rate limiting service
 // Note: In Workers, each isolate has its own memory, so this is
 // approximate rate limiting. For strict limiting, use Durable Objects.
 
-import { RATE_LIMITS } from '../config.js';
+import { RATE_LIMITS } from '../config.ts';
 
-const rateLimits = new Map();
+/** Rate limit check result */
+export interface RateLimitResult {
+    allowed: boolean;
+    error: string | null;
+}
+
+/** IP data stored in rate limits map */
+interface IPData {
+    requestTimestamps: number[];
+    uniqueUsernames: Set<string>;
+    resetTime: number;
+}
+
+const rateLimits = new Map<string, IPData>();
 let lastCleanup = Date.now();
 
 /**
  * Cleanup expired rate limit entries
  */
-export const cleanupRateLimits = () => {
+export const cleanupRateLimits = (): void => {
     const now = Date.now();
-    const ipsToDelete = [];
+    const ipsToDelete: string[] = [];
 
     rateLimits.forEach((data, ip) => {
         if (now > data.resetTime) {
@@ -37,9 +50,8 @@ export const cleanupRateLimits = () => {
 
 /**
  * Check rate limit for a username from a client IP
- * @returns {{allowed: boolean, error: string|null}}
  */
-export const checkRateLimit = (username, clientIP) => {
+export const checkRateLimit = (username: string, clientIP: string | null): RateLimitResult => {
     const now = Date.now();
 
     if (!clientIP || clientIP === 'unknown') {
@@ -60,7 +72,7 @@ export const checkRateLimit = (username, clientIP) => {
         });
     }
 
-    const ipData = rateLimits.get(clientIP);
+    const ipData = rateLimits.get(clientIP)!;
 
     // Reset if window expired
     if (now > ipData.resetTime) {

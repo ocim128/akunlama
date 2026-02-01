@@ -1,16 +1,49 @@
-// legacy.js - Legacy endpoint handlers (/api/list, /api/getKey, /api/getHtml)
+// legacy.ts - Legacy endpoint handlers (/api/list, /api/getKey, /api/getHtml)
 // For backward compatibility with older frontend versions
 
-import { decodeMimeWords, decodeContent } from '../utils/mime.js';
-import { jsonResponse, cachedJsonResponse, getClientIP, generateETag } from '../utils/http.js';
-import { validateUsername } from '../utils/validation.js';
-import { checkRateLimit } from '../services/rate-limiter.js';
+import { decodeMimeWords, decodeContent } from '../utils/mime.ts';
+import { jsonResponse, cachedJsonResponse, getClientIP, generateETag } from '../utils/http.ts';
+import { validateUsername } from '../utils/validation.ts';
+import { checkRateLimit } from '../services/rate-limiter.ts';
+import type { Env } from '../types/index.d.ts';
+
+/** Extended Env with additional config */
+interface LegacyEnv extends Env {
+    EMAIL_DOMAIN?: string;
+    ADMIN_ACCESS_KEY?: string;
+}
+
+/** Email summary row from database */
+interface EmailSummaryRow {
+    id: string;
+    recipient: string;
+    sender: string;
+    subject: string;
+    preview: string | null;
+    received_at: number;
+    read_at: number | null;
+}
+
+/** Full email row from database */
+interface FullEmailRow {
+    id: string;
+    sender: string;
+    recipient: string;
+    subject: string;
+    body_html: string | null;
+    body_text: string | null;
+    received_at: number;
+}
 
 /**
  * GET /api/list?recipient=user@domain.com
  * Legacy endpoint - returns array format
  */
-export async function handleList(request, url, env) {
+export async function handleList(
+    request: Request,
+    url: URL,
+    env: LegacyEnv
+): Promise<Response> {
     const recipient = url.searchParams.get('recipient');
     if (!recipient) return jsonResponse({ error: 'Missing recipient' }, 400);
 
@@ -49,14 +82,14 @@ export async function handleList(request, url, env) {
     }
 
     // Query DB
-    let result;
+    let result: { results: EmailSummaryRow[] };
     if (isAuthorizedAdmin) {
         result = await env.DB.prepare(`
             SELECT id, recipient, sender, subject, preview, received_at, read_at 
             FROM emails 
             ORDER BY received_at DESC 
             LIMIT 100
-        `).all();
+        `).all<EmailSummaryRow>();
     } else {
         const rawUsername = trimmedRecipient.split('@')[0].toLowerCase();
         const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
@@ -69,7 +102,7 @@ export async function handleList(request, url, env) {
             WHERE recipient = ? OR recipient = ?
             ORDER BY received_at DESC 
             LIMIT 50
-        `).bind(normalizedRecipient, fullEmail).all();
+        `).bind(normalizedRecipient, fullEmail).all<EmailSummaryRow>();
     }
 
     // Format as array of messages
@@ -98,11 +131,17 @@ export async function handleList(request, url, env) {
  * GET /api/getKey?key=...
  * Legacy endpoint for email metadata
  */
-export async function handleGetKey(request, url, env) {
+export async function handleGetKey(
+    request: Request,
+    url: URL,
+    env: LegacyEnv
+): Promise<Response> {
     const key = url.searchParams.get('key');
     if (!key) return jsonResponse({ error: 'Missing key' }, 400);
 
-    const row = await env.DB.prepare('SELECT * FROM emails WHERE id = ?').bind(key).first();
+    const row = await env.DB.prepare('SELECT * FROM emails WHERE id = ?')
+        .bind(key)
+        .first<FullEmailRow>();
     if (!row) return jsonResponse({ error: 'Not found' }, 404);
 
     // Extract name/email from sender
@@ -125,11 +164,17 @@ export async function handleGetKey(request, url, env) {
  * GET /api/getHtml?key=...
  * Legacy endpoint for HTML content
  */
-export async function handleGetHtml(request, url, env) {
+export async function handleGetHtml(
+    request: Request,
+    url: URL,
+    env: LegacyEnv
+): Promise<Response> {
     const key = url.searchParams.get('key');
     if (!key) return new Response('Missing key', { status: 400 });
 
-    const row = await env.DB.prepare('SELECT body_html, body_text FROM emails WHERE id = ?').bind(key).first();
+    const row = await env.DB.prepare('SELECT body_html, body_text FROM emails WHERE id = ?')
+        .bind(key)
+        .first<{ body_html: string | null; body_text: string | null }>();
     if (!row) return new Response('Not found', { status: 404 });
 
     let html = row.body_html;

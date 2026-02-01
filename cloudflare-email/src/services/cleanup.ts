@@ -1,9 +1,17 @@
-// cleanup.js - Email cleanup service
+// cleanup.ts - Email cleanup service
 
-import { EMAIL_RETENTION_MS } from '../config.js';
+import { EMAIL_RETENTION_MS } from '../config.ts';
+import type { Env } from '../types/index.d.ts';
+
+/** Cleanup result */
+export interface CleanupResult {
+    success: boolean;
+    deleted?: number;
+    error?: string;
+}
 
 // Spam patterns to delete aggressively
-const SPAM_PATTERNS = [
+const SPAM_PATTERNS: string[] = [
     '%friendsuggestion@facebookmail.com%',
     '%reminders@facebookmail.com%',
     '%groupupdates@facebookmail.com%',
@@ -19,7 +27,7 @@ const SPAM_PATTERNS = [
 /**
  * Run cleanup to delete old emails and spam
  */
-export const runCleanup = async (env) => {
+export const runCleanup = async (env: Env): Promise<CleanupResult> => {
     const cutoffTime = Date.now() - EMAIL_RETENTION_MS;
     let totalDeleted = 0;
     let deletedBatch = 0;
@@ -57,6 +65,6 @@ export const runCleanup = async (env) => {
 
     } catch (error) {
         console.error('[CLEANUP] Error:', error);
-        return { success: false, error: error.message };
+        return { success: false, error: (error as Error).message };
     }
 };

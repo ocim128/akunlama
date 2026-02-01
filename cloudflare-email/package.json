@@ -4,12 +4,19 @@
     "type": "module",
     "description": "Cloudflare Worker for Akunlama disposable email service",
     "scripts": {
+        "deploy:akunlama": "npx wrangler deploy --config wrangler.akunlama.toml",
+        "deploy:gratis-ongkir": "npx wrangler deploy --config wrangler.gratis-ongkir.toml",
+        "logs:akunlama": "npx wrangler tail --config wrangler.akunlama.toml",
+        "logs:gratis-ongkir": "npx wrangler tail --config wrangler.gratis-ongkir.toml",
+        "type-check": "tsc --noEmit",
         "test": "vitest",
         "test:run": "vitest run",
         "test:coverage": "vitest run --coverage"
     },
     "devDependencies": {
-        "vitest": "^1.0.4",
-        "@vitest/coverage-v8": "^1.0.4"
+        "@cloudflare/workers-types": "^4.20240117.0",
+        "@vitest/coverage-v8": "^1.0.4",
+        "typescript": "^5.3.3",
+        "vitest": "^1.0.4"
     }
 }

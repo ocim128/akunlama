@@ -14,7 +14,9 @@
     "dev": "vite",
     "dev:e2e": "vite --port 5173 --strictPort",
     "build": "vite build",
+    "deploy:gratis-ongkir": "npm run build && npx wrangler pages deploy dist --project-name gratis-ongkir --branch main",
     "preview": "vite preview",
+    "type-check": "vue-tsc --noEmit",
     "test": "vitest",
     "test:unit": "vitest run",
     "test:coverage": "vitest run --coverage",
@@ -35,18 +37,22 @@
     "mitt": "^3.0.1",
     "normalize.css": "^8.0.1",
     "pinia": "^2.2.0",
-    "sass": "^1.69.5",
     "terser": "^5.46.0",
     "vue": "^3.5.0",
     "vue-router": "^4.4.0"
   },
   "devDependencies": {
     "@playwright/test": "^1.40.0",
+    "@types/dompurify": "^3.0.5",
+    "@types/node": "^20.11.0",
     "@vitejs/plugin-vue": "^5.2.0",
     "@vitest/coverage-v8": "^1.0.4",
     "@vue/test-utils": "^2.4.0",
     "jsdom": "^23.0.1",
+    "sass": "^1.77.8",
+    "typescript": "^5.3.3",
     "vite": "^5.4.0",
-    "vitest": "^1.0.4"
+    "vitest": "^1.0.4",
+    "vue-tsc": "^2.2.12"
   }
 }

@@ -1,10 +1,20 @@
-// config.js - Configuration constants for the worker
+// config.ts - Configuration constants for the worker
+
+/** Rate limiting configuration interface */
+export interface RateLimitConfig {
+    TOTAL_REQUESTS_PER_MINUTE: number;
+    UNIQUE_USERNAMES_PER_MINUTE: number;
+    SAME_USERNAME_PER_MINUTE: number;
+    WINDOW_MS: number;
+    MAX_IPS_TRACKED: number;
+    CLEANUP_INTERVAL: number;
+}
 
 // Email retention period: 3 days in milliseconds
-export const EMAIL_RETENTION_MS = 3 * 24 * 60 * 60 * 1000;
+export const EMAIL_RETENTION_MS: number = 3 * 24 * 60 * 60 * 1000;
 
 // Rate limiting configuration
-export const RATE_LIMITS = {
+export const RATE_LIMITS: RateLimitConfig = {
     TOTAL_REQUESTS_PER_MINUTE: 75,
     UNIQUE_USERNAMES_PER_MINUTE: 10,
     SAME_USERNAME_PER_MINUTE: 50,
@@ -14,7 +24,7 @@ export const RATE_LIMITS = {
 };
 
 // Default blocked sender patterns (Meta/Facebook related)
-export const DEFAULT_BLOCKED_SENDER_PATTERNS = [
+export const DEFAULT_BLOCKED_SENDER_PATTERNS: string[] = [
     'registration@facebook',
     'registration@facebookmail.com',
     'notification@facebookmail.com',
@@ -29,7 +39,7 @@ export const DEFAULT_BLOCKED_SENDER_PATTERNS = [
 ];
 
 // Default blocked subject patterns (verification codes)
-export const DEFAULT_BLOCKED_SUBJECT_PATTERNS = [
+export const DEFAULT_BLOCKED_SUBJECT_PATTERNS: RegExp[] = [
     /\d{6}.*adalah kode instagram anda/i,
     /\d{6}.*is your threads code/i,
     /\d{6}.*is your instagram code/i,

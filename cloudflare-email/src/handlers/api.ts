@@ -1,14 +1,45 @@
-// api.js - HTTP API router
+// api.ts - HTTP API router
 
-import { createHeaders, jsonResponse } from '../utils/http.js';
-import { handleEvents } from '../routes/events.js';
-import { handleStream } from '../routes/stream.js';
-import { handleGetEmail, handleMarkRead } from '../routes/email-content.js';
-import { handleList, handleGetKey, handleGetHtml } from '../routes/legacy.js';
-import { handleHealth, handleDebug, handleCleanup } from '../routes/admin.js';
+import { createHeaders, jsonResponse } from '../utils/http.ts';
+import { handleEvents } from '../routes/events.ts';
+import { handleStream } from '../routes/stream.ts';
+import { handleGetEmail, handleMarkRead } from '../routes/email-content.ts';
+import { handleList, handleGetKey, handleGetHtml } from '../routes/legacy.ts';
+import { handleHealth, handleDebug, handleCleanup } from '../routes/admin.ts';
+import type { Env } from '../types/index.d.ts';
+
+/** Extended environment for API handlers */
+interface ApiEnv extends Env {
+    EMAIL_DOMAIN?: string;
+    ADMIN_ACCESS_KEY?: string;
+}
+
+/** Execution context with waitUntil */
+interface ExecutionContext {
+    waitUntil(promise: Promise<unknown>): void;
+}
+
+/** Route handler function type */
+type RouteHandler = (
+    request: Request,
+    url: URL,
+    env: ApiEnv,
+    ctx: ExecutionContext
+) => Promise<Response> | Response;
+
+/** Route definition */
+interface RouteDefinition {
+    redirect?: string;
+    status?: number;
+    handler?: RouteHandler;
+    methods?: string[];
+}
+
+/** Route registry type */
+type RouteRegistry = Record<string, RouteDefinition>;
 
 // Route Registry
-const ROUTES = {
+const ROUTES: RouteRegistry = {
     // ============================================
     // LEGACY REDIRECTS (301)
     // ============================================
@@ -40,7 +71,11 @@ const ROUTES = {
 /**
  * HTTP fetch handler - API router
  */
-export async function handleFetch(request, env, ctx) {
+export async function handleFetch(
+    request: Request,
+    env: ApiEnv,
+    ctx: ExecutionContext
+): Promise<Response> {
     const url = new URL(request.url);
     const path = url.pathname;
 
@@ -58,7 +93,7 @@ export async function handleFetch(request, env, ctx) {
             if (route.redirect) {
                 const newUrl = new URL(url);
                 newUrl.pathname = route.redirect;
-                return Response.redirect(newUrl.toString(), route.status);
+                return Response.redirect(newUrl.toString(), route.status || 301);
             }
 
             // Handle Methods
@@ -96,4 +131,3 @@ export async function handleFetch(request, env, ctx) {
         return jsonResponse({ error: 'Internal server error' }, 500);
     }
 }
-
