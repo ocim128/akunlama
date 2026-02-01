@@ -89,7 +89,7 @@
 </script>
 
 <style lang="scss">
-  @use '@/scss/color' as *;
+  @use "../../scss/color" as *;
 
   .inbox-wrapper {
     display: flex;

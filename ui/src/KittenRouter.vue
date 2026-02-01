@@ -133,7 +133,7 @@
 </template>
 
 <script>
-import shareConfig from '@/../config/shareConfig.js'
+import shareConfig from '@/../config/shareConfig'
 
 // import CarbonAds from './components/CarbonAds.vue'
 
@@ -159,8 +159,8 @@ export default {
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
-    @use "scss/landingpage" as *;
-    @use "scss/color" as *;
+    @use "./scss/landingpage" as *;
+    @use "./scss/color" as *;
 
 	.kittenrouter-navigation {
 		display:flex;

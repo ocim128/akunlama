@@ -3,7 +3,19 @@
  * Centralized configuration - modify values here instead of hardcoding in components
  */
 
-const config = {
+interface ApiConfig {
+    apiUrl: string
+    domain: string
+    autoRefreshInterval: number
+    requestTimeout: number
+    copyFeedbackDuration: number
+    maxEmailsDisplay: number
+    retentionPeriod: string
+    enablePullToRefresh: boolean
+    enableStreaming: boolean
+}
+
+const config: ApiConfig = {
     // ===== API Settings =====
     // Cloudflare Worker API URL
     apiUrl: import.meta.env.VITE_API_URL || 'https://akunlama.com/api',

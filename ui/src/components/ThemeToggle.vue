@@ -56,7 +56,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@use "@/scss/color" as *;
+@use "../scss/color" as *;
 
 .theme-toggle {
   background: transparent;

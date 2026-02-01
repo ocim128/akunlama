@@ -129,7 +129,7 @@
 </template>
 
 <script>
-import config from '@/../config/apiconfig.js'
+import config from '@/../config/apiconfig'
 import 'normalize.css'
 import ClipboardJS from 'clipboard'
 
@@ -260,7 +260,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@use "scss/color" as *;
+@use "./scss/color" as *;
 
 // Reset and base
 * {

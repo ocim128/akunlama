@@ -8,8 +8,11 @@ describe('ThemeToggle.vue', () => {
         const localStorageMock = {
             getItem: vi.fn(),
             setItem: vi.fn(),
-            clear: vi.fn()
-        }
+            clear: vi.fn(),
+            key: vi.fn(),
+            length: 0,
+            removeItem: vi.fn()
+        } as Storage
         Object.defineProperty(window, 'localStorage', { value: localStorageMock })
 
         // Mock matchMedia

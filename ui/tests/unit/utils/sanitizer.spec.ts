@@ -59,7 +59,9 @@ describe('Sanitizer Utility', () => {
         });
 
         it('should return empty string for null/undefined input', () => {
+            // @ts-ignore
             expect(sanitizeEmailHTML(null)).toBe('');
+            // @ts-ignore
             expect(sanitizeEmailHTML(undefined)).toBe('');
             expect(sanitizeEmailHTML('')).toBe('');
         });
@@ -95,6 +97,7 @@ describe('Sanitizer Utility', () => {
 
         it('should handle empty input', () => {
             expect(sanitizeText('')).toBe('');
+            // @ts-ignore
             expect(sanitizeText(null)).toBe('');
         });
     });
@@ -151,6 +154,7 @@ describe('Sanitizer Utility', () => {
 
         it('should handle empty/null input', () => {
             expect(detectDangerousPatterns('').isDangerous).toBe(false);
+            // @ts-ignore
             expect(detectDangerousPatterns(null).isDangerous).toBe(false);
         });
     });
@@ -175,6 +179,7 @@ describe('Sanitizer Utility', () => {
 
         it('should handle empty input', () => {
             expect(sanitizeURL('')).toBe('');
+            // @ts-ignore
             expect(sanitizeURL(null)).toBe('');
         });
     });

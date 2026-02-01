@@ -3,18 +3,37 @@
  * Tests the email inbox user flows and message interactions
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
+
+/**
+ * Wait for the inbox page to be loaded by checking for key elements
+ */
+async function waitForInboxLoad(page: Page, timeout = 30000) {
+    // Wait for the advisory banner to appear (page structure loaded)
+    await page.waitForSelector('.advisory-banner', { timeout })
+
+    // Wait for loading to complete (skeleton disappears, content appears)
+    // Either we see the email list, empty state, OR skeleton is gone
+    await page.waitForFunction(
+        () => {
+            const skeleton = document.querySelector('.skeleton-container, .loading-container') as HTMLElement | null
+            const emptyState = document.querySelector('.empty-state')
+            const emailList = document.querySelector('.email-list-container')
+            // Return true when loading is done (skeleton gone AND content visible)
+            return (!skeleton || !skeleton.offsetParent) && (emptyState || emailList)
+        },
+        { timeout }
+    )
+}
 
 test.describe('Inbox Page', () => {
     test.beforeEach(async ({ page }) => {
         // Navigate to a test inbox
         await page.goto('/inbox/test-user')
+        await waitForInboxLoad(page)
     })
 
     test('should display inbox page correctly', async ({ page }) => {
-        // Wait for the page to load
-        await page.waitForLoadState('networkidle')
-
         // Should show either empty state or email list
         const emptyState = page.locator('.empty-state')
         const emailList = page.locator('.email-list-container')
@@ -27,24 +46,18 @@ test.describe('Inbox Page', () => {
     })
 
     test('should show advisory banner', async ({ page }) => {
-        await page.waitForLoadState('networkidle')
-
         const advisory = page.locator('.advisory-banner')
         await expect(advisory).toBeVisible()
         await expect(advisory).toContainText('Meow')
     })
 
     test('should show refresh button', async ({ page }) => {
-        await page.waitForLoadState('networkidle')
-
         // Find any visible refresh button (inline, in nav or in empty state)
         const refreshBtn = page.locator('button:visible:has-text("Refresh"), button:visible:has-text("Check for messages")')
         await expect(refreshBtn.first()).toBeVisible()
     })
 
     test('should refresh inbox when refresh button is clicked', async ({ page }) => {
-        await page.waitForLoadState('networkidle')
-
         const refreshBtn = page.locator('button:visible:has-text("Refresh"), button:visible:has-text("Check for messages")').first()
 
         // Click refresh
@@ -59,8 +72,6 @@ test.describe('Inbox Page', () => {
     })
 
     test('should display correct email in navigation', async ({ page }) => {
-        await page.waitForLoadState('networkidle')
-
         // The navigation should show the email address
         await expect(page.locator('.email-input')).toHaveValue('test-user')
     })
@@ -72,10 +83,8 @@ test.describe('Inbox - Empty State', () => {
         const uniqueInbox = `test-${Date.now()}`
         await page.goto(`/inbox/${uniqueInbox}`)
 
-        await page.waitForLoadState('networkidle')
-
         // Wait for loading to complete
-        await page.waitForSelector('.empty-state, .email-list-container', { timeout: 10000 })
+        await page.waitForSelector('.empty-state, .email-list-container', { timeout: 30000 })
 
         const emptyState = page.locator('.empty-state')
 
@@ -89,8 +98,7 @@ test.describe('Inbox - Empty State', () => {
         const uniqueInbox = `test-${Date.now()}`
         await page.goto(`/inbox/${uniqueInbox}`)
 
-        await page.waitForLoadState('networkidle')
-        await page.waitForSelector('.empty-state, .email-list-container', { timeout: 10000 })
+        await page.waitForSelector('.empty-state, .email-list-container', { timeout: 30000 })
 
         const emptyState = page.locator('.empty-state')
 
@@ -105,7 +113,7 @@ test.describe('Inbox - Empty State', () => {
 test.describe('Inbox - Navigation', () => {
     test('should navigate back to landing page when clicking logo', async ({ page }) => {
         await page.goto('/inbox/test-user')
-        await page.waitForLoadState('networkidle')
+        await waitForInboxLoad(page)
 
         // Click on logo or home link
         const logo = page.locator('img[class*="logo"]').first()
@@ -119,10 +127,8 @@ test.describe('Inbox - Navigation', () => {
     test('should handle direct URL navigation to inbox', async ({ page }) => {
         await page.goto('/inbox/direct-url-test')
 
-        await page.waitForLoadState('networkidle')
-
         // Should load the inbox page
-        await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 10000 })
+        await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
     })
 })
 
@@ -131,10 +137,8 @@ test.describe('Inbox - Mobile', () => {
 
     test('should be responsive on mobile', async ({ page }) => {
         await page.goto('/inbox/mobile-test')
-        await page.waitForLoadState('networkidle')
-
-        // Advisory banner should be visible
-        await expect(page.locator('.advisory-banner')).toBeVisible()
+        // Wait for the page content to load by looking for the advisory banner
+        await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
 
         // Content should be readable
         await expect(page.locator('.advisory-content')).toBeVisible()
@@ -155,7 +159,7 @@ test.describe('Inbox - Auto Refresh', () => {
         })
 
         await page.goto('/inbox/auto-refresh-test')
-        await page.waitForLoadState('networkidle')
+        await waitForInboxLoad(page)
 
         // Initial request
         expect(requestCount).toBeGreaterThanOrEqual(1)

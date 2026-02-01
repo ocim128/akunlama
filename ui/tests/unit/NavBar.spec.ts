@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { shallowMount } from '@vue/test-utils'
-import { createRouter, createMemoryHistory } from 'vue-router'
+import { shallowMount, type VueWrapper } from '@vue/test-utils'
+import { createRouter, createMemoryHistory, type Router } from 'vue-router'
 import mitt from 'mitt'
 import NavBar from '@/components/NavBar.vue'
 
@@ -21,8 +21,16 @@ vi.mock('clipboard', () => ({
     }))
 }))
 
+// Mock navigator.clipboard
+vi.stubGlobal('navigator', {
+    clipboard: {
+        writeText: vi.fn().mockResolvedValue(undefined)
+    },
+    userAgent: 'vitest'
+})
+
 // Mock the config module
-vi.mock('@/../config/apiconfig.js', () => ({
+vi.mock('@/../config/apiconfig', () => ({
     default: {
         domain: 'test-domain.com',
         apiUrl: 'http://localhost:8080/api/v1/mail'
@@ -30,15 +38,16 @@ vi.mock('@/../config/apiconfig.js', () => ({
 }))
 
 describe('NavBar.vue', () => {
-    let wrapper
-    let router
+    let wrapper: VueWrapper<any>
+    let router: Router
 
     beforeEach(async () => {
         router = createRouter({
             history: createMemoryHistory(),
             routes: [
                 { path: '/', name: 'Kitten Land', component: { template: '<div/>' } },
-                { path: '/inbox/:email', name: 'List', component: { template: '<div/>' } }
+                { path: '/inbox/:email', name: 'List', component: { template: '<div/>' } },
+                { path: '/list/:email', name: 'ListAlias', component: { template: '<div/>' } }
             ]
         })
 
@@ -48,8 +57,12 @@ describe('NavBar.vue', () => {
         wrapper = shallowMount(NavBar, {
             global: {
                 plugins: [router],
-                mocks: {
-                    $eventHub: emitter
+                provide: {
+                    eventHub: emitter
+                },
+                stubs: {
+                    'font-awesome-icon': true,
+                    'ThemeToggle': true
                 }
             }
         })
@@ -102,12 +115,14 @@ describe('NavBar.vue', () => {
         })
 
         it('should compute fullEmail correctly', async () => {
-            await wrapper.setData({ email: 'test-user' })
+            const input = wrapper.find('.email-input')
+            await input.setValue('test-user')
             expect(wrapper.vm.fullEmail).toBe('test-user@test-domain.com')
         })
 
         it('should not duplicate domain if email already contains it', async () => {
-            await wrapper.setData({ email: 'test-user@test-domain.com' })
+            const input = wrapper.find('.email-input')
+            await input.setValue('test-user@test-domain.com')
             expect(wrapper.vm.fullEmail).toBe('test-user@test-domain.com')
         })
     })
@@ -120,7 +135,7 @@ describe('NavBar.vue', () => {
         })
 
         it('should set email from route params on mount', () => {
-            expect(wrapper.vm.email).toBe('test-user')
+            expect(wrapper.vm.email).toBe('test-user') // from beforeEach router.push
         })
     })
 
@@ -138,12 +153,17 @@ describe('NavBar.vue', () => {
 
             await wrapper.find('.refresh-btn').trigger('click')
 
+            // Note: because no promise/timeout is awaited inside the spec for the 3s timeout, 
+            // isRefreshing should be true immediately.
             expect(wrapper.vm.isRefreshing).toBe(true)
         })
 
         it('should disable refresh button when isRefreshing is true', async () => {
-            await wrapper.setData({ isRefreshing: true })
+            // Since we can't easily setData on ref in script setup from wrapper directly without helper or expose,
+            // we trigger it via button which sets it to true.
+            await wrapper.find('.refresh-btn').trigger('click')
 
+            await wrapper.vm.$nextTick()
             expect(wrapper.find('.refresh-btn').attributes('disabled')).toBeDefined()
         })
     })
@@ -151,7 +171,8 @@ describe('NavBar.vue', () => {
     describe('Form Submission', () => {
         it('should navigate to new inbox on form submit', async () => {
             const pushSpy = vi.spyOn(router, 'push')
-            await wrapper.setData({ email: 'new-inbox' })
+            const input = wrapper.find('.email-input')
+            await input.setValue('new-inbox')
 
             await wrapper.find('.email-form').trigger('submit.prevent')
 
@@ -164,9 +185,10 @@ describe('NavBar.vue', () => {
         it('should not navigate if email is empty', async () => {
             const pushSpy = vi.spyOn(router, 'push')
             vi.clearAllMocks()
-            await wrapper.setData({ email: '' })
+            const input = wrapper.find('.email-input')
+            await input.setValue('')
 
-            wrapper.vm.changeInbox()
+            await wrapper.find('.email-form').trigger('submit.prevent')
 
             expect(pushSpy).not.toHaveBeenCalled()
         })

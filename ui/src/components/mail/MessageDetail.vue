@@ -112,7 +112,7 @@
 
 <script>
 	import 'normalize.css'
-	import config from '@/../config/apiconfig.js'
+	import config from '@/../config/apiconfig'
 	import axios from 'axios'
 	import dayjs from 'dayjs'
 	import { FontAwesomeIcon } from '@/plugins/fontawesome'
@@ -350,7 +350,7 @@
 </script>
 
 <style lang="scss" rel="stylesheet/scss">
-	@use '@/scss/color' as *;
+	@use "../../scss/color" as *;
 
 	.message-details {
 		height: 100%;

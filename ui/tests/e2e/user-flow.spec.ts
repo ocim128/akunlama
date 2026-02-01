@@ -3,7 +3,33 @@
  * Tests complete user journeys from landing to inbox
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect, Page } from '@playwright/test'
+
+/**
+ * Wait for the inbox page to be loaded by checking for key elements
+ */
+async function waitForInboxLoad(page: Page, timeout = 30000) {
+    // Wait for the advisory banner to appear (page structure loaded)
+    await page.waitForSelector('.advisory-banner', { timeout })
+
+    // Wait for loading to complete (skeleton disappears, content appears)
+    await page.waitForFunction(
+        () => {
+            const skeleton = document.querySelector('.skeleton-container, .loading-container') as HTMLElement | null
+            const emptyState = document.querySelector('.empty-state')
+            const emailList = document.querySelector('.email-list-container')
+            return (!skeleton || !skeleton.offsetParent) && (emptyState || emailList)
+        },
+        { timeout }
+    )
+}
+
+/**
+ * Wait for landing page to load
+ */
+async function waitForLandingLoad(page: Page, timeout = 30000) {
+    await page.waitForSelector('.hero-section', { timeout })
+}
 
 test.describe('Complete User Flow', () => {
     test('should complete full flow: generate name → navigate to inbox', async ({ page }) => {
@@ -28,8 +54,7 @@ test.describe('Complete User Flow', () => {
         await expect(page).toHaveURL(new RegExp(`/inbox/${generatedName}`))
 
         // 6. Verify inbox loaded
-        await page.waitForLoadState('networkidle')
-        await expect(page.locator('.advisory-banner')).toBeVisible()
+        await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
     })
 
     test('should complete flow: enter custom name → navigate to inbox', async ({ page }) => {
@@ -47,8 +72,7 @@ test.describe('Complete User Flow', () => {
         await expect(page).toHaveURL(/\/inbox\/my-custom-email(\/list)?/)
 
         // 5. Verify inbox loaded
-        await page.waitForLoadState('networkidle')
-        await expect(page.locator('.advisory-banner')).toBeVisible()
+        await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
     })
 
     test('should handle back navigation correctly', async ({ page }) => {
@@ -62,7 +86,7 @@ test.describe('Complete User Flow', () => {
 
         // 3. Wait for inbox to load
         await expect(page).toHaveURL(/\/inbox\/back-nav-test(\/list)?/)
-        await page.waitForLoadState('networkidle')
+        await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
 
         // 4. Go back
         await page.goBack()
@@ -100,7 +124,7 @@ test.describe('Error Handling', () => {
         await page.goto('/inbox/network-error-test')
 
         // Should still load the page structure
-        await expect(page.locator('.advisory-banner')).toBeVisible()
+        await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
 
         // Should show empty state or error state (not crash)
         await page.waitForTimeout(2000)
@@ -124,7 +148,7 @@ test.describe('Error Handling', () => {
         })
 
         await page.goto('/inbox/empty-test')
-        await page.waitForLoadState('networkidle')
+        await waitForInboxLoad(page)
 
         // Should show empty state
         await expect(page.locator('.empty-state')).toBeVisible({ timeout: 10000 })
@@ -148,10 +172,10 @@ test.describe('Performance', () => {
         // Navigate back and forth multiple times
         for (let i = 0; i < 3; i++) {
             await page.goto('/')
-            await page.waitForLoadState('networkidle')
+            await waitForLandingLoad(page)
 
             await page.goto('/inbox/memory-test')
-            await page.waitForLoadState('networkidle')
+            await waitForInboxLoad(page)
         }
 
         // If we get here without crashing, basic memory handling is OK

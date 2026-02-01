@@ -32,9 +32,9 @@ export default {
 }
 </script>
 
-<style lang="scss" rel="stylesheet/scss">
-	@use "scss/common" as *;
-	@use "scss/color" as *;
+<style lang="scss">
+	@use "./scss/common" as *;
+	@use "./scss/color" as *;
 	@import url("https://unpkg.com/purecss@1.0.0/build/pure-min.css");
 
 	* {

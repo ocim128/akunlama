@@ -56,7 +56,7 @@
 </template>
 
 <script>
-import config from '@/../config/apiconfig.js'
+import config from '@/../config/apiconfig'
 
 export default {
   name: 'MobileNav',
@@ -168,7 +168,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@use '@/scss/color' as *;
+@use "../scss/color" as *;
 
 .mobile-nav {
   position: fixed;

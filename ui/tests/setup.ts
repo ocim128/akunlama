@@ -3,7 +3,7 @@
  * Configures the test environment for Vue 3 components
  */
 
-import { vi } from 'vitest'
+import { vi, afterEach } from 'vitest'
 import { config } from '@vue/test-utils'
 import mitt from 'mitt'
 
@@ -54,7 +54,7 @@ Object.defineProperty(navigator, 'clipboard', {
 })
 
 // Mock scrollTo
-window.scrollTo = vi.fn()
+window.scrollTo = vi.fn() as any
 
 // Mock setInterval/clearInterval for component timing tests
 vi.spyOn(window, 'setInterval')

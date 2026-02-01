@@ -70,7 +70,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@use '@/scss/color' as *;
+@use "../scss/color" as *;
 
 .toast-container {
   position: fixed;

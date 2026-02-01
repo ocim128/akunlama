@@ -126,7 +126,7 @@
 
 <script>
 import 'normalize.css'
-import config from '@/../config/apiconfig.js'
+import config from '@/../config/apiconfig'
 import axios from 'axios'
 import dayjs from 'dayjs'
 
@@ -398,8 +398,8 @@ export default {
 }
 </script>
 
-<style lang="scss" rel="stylesheet/scss">
-  @use '@/scss/color' as *;
+<style lang="scss">
+  @use "../../scss/color" as *;
 
   // Scroll container
   .message-list-scroll {

@@ -111,7 +111,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@use '@/scss/color' as *;
+@use "../scss/color" as *;
 
 .install-prompt {
   position: fixed;
