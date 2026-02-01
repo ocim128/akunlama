@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { shallowMount, type VueWrapper } from '@vue/test-utils'
+import { mount, type VueWrapper } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, type Router } from 'vue-router'
 import mitt from 'mitt'
 import NavBar from '@/components/NavBar.vue'
@@ -54,11 +54,14 @@ describe('NavBar.vue', () => {
         await router.push('/inbox/test-user')
         await router.isReady()
 
-        wrapper = shallowMount(NavBar, {
+        wrapper = mount(NavBar, {
             global: {
                 plugins: [router],
                 provide: {
                     eventHub: emitter
+                },
+                mocks: {
+                    $eventHub: emitter
                 },
                 stubs: {
                     'font-awesome-icon': true,
@@ -111,19 +114,22 @@ describe('NavBar.vue', () => {
 
     describe('Computed Properties', () => {
         it('should compute the domain correctly', () => {
-            expect(wrapper.vm.domain).toBe('test-domain.com')
+            const emailInputGroup = wrapper.findComponent({ name: 'EmailInputGroup' })
+            expect(emailInputGroup.vm.domain).toBe('test-domain.com')
         })
 
         it('should compute fullEmail correctly', async () => {
             const input = wrapper.find('.email-input')
             await input.setValue('test-user')
-            expect(wrapper.vm.fullEmail).toBe('test-user@test-domain.com')
+            const emailInputGroup = wrapper.findComponent({ name: 'EmailInputGroup' })
+            expect(emailInputGroup.vm.fullEmail).toBe('test-user@test-domain.com')
         })
 
         it('should not duplicate domain if email already contains it', async () => {
             const input = wrapper.find('.email-input')
             await input.setValue('test-user@test-domain.com')
-            expect(wrapper.vm.fullEmail).toBe('test-user@test-domain.com')
+            const emailInputGroup = wrapper.findComponent({ name: 'EmailInputGroup' })
+            expect(emailInputGroup.vm.fullEmail).toBe('test-user@test-domain.com')
         })
     })
 
@@ -159,8 +165,7 @@ describe('NavBar.vue', () => {
         })
 
         it('should disable refresh button when isRefreshing is true', async () => {
-            // Since we can't easily setData on ref in script setup from wrapper directly without helper or expose,
-            // we trigger it via button which sets it to true.
+            // Trigger it via button which sets it to true.
             await wrapper.find('.refresh-btn').trigger('click')
 
             await wrapper.vm.$nextTick()

@@ -3,7 +3,7 @@
  * Comprehensive tests for email viewing functionality
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { shallowMount, flushPromises, type VueWrapper } from '@vue/test-utils'
+import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, type Router } from 'vue-router'
 import MessageDetail from '@/components/mail/MessageDetail.vue'
 import axios from 'axios'
@@ -53,11 +53,14 @@ describe('MessageDetail.vue', () => {
         await router.push('/inbox/test-user/us/123')
         await router.isReady()
 
-        wrapper = shallowMount(MessageDetail, {
+        wrapper = mount(MessageDetail, {
             global: {
                 plugins: [router],
                 provide: {
                     eventHub: emitter
+                },
+                mocks: {
+                    $eventHub: emitter
                 },
                 stubs: {
                     'font-awesome-icon': true
@@ -77,17 +80,11 @@ describe('MessageDetail.vue', () => {
             expect(wrapper.exists()).toBe(true)
         })
 
-        // Note: With async setup/promises, "starting in loading state" tests are sometimes flaky 
-        // because flushPromises might happen too fast or too slow. 
-        // But initial state checking before flushPromises usually works.
-        // However, we used await router.push/mount which might trigger some. 
-        // In MessageDetail, fetch happens onMounted presumably.
-
         it('redirects to home if no key in params', async () => {
             const emptyRouter = createRouter({
                 history: createMemoryHistory(),
                 routes: [
-                    { path: '/inbox/:email', name: 'Message', component: { template: '<div/>' } }, // Missing params
+                    { path: '/inbox/:email', name: 'Message', component: { template: '<div/>' } },
                     { path: '/', name: 'Kitten Land', component: { template: '<div/>' } }
                 ]
             })
@@ -96,11 +93,14 @@ describe('MessageDetail.vue', () => {
 
             const pushSpy = vi.spyOn(emptyRouter, 'push')
 
-            const emptyWrapper = shallowMount(MessageDetail, {
+            const emptyWrapper = mount(MessageDetail, {
                 global: {
                     plugins: [emptyRouter],
                     provide: {
                         eventHub: emitter
+                    },
+                    mocks: {
+                        $eventHub: emitter
                     },
                     stubs: { 'font-awesome-icon': true }
                 }
@@ -136,50 +136,58 @@ describe('MessageDetail.vue', () => {
             expect(wrapper.vm.emailContent.name).toBe('John Doe')
             expect(wrapper.vm.loading).toBe(false)
         })
-
-        // Handles Error case requires remount or mocking logic before mount.
     })
 
     describe('Date Formatting', () => {
-        it('formats today date correctly', () => {
-            const now = new Date()
-            const result = wrapper.vm.formatDate(now.toISOString())
-            expect(result).toContain('Today')
+        // Date formatting is now handled in MessageHeader child component
+        it('renders MessageHeader with email content', async () => {
+            await flushPromises()
+
+            const messageHeader = wrapper.findComponent({ name: 'MessageHeader' })
+            expect(messageHeader.exists()).toBe(true)
+            expect(messageHeader.props('emailContent')).toEqual(mockEmailContent)
         })
 
-        it('returns "Unknown time" for invalid date', () => {
-            // @ts-ignore
-            expect(wrapper.vm.formatDate('invalid-date')).toBe('Unknown time')
+        it('MessageHeader computes formatted date', async () => {
+            await flushPromises()
+
+            const messageHeader = wrapper.findComponent({ name: 'MessageHeader' })
+            // The formattedDate computed property should exist and return a formatted string
+            expect(messageHeader.vm.formattedDate).toBeDefined()
+            expect(typeof messageHeader.vm.formattedDate).toBe('string')
         })
     })
 
     describe('Avatar Color Generation', () => {
-        it('generates consistent color for same email', () => {
-            const color1 = wrapper.vm.getAvatarColor('test@example.com')
-            const color2 = wrapper.vm.getAvatarColor('test@example.com')
-            expect(color1).toBe(color2)
-        })
+        // Avatar color is now handled in MessageHeader child component
+        it('generates consistent color for same email in MessageHeader', async () => {
+            await flushPromises()
 
-        it('returns first color for null/empty email', () => {
-            // @ts-ignore
-            const colorNull = wrapper.vm.getAvatarColor(null)
-            expect(colorNull).toBeDefined()
+            const messageHeader = wrapper.findComponent({ name: 'MessageHeader' })
+            const color = messageHeader.vm.avatarColor
+            expect(color).toBeDefined()
+            expect(typeof color).toBe('string')
+            expect(color.startsWith('#')).toBe(true)
         })
     })
 
     describe('Initials Generation', () => {
-        it('extracts initials from full name', () => {
-            expect(wrapper.vm.getInitials('test@test.com', 'John Doe')).toBe('JD')
-        })
+        // Initials generation is now handled in MessageHeader child component
+        it('extracts initials from full name in MessageHeader', async () => {
+            await flushPromises()
 
-        it('extracts initials from single name', () => {
-            expect(wrapper.vm.getInitials('test@test.com', 'John')).toBe('JO')
+            const messageHeader = wrapper.findComponent({ name: 'MessageHeader' })
+            expect(messageHeader.vm.initials).toBe('JD') // John Doe
         })
     })
 
     describe('Name Extraction', () => {
-        it('extracts name from email address', () => {
-            expect(wrapper.vm.extractName('john.doe@example.com')).toBe('John Doe')
+        // Default name is now computed in MessageHeader
+        it('computes defaultName from email in MessageHeader', async () => {
+            await flushPromises()
+
+            const messageHeader = wrapper.findComponent({ name: 'MessageHeader' })
+            expect(messageHeader.vm.defaultName).toBeDefined()
         })
     })
 

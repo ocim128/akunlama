@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { shallowMount, type VueWrapper } from '@vue/test-utils'
+import { mount, type VueWrapper } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, type Router } from 'vue-router'
 import LandingPage from '@/LandingPage.vue'
 
@@ -47,11 +47,10 @@ describe('LandingPage.vue', () => {
             ]
         })
 
-        wrapper = shallowMount(LandingPage, {
+        wrapper = mount(LandingPage, {
             global: {
                 plugins: [router],
                 stubs: {
-                    'router-view': true,
                     'font-awesome-icon': true
                 }
             }
@@ -93,37 +92,23 @@ describe('LandingPage.vue', () => {
     })
 
     describe('Email Generation', () => {
-        it('should start with empty randomName', () => {
-            expect(wrapper.vm.randomName).toBe('')
+        it('should start with empty randomName in EmailForm', () => {
+            const emailForm = wrapper.findComponent({ name: 'EmailForm' })
+            expect(emailForm.vm.randomName).toBe('')
         })
 
         it('should generate a random name when generateNewName is called', () => {
-            wrapper.vm.generateNewName()
-            expect(wrapper.vm.randomName).not.toBe('')
-            expect(wrapper.vm.randomName).toMatch(/^[a-z]+-[a-z]+-\d+$/)
+            const emailForm = wrapper.findComponent({ name: 'EmailForm' })
+            emailForm.vm.generateNewName()
+            expect(emailForm.vm.randomName).not.toBe('')
+            expect(emailForm.vm.randomName).toMatch(/^[a-z]+-[a-z]+-\d+$/)
         })
 
         it('should generate names with adjective-noun-number format', () => {
-            // Access internal method via vm (might need to expose it or test via button click)
-            // Since it's <script setup>, functions are not exposed by NOT using defineExpose.
-            // But we can trigger the button click.
-
-            // However, for unit testing internal methods in script setup, we often test effects.
-            // generateRandomName is internal, but we can call generateNewName which is used by UI.
-
-            // Wait, if functions are not exposed, wrapper.vm.generateRandomName won't work unless defineExpose used.
-            // But vue-test-utils usually captures them if we use shallowMount. 
-            // Let's rely on button click or check vm property if available.
-
-            // Actually, `generateRandomName` is not exposed in the template, only `generateNewName` is likely used in template?
-            // Checking LandingPage.vue: `generateNewName` IS used in template: `@click="generateNewName"`.
-            // But `generateRandomName` is only called by `generateNewName`.
-
-            // So we test `generateNewName`.
-
+            const emailForm = wrapper.findComponent({ name: 'EmailForm' })
             for (let i = 0; i < 10; i++) {
-                wrapper.vm.generateNewName()
-                const name = wrapper.vm.randomName
+                emailForm.vm.generateNewName()
+                const name = emailForm.vm.randomName
                 expect(name).toMatch(/^[a-z]+-[a-z]+-\d{1,3}$/)
             }
         })
@@ -131,23 +116,24 @@ describe('LandingPage.vue', () => {
 
     describe('Full Email Address', () => {
         it('should compute correct full email address', async () => {
-            // Using setValue on input is safer for script setup than setData
-            // if v-model is bound.
             const input = wrapper.find('.main-email-input')
             await input.setValue('test-user')
-            expect(wrapper.vm.fullEmailAddress).toBe('test-user@test-domain.com')
+            const emailForm = wrapper.findComponent({ name: 'EmailForm' })
+            expect(emailForm.vm.fullEmailAddress).toBe('test-user@test-domain.com')
         })
 
         it('should handle email that already contains domain', async () => {
             const input = wrapper.find('.main-email-input')
             await input.setValue('test-user@test-domain.com')
-            expect(wrapper.vm.fullEmailAddress).toBe('test-user@test-domain.com')
+            const emailForm = wrapper.findComponent({ name: 'EmailForm' })
+            expect(emailForm.vm.fullEmailAddress).toBe('test-user@test-domain.com')
         })
 
         it('should handle empty randomName', async () => {
             const input = wrapper.find('.main-email-input')
             await input.setValue('')
-            expect(wrapper.vm.fullEmailAddress).toBe('@test-domain.com')
+            const emailForm = wrapper.findComponent({ name: 'EmailForm' })
+            expect(emailForm.vm.fullEmailAddress).toBe('@test-domain.com')
         })
     })
 
@@ -168,7 +154,7 @@ describe('LandingPage.vue', () => {
     })
 
     describe('Navigation', () => {
-        it('should navigate to list when form is submitted', async () => {
+        it('should navigate to inbox when form is submitted', async () => {
             const pushSpy = vi.spyOn(router, 'push')
             const input = wrapper.find('.main-email-input')
             await input.setValue('test-user')
@@ -176,7 +162,7 @@ describe('LandingPage.vue', () => {
             await wrapper.find('.email-form').trigger('submit.prevent')
 
             expect(pushSpy).toHaveBeenCalledWith({
-                name: 'List', // Updated from Inbox to List as per code
+                name: 'Inbox',
                 params: { email: 'test-user' }
             })
         })
@@ -187,7 +173,6 @@ describe('LandingPage.vue', () => {
             const input = wrapper.find('.main-email-input')
             await input.setValue('')
 
-            // We can't easily call wrapper.vm.goToInbox if not exposed, but we can trigger submit
             await wrapper.find('.email-form').trigger('submit.prevent')
 
             expect(pushSpy).not.toHaveBeenCalled()
@@ -197,21 +182,23 @@ describe('LandingPage.vue', () => {
     describe('Button Interactions', () => {
         it('should generate new name when shuffle button is clicked', async () => {
             const shuffleBtn = wrapper.find('.btn-shuffle')
+            const emailForm = wrapper.findComponent({ name: 'EmailForm' })
+
             // Initially empty
-            expect(wrapper.vm.randomName).toBe('')
+            expect(emailForm.vm.randomName).toBe('')
 
             await shuffleBtn.trigger('click')
 
-            expect(wrapper.vm.randomName).not.toBe('')
+            expect(emailForm.vm.randomName).not.toBe('')
         })
     })
 
     describe('Copy Functionality', () => {
-        it('should copy email to clipboard when copyEmail is called', async () => {
+        it('should copy email to clipboard when domain display is clicked', async () => {
             const input = wrapper.find('.main-email-input')
             await input.setValue('test-user')
 
-            // Trigger copy by clicking domain display (as per template)
+            // Trigger copy by clicking domain display
             await wrapper.find('.domain-display').trigger('click')
 
             expect(navigator.clipboard.writeText).toHaveBeenCalledWith('test-user@test-domain.com')
