@@ -17,7 +17,7 @@ export const createHeaders = (additionalHeaders: Record<string, string> = {}): R
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, If-None-Match',
+    'Access-Control-Allow-Headers': 'Authorization, Content-Type, If-None-Match',
     'X-Content-Type-Options': 'nosniff',
     'X-Frame-Options': 'SAMEORIGIN',
     'X-XSS-Protection': '1; mode=block',

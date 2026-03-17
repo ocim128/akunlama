@@ -65,6 +65,12 @@ export interface Env {
     RATE_LIMIT_KV: KVNamespace;
     ALLOWED_DOMAINS: string;
     ADMIN_KEY?: string;
+    OUTBOUND_EMAIL?: {
+        send(message: unknown): Promise<void>;
+    };
+    OUTBOUND_EMAIL_API_KEY?: string;
+    OUTBOUND_EMAIL_FROM?: string;
+    OUTBOUND_EMAIL_FROM_NAME?: string;
     MAX_EMAIL_SIZE?: string;
     RATE_LIMIT_MAX?: string;
     RATE_LIMIT_WINDOW?: string;

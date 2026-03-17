@@ -5,6 +5,8 @@ name = "akunlama-prod"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+send_email = [{ name = "OUTBOUND_EMAIL" }]
+
 # D1 Database binding
 # Using akunlama database for production
 [[d1_databases]]
@@ -18,10 +20,13 @@ database_id = "f71f4888-5156-49d2-a679-17aae49f2600"
 crons = ["0 0,12 * * *"]
 
 # Environment variables (non-sensitive)
-# For sensitive values like ADMIN_ACCESS_KEY, use:
+# For sensitive values like ADMIN_ACCESS_KEY and OUTBOUND_EMAIL_API_KEY, use:
 # npx wrangler secret put ADMIN_ACCESS_KEY
+# npx wrangler secret put OUTBOUND_EMAIL_API_KEY
 [vars]
 EMAIL_DOMAIN = "akunlama.com"
+OUTBOUND_EMAIL_FROM = "noreply@akunlama.com"
+OUTBOUND_EMAIL_FROM_NAME = "AutoBeli"
 
 # Optional: Banned usernames (comma-separated)
 # BANNED_USERNAMES = "admin,postmaster,abuse,root"
@@ -43,6 +48,7 @@ BLOCKED_SUBJECT_KEYWORDS = "lainnya di beranda Anda,lihat apa yang sedang terjad
 #    npx wrangler d1 execute akunlama-emails --file=./schema.sql
 # 5. Set secrets:
 #    npx wrangler secret put ADMIN_ACCESS_KEY
+#    npx wrangler secret put OUTBOUND_EMAIL_API_KEY
 #
 # Deployment:
 # npx wrangler deploy

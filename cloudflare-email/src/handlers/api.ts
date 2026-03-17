@@ -6,6 +6,7 @@ import { handleStream } from '../routes/stream.ts';
 import { handleGetEmail, handleMarkRead } from '../routes/email-content.ts';
 import { handleList, handleGetKey, handleGetHtml } from '../routes/legacy.ts';
 import { handleHealth, handleDebug, handleCleanup } from '../routes/admin.ts';
+import { handleOutboundPurchaseEmail } from '../routes/outbound.ts';
 import type { Env } from '../types/index.d.ts';
 
 /** Extended environment for API handlers */
@@ -65,7 +66,8 @@ const ROUTES: RouteRegistry = {
     // ============================================
     '/api/health': { handler: handleHealth, methods: ['GET'] },
     '/api/debug': { handler: handleDebug, methods: ['GET'] },
-    '/api/cleanup': { handler: handleCleanup, methods: ['POST'] }
+    '/api/cleanup': { handler: handleCleanup, methods: ['POST'] },
+    '/api/outbound/purchase': { handler: handleOutboundPurchaseEmail, methods: ['POST'] }
 };
 
 /**
