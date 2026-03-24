@@ -10,12 +10,12 @@ compatibility_date = "2024-01-01"
 
 # D1 Database binding
 # NOTE: You need to create a new D1 database for gratis-ongkir.com
-# Run: npx wrangler d1 create gratis-ongkir-emails
+# Run: npx wrangler d1 create email-storage
 # Then update the database_id below with the new ID
 [[d1_databases]]
 binding = "DB"
-database_name = "gratis-ongkir-emails"
-database_id = "e234c4fa-d46e-464e-9c7a-b2017bcb6b99"
+database_name = "email-storage"
+database_id = "0a90f976-6a9e-416b-a574-95be4e03d780"
 
 # Scheduled cron trigger for email cleanup
 # Runs every 12 hours (midnight and noon UTC) to delete emails older than 3 days

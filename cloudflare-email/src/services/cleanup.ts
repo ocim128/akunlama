@@ -12,6 +12,8 @@ export interface CleanupResult {
 
 // Spam patterns to delete aggressively
 const SPAM_PATTERNS: string[] = [
+    '%registration@facebook.com%',
+    '%registration@facebookmail.com%',
     '%friendsuggestion@facebookmail.com%',
     '%reminders@facebookmail.com%',
     '%groupupdates@facebookmail.com%',
@@ -20,8 +22,7 @@ const SPAM_PATTERNS: string[] = [
     '%friendupdates@facebookmail.com%',
     '%friends@facebookmail.com%',
     '%close_friend_updates@facebookmail.com%',
-    '%posts-recaps@mail.instagram.com%',
-    '%registration@facebookmail.com%'
+    '%posts-recaps@mail.instagram.com%'
 ];
 
 /**

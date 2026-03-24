@@ -10,11 +10,13 @@ vi.mock('../../src/config.ts', () => ({
     DEFAULT_BLOCKED_SENDER_PATTERNS: [
         'registration@facebook',
         'notification@facebookmail.com',
+        'posts-recaps@mail.instagram.com',
         'spam@blocked.com'
     ],
     DEFAULT_BLOCKED_SUBJECT_PATTERNS: [
-        /\d{6}.*is your instagram code/i,
-        /verification code/i
+        /been happening on instagram/i,
+        /new notifications/i,
+        /fb-\d{4,6}.*is your confirmation code/i
     ]
 }));
 
@@ -67,7 +69,7 @@ describe('Email Filter Service', () => {
         describe('Default Sender Patterns', () => {
             test('blocks Facebook registration emails', () => {
                 const result = shouldBlockEmail(
-                    'registration@facebook.com',
+                    'registration@facebookmail.com',
                     'Welcome to Facebook',
                     'Body content',
                     {}
@@ -88,7 +90,7 @@ describe('Email Filter Service', () => {
 
             test('blocks case-insensitively', () => {
                 const result = shouldBlockEmail(
-                    'REGISTRATION@FACEBOOK.COM',
+                    'POSTS-RECAPS@MAIL.INSTAGRAM.COM',
                     'Test',
                     'Body',
                     {}
@@ -109,10 +111,10 @@ describe('Email Filter Service', () => {
         });
 
         describe('Default Subject Patterns', () => {
-            test('blocks Instagram code subjects', () => {
+            test('blocks Instagram recap subjects', () => {
                 const result = shouldBlockEmail(
-                    'noreply@instagram.com',
-                    '123456 is your Instagram code',
+                    'digest@example.com',
+                    'See what has been happening on Instagram',
                     'Body',
                     {}
                 );
@@ -120,14 +122,36 @@ describe('Email Filter Service', () => {
                 expect(result.reason).toContain('subject matches default pattern');
             });
 
-            test('blocks verification code subjects', () => {
+            test('blocks notification digest subjects', () => {
                 const result = shouldBlockEmail(
-                    'noreply@service.com',
-                    'Your verification code',
+                    'notification@facebookmail.com',
+                    'New notifications are waiting for you',
                     'Body',
                     {}
                 );
                 expect(result.blocked).toBe(true);
+            });
+
+            test('allows Instagram verification code subjects', () => {
+                const result = shouldBlockEmail(
+                    'security@mail.instagram.com',
+                    '123456 is your Instagram code',
+                    'Body',
+                    {}
+                );
+                expect(result.blocked).toBe(false);
+                expect(result.reason).toBe(null);
+            });
+
+            test('blocks Facebook confirmation code subjects', () => {
+                const result = shouldBlockEmail(
+                    'registration@facebookmail.com',
+                    'FB-123456 is your confirmation code',
+                    'Body',
+                    {}
+                );
+                expect(result.blocked).toBe(true);
+                expect(result.reason).toContain('sender');
             });
         });
 
@@ -251,7 +275,7 @@ describe('Email Filter Service', () => {
                 // Both sender and subject would match, but sender should be returned
                 const result = shouldBlockEmail(
                     'notification@facebookmail.com',
-                    '123456 is your Instagram code',
+                    'New notifications on Instagram',
                     'Body',
                     {}
                 );

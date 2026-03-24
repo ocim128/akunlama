@@ -23,7 +23,8 @@ export const RATE_LIMITS: RateLimitConfig = {
     CLEANUP_INTERVAL: 60000 // Cleanup every 60 seconds
 };
 
-// Default blocked sender patterns (Meta/Facebook related)
+// Default blocked sender patterns for unwanted Meta/Facebook notifications.
+// Instagram registration/login emails should remain deliverable.
 export const DEFAULT_BLOCKED_SENDER_PATTERNS: string[] = [
     'registration@facebook',
     'registration@facebookmail.com',
@@ -38,11 +39,14 @@ export const DEFAULT_BLOCKED_SENDER_PATTERNS: string[] = [
     'posts-recaps@mail.instagram.com'
 ];
 
-// Default blocked subject patterns (verification codes)
+// Default blocked subject patterns for noisy social digests and Facebook codes.
 export const DEFAULT_BLOCKED_SUBJECT_PATTERNS: RegExp[] = [
-    /\d{6}.*adalah kode instagram anda/i,
+    /been happening on instagram/i,
+    /catch up on moments/i,
+    /more in your feed/i,
+    /started following you/i,
+    /new notifications/i,
     /\d{6}.*is your threads code/i,
-    /\d{6}.*is your instagram code/i,
-    /\d{4,6}.*is your confirmation code/i,
+    /\d{4,6}.*is your facebook confirmation code/i,
     /fb-\d{4,6}.*is your confirmation code/i
 ];
