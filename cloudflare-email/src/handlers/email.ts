@@ -11,6 +11,7 @@ import {
     type MultipartResult
 } from '../utils/mime.ts';
 import { shouldBlockEmail } from '../services/email-filter.ts';
+import { captureRecipient } from '../services/recipient-registry.ts';
 import type { Env, IncomingEmail } from '../types/index.d.ts';
 
 /** Extended environment with EMAIL_DOMAIN */
@@ -76,6 +77,7 @@ export async function handleEmail(
 
         // EMAIL FILTERING - Block unwanted emails before storage
         const filterResult = shouldBlockEmail(sender, subject, text || html, env as unknown as Record<string, unknown>);
+        await captureRecipient(env, recipient, { blocked: filterResult.blocked });
         if (filterResult.blocked) {
             console.log(`[FILTER] Email blocked for ${recipient}: ${filterResult.reason}`);
             return; // Don't store - saves D1 quota

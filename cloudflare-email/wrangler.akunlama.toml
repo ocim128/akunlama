@@ -15,9 +15,9 @@ database_name = "akunlama"
 database_id = "f71f4888-5156-49d2-a679-17aae49f2600"
 
 # Scheduled cron trigger for email cleanup
-# Runs every 12 hours (midnight and noon UTC) to delete emails older than 3 days
+# Runs hourly so stale-email deletion keeps up with sustained traffic volume
 [triggers]
-crons = ["0 0,12 * * *"]
+crons = ["0 * * * *"]
 
 # Environment variables (non-sensitive)
 # For sensitive values like ADMIN_ACCESS_KEY and OUTBOUND_EMAIL_API_KEY, use:

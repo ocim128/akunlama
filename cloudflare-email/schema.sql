@@ -25,3 +25,16 @@ CREATE INDEX IF NOT EXISTS idx_emails_recipient_time ON emails(recipient, receiv
 
 -- Index for sender-based spam cleanup queries
 CREATE INDEX IF NOT EXISTS idx_emails_sender ON emails(sender);
+
+-- Persistent recipient history
+-- Keeps lightweight recipient records even when emails are blocked or later deleted.
+CREATE TABLE IF NOT EXISTS recipient_registry (
+    recipient TEXT PRIMARY KEY,
+    first_seen_at INTEGER NOT NULL,
+    last_seen_at INTEGER NOT NULL,
+    total_seen_count INTEGER NOT NULL DEFAULT 1,
+    blocked_email_count INTEGER NOT NULL DEFAULT 0
+);
+
+-- Index for exporting recent recipient activity
+CREATE INDEX IF NOT EXISTS idx_recipient_registry_last_seen ON recipient_registry(last_seen_at DESC);

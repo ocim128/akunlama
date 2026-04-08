@@ -107,7 +107,7 @@ describe('HTTP Utils', () => {
             const headers = createHeaders();
 
             expect(headers['Access-Control-Allow-Methods']).toBe('GET, POST, PATCH, OPTIONS');
-            expect(headers['Access-Control-Allow-Headers']).toBe('Content-Type, If-None-Match');
+            expect(headers['Access-Control-Allow-Headers']).toBe('Authorization, Content-Type, If-None-Match');
         });
 
         test('merges additional headers', () => {

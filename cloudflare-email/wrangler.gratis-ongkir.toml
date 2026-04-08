@@ -18,9 +18,9 @@ database_name = "email-storage"
 database_id = "0a90f976-6a9e-416b-a574-95be4e03d780"
 
 # Scheduled cron trigger for email cleanup
-# Runs every 12 hours (midnight and noon UTC) to delete emails older than 3 days
+# Runs hourly so stale-email deletion keeps up with sustained traffic volume
 [triggers]
-crons = ["0 0,12 * * *"]
+crons = ["0 * * * *"]
 
 # Environment variables (non-sensitive)
 # For sensitive values like ADMIN_ACCESS_KEY, use:

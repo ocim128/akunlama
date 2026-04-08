@@ -51,6 +51,8 @@ Thumbs.db
 # Cloudflare
 # ======================================
 .wrangler/
+/cloudflare-email/incident-artifacts/
+/cloudflare-email/local-ops/
 
 # ======================================
 # Misc
