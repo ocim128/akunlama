@@ -144,7 +144,27 @@
 				}, 500)
 			},
 
+			prepareIframeLinks() {
+				const iframe = document.getElementById('message-content')
+				if (!iframe || !iframe.contentDocument) return
+
+				const doc = iframe.contentDocument
+				const head = doc.head || doc.getElementsByTagName('head')[0]
+
+				if (head && !doc.querySelector('base[target]')) {
+					const base = doc.createElement('base')
+					base.setAttribute('target', '_blank')
+					head.prepend(base)
+				}
+
+				doc.querySelectorAll('a[href]').forEach(link => {
+					link.setAttribute('target', '_blank')
+					link.setAttribute('rel', 'noopener noreferrer')
+				})
+			},
+
 			onIframeLoad() {
+				this.prepareIframeLinks()
 				this.iframeLoading = false
 			},
 

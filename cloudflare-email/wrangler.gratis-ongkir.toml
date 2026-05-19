@@ -8,10 +8,9 @@ name = "worker-email-gratis-ongkir"
 main = "src/index.ts"
 compatibility_date = "2024-01-01"
 
+send_email = [{ name = "OUTBOUND_EMAIL" }]
+
 # D1 Database binding
-# NOTE: You need to create a new D1 database for gratis-ongkir.com
-# Run: npx wrangler d1 create email-storage
-# Then update the database_id below with the new ID
 [[d1_databases]]
 binding = "DB"
 database_name = "email-storage"
@@ -23,18 +22,17 @@ database_id = "0a90f976-6a9e-416b-a574-95be4e03d780"
 crons = ["0 * * * *"]
 
 # Environment variables (non-sensitive)
-# For sensitive values like ADMIN_ACCESS_KEY, use:
+# For sensitive values like ADMIN_ACCESS_KEY and OUTBOUND_EMAIL_API_KEY, use:
 # npx wrangler secret put ADMIN_ACCESS_KEY --config wrangler.gratis-ongkir.toml
+# npx wrangler secret put OUTBOUND_EMAIL_API_KEY --config wrangler.gratis-ongkir.toml
 [vars]
 EMAIL_DOMAIN = "gratis-ongkir.com"
+OUTBOUND_EMAIL_FROM = "noreply@gratis-ongkir.com"
 
 # Optional: Banned usernames (comma-separated)
 # BANNED_USERNAMES = "admin,postmaster,abuse,root"
 
-# Optional: Additional blocked keywords for email filtering
-BLOCKED_SENDER_KEYWORDS = "newsletter,birthdays@facebookmail.com,memories@facebookmail.com,notification@service.tiktok.com,messages@facebookmail.com,stories-recap@mail.instagram.com,posts-recap@mail.instagram.com,follow-suggestions@mail.instagram.com,friendsuggestion@facebookmail.com,reminders@facebookmail.com,groupupdates@facebookmail.com,pageupdates@facebookmail.com,notification@facebookmail.com,friendupdates@facebookmail.com"
-BLOCKED_SUBJECT_KEYWORDS = "lainnya di beranda Anda,lihat apa yang sedang terjadi,unread message,lihat kembali momen,membangikan postingan baru,catch up on moments,been happening on Instagram,more in your feed,started following you,pesan yang belum dibaca,melihat reel dari,shared something new,Pesan penting tentang,anlara göz at,Anda memiliki pesan,added to their stories,yang Anda lewatkan,otros en tu feed,pilihan dari jaringan Anda,pembaruan populer dari,commented on a post,berkomentar ::,Apakah Anda kenal,menyukai postingan Anda,pembaruan untuk Anda,saran Grup baru untuk Anda,postingan pop uler,pemberitahuan baru,new notifications,is a suggestion,foto baru,teman baru untuk Anda,dan lainnya"
-# BLOCKED_BODY_KEYWORDS = "click here to claim"
+# No email filtering for gratis-ongkir - all emails are accepted
 
 # ============================================
 # DEPLOYMENT COMMANDS FOR GRATIS-ONGKIR.COM

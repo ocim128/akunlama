@@ -125,6 +125,45 @@ describe('MessageList.vue', () => {
             )
         })
 
+        it('should try raw recipient first, then domain-qualified recipient for empty normal inboxes', async () => {
+            vi.clearAllMocks()
+            // @ts-ignore
+            axios.get
+                .mockResolvedValueOnce({ data: [] })
+                .mockResolvedValueOnce({ data: mockMessages })
+
+            await wrapper.vm.getMessageList()
+            await flushPromises()
+
+            expect(axios.get).toHaveBeenNthCalledWith(
+                1,
+                expect.stringContaining('list?recipient=test-user')
+            )
+            expect(axios.get).toHaveBeenNthCalledWith(
+                2,
+                expect.stringContaining('list?recipient=test-user%40test-domain.com')
+            )
+            expect(wrapper.vm.listOfMessages).toEqual(mockMessages)
+        })
+
+        it('should not append the domain when raw recipient returns messages', async () => {
+            vi.clearAllMocks()
+            // @ts-ignore
+            axios.get.mockResolvedValueOnce({ data: mockMessages })
+
+            await wrapper.vm.getMessageList()
+            await flushPromises()
+
+            expect(axios.get).toHaveBeenCalledTimes(1)
+            expect(axios.get).toHaveBeenCalledWith(
+                expect.stringContaining('list?recipient=test-user')
+            )
+        })
+
+        it('should keep an already-qualified recipient as a single candidate', () => {
+            expect(wrapper.vm.getInboxRecipientCandidates('test-user@test-domain.com')).toEqual(['test-user@test-domain.com'])
+        })
+
         it('should update listOfMessages when API returns data', async () => {
             // Wait for the promise to resolve
             await flushPromises()
@@ -203,7 +242,9 @@ describe('MessageList.vue', () => {
         it('should show empty state when no messages', async () => {
             // Mock empty response
             // @ts-ignore
-            axios.get.mockResolvedValueOnce({ data: [] })
+            axios.get
+                .mockResolvedValueOnce({ data: [] })
+                .mockResolvedValueOnce({ data: [] })
             await wrapper.vm.getMessageList()
             await flushPromises()
 

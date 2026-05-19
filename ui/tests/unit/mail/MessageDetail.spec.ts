@@ -226,6 +226,27 @@ describe('MessageDetail.vue', () => {
 
             expect(wrapper.vm.iframeLoading).toBe(false)
         })
+
+        it('forces email iframe links to open in a new tab', () => {
+            const doc = document.implementation.createHTMLDocument('Email')
+            doc.body.innerHTML = '<a href="https://example.com" target="_self">Open</a>'
+
+            const originalGetElementById = document.getElementById
+            document.getElementById = vi.fn().mockReturnValue({
+                contentDocument: doc
+            })
+
+            wrapper.vm.onIframeLoad()
+
+            const link = doc.querySelector('a')
+            const base = doc.querySelector('base')
+
+            expect(link?.getAttribute('target')).toBe('_blank')
+            expect(link?.getAttribute('rel')).toBe('noopener noreferrer')
+            expect(base?.getAttribute('target')).toBe('_blank')
+
+            document.getElementById = originalGetElementById
+        })
     })
 
     describe('Copy Functionality', () => {

@@ -120,6 +120,36 @@ export default {
     this.$eventHub.off('refresh', this.getMessageList)
   },
   methods: {
+    getInboxRecipientCandidates (email) {
+      const trimmedEmail = Array.isArray(email) ? (email[0] || '') : (email || '')
+      const recipient = trimmedEmail.trim()
+      if (!recipient || recipient.includes('@')) {
+        return [recipient]
+      }
+      return [recipient, `${recipient}@${config.domain}`]
+    },
+
+    async fetchMessageListForCandidates (recipients) {
+      let lastError = null
+
+      for (const recipient of recipients) {
+        try {
+          const res = await axios.get(config.apiUrl + '/list?recipient=' + encodeURIComponent(recipient))
+          if (!Array.isArray(res.data) || res.data.length > 0 || recipient.includes('@')) {
+            return res
+          }
+        } catch (e) {
+          lastError = e
+        }
+      }
+
+      if (lastError) {
+        throw lastError
+      }
+
+      return { data: [] }
+    },
+
     refreshList () {
       if (this.refreshing) return
       this.refreshing = true
@@ -131,8 +161,8 @@ export default {
       this.refreshing = true
       this.$eventHub.emit('refreshStart')
       
-      let email = this.$route.params.email
-      axios.get(config.apiUrl + '/list?recipient=' + email)
+      const recipients = this.getInboxRecipientCandidates(this.$route.params.email)
+      this.fetchMessageListForCandidates(recipients)
         .then(res => {
           this.listOfMessages = res.data
           this.refreshing = false
