@@ -15,6 +15,9 @@ config.global.mocks = {
 config.global.provide = {
     eventHub: emitter
 }
+config.global.stubs = {
+    'font-awesome-icon': true
+}
 
 // Mock window.matchMedia for responsive design tests
 Object.defineProperty(window, 'matchMedia', {

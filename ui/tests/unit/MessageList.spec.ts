@@ -21,9 +21,13 @@ const emitter = mitt()
 vi.mock('@/../config/apiconfig', () => ({
     default: {
         domain: 'test-domain.com',
-        apiUrl: 'http://localhost:8080/api/v1/mail'
+        apiUrl: 'http://localhost:8080/api/v1/mail',
+        autoRefreshInterval: 30000,
+        requestTimeout: 10000
     }
 }))
+
+const mockedAxiosGet = vi.mocked(axios.get)
 
 describe('MessageList.vue', () => {
     let wrapper: VueWrapper<any>
@@ -79,8 +83,7 @@ describe('MessageList.vue', () => {
         })
 
         // Mock the API response
-        // @ts-ignore
-        axios.get.mockResolvedValue({ data: mockMessages })
+        mockedAxiosGet.mockResolvedValue({ data: mockMessages })
 
         await router.push('/inbox/test-user')
         await router.isReady()
@@ -100,6 +103,7 @@ describe('MessageList.vue', () => {
                 }
             }
         })
+        await flushPromises()
     })
 
     afterEach(() => {
@@ -120,48 +124,43 @@ describe('MessageList.vue', () => {
 
     describe('Message Fetching', () => {
         it('should call API to fetch messages on mount', () => {
-            expect(axios.get).toHaveBeenCalledWith(
-                expect.stringContaining('list?recipient=test-user')
+            expect(mockedAxiosGet).toHaveBeenCalledWith(
+                expect.stringContaining('list?recipient=test-user'),
+                { timeout: 10000 }
             )
         })
 
-        it('should try raw recipient first, then domain-qualified recipient for empty normal inboxes', async () => {
+        it('should fetch a bare recipient once because the API handles recipient variants', async () => {
             vi.clearAllMocks()
-            // @ts-ignore
-            axios.get
-                .mockResolvedValueOnce({ data: [] })
-                .mockResolvedValueOnce({ data: mockMessages })
+            mockedAxiosGet.mockResolvedValueOnce({ data: [] })
 
             await wrapper.vm.getMessageList()
             await flushPromises()
 
-            expect(axios.get).toHaveBeenNthCalledWith(
-                1,
-                expect.stringContaining('list?recipient=test-user')
+            expect(mockedAxiosGet).toHaveBeenCalledTimes(1)
+            expect(mockedAxiosGet).toHaveBeenCalledWith(
+                expect.stringContaining('list?recipient=test-user'),
+                { timeout: 10000 }
             )
-            expect(axios.get).toHaveBeenNthCalledWith(
-                2,
-                expect.stringContaining('list?recipient=test-user%40test-domain.com')
-            )
-            expect(wrapper.vm.listOfMessages).toEqual(mockMessages)
+            expect(wrapper.vm.listOfMessages).toEqual([])
         })
 
-        it('should not append the domain when raw recipient returns messages', async () => {
+        it('should not append the domain when fetching messages', async () => {
             vi.clearAllMocks()
-            // @ts-ignore
-            axios.get.mockResolvedValueOnce({ data: mockMessages })
+            mockedAxiosGet.mockResolvedValueOnce({ data: mockMessages })
 
             await wrapper.vm.getMessageList()
             await flushPromises()
 
-            expect(axios.get).toHaveBeenCalledTimes(1)
-            expect(axios.get).toHaveBeenCalledWith(
-                expect.stringContaining('list?recipient=test-user')
+            expect(mockedAxiosGet).toHaveBeenCalledTimes(1)
+            expect(mockedAxiosGet).toHaveBeenCalledWith(
+                expect.stringContaining('list?recipient=test-user'),
+                { timeout: 10000 }
             )
         })
 
         it('should keep an already-qualified recipient as a single candidate', () => {
-            expect(wrapper.vm.getInboxRecipientCandidates('test-user@test-domain.com')).toEqual(['test-user@test-domain.com'])
+            expect(wrapper.vm.getInboxRecipient('test-user@test-domain.com')).toBe('test-user@test-domain.com')
         })
 
         it('should update listOfMessages when API returns data', async () => {
@@ -178,14 +177,15 @@ describe('MessageList.vue', () => {
         })
 
         it('should handle API errors gracefully', async () => {
-            // @ts-ignore
-            axios.get.mockRejectedValueOnce(new Error('Network error'))
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+            mockedAxiosGet.mockRejectedValueOnce(new Error('Network error'))
 
             // Trigger refresh manually to test error handling
             await wrapper.vm.refreshList()
             await flushPromises()
 
             expect(wrapper.vm.refreshing).toBe(false)
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to fetch messages:', expect.any(Error))
         })
     })
 
@@ -241,10 +241,7 @@ describe('MessageList.vue', () => {
     describe('UI States', () => {
         it('should show empty state when no messages', async () => {
             // Mock empty response
-            // @ts-ignore
-            axios.get
-                .mockResolvedValueOnce({ data: [] })
-                .mockResolvedValueOnce({ data: [] })
+            mockedAxiosGet.mockResolvedValueOnce({ data: [] })
             await wrapper.vm.getMessageList()
             await flushPromises()
 

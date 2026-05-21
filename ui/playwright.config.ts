@@ -5,6 +5,10 @@
 
 import { defineConfig, devices } from '@playwright/test'
 
+const configuredPort = Number(process.env.PLAYWRIGHT_PORT)
+const e2ePort = Number.isInteger(configuredPort) && configuredPort > 0 ? configuredPort : 5173
+const baseURL = `http://127.0.0.1:${e2ePort}`
+
 export default defineConfig({
     testDir: './tests/e2e',
 
@@ -35,7 +39,7 @@ export default defineConfig({
     // Shared settings for all projects
     use: {
         // Base URL for the app
-        baseURL: 'http://localhost:5173',
+        baseURL,
 
         // Collect trace when retrying the failed test
         trace: 'on-first-retry',
@@ -77,9 +81,9 @@ export default defineConfig({
 
     // Run local dev server before starting the tests
     webServer: {
-        command: 'npm run dev:e2e',
-        url: 'http://localhost:5173',
-        reuseExistingServer: !process.env.CI,
+        command: `npx vite --host 127.0.0.1 --port ${e2ePort} --strictPort`,
+        url: baseURL,
+        reuseExistingServer: process.env.PLAYWRIGHT_REUSE_SERVER === '1',
         timeout: 120 * 1000,
     },
 })

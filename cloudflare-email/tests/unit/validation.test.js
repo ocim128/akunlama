@@ -3,6 +3,7 @@ import {
     getBannedUsernames,
     validateUsername,
     normalizeRecipient,
+    normalizeRecipientLookup,
     extractUsername
 } from '../../src/utils/validation.ts';
 import { expect, test, describe } from 'vitest';
@@ -183,6 +184,36 @@ describe('Validation Utils', () => {
 
         test('handles empty EMAIL_DOMAIN', () => {
             const result = normalizeRecipient('testuser', { EMAIL_DOMAIN: '' });
+            expect(result.success).toBe(false);
+            expect(result.error).toContain('EMAIL_DOMAIN');
+        });
+    });
+
+    describe('normalizeRecipientLookup', () => {
+        const mockEnv = { EMAIL_DOMAIN: 'example.com' };
+
+        test('builds exact lookup candidates for bare username', () => {
+            const result = normalizeRecipientLookup('TestUser', mockEnv);
+
+            expect(result).toEqual({
+                success: true,
+                recipient: 'testuser@example.com',
+                username: 'testuser',
+                candidates: ['testuser@example.com', 'testuser']
+            });
+        });
+
+        test('includes environment-domain and bare compatibility candidates for full email', () => {
+            const result = normalizeRecipientLookup('User@Other.com', mockEnv);
+
+            expect(result.success).toBe(true);
+            expect(result.recipient).toBe('user@other.com');
+            expect(result.username).toBe('user');
+            expect(result.candidates).toEqual(['user@other.com', 'user@example.com', 'user']);
+        });
+
+        test('fails for bare username without EMAIL_DOMAIN', () => {
+            const result = normalizeRecipientLookup('testuser', {});
             expect(result.success).toBe(false);
             expect(result.error).toContain('EMAIL_DOMAIN');
         });

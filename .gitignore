@@ -16,6 +16,10 @@ node_modules/
 /ui/playwright-report/
 /ui/test-results/
 /ui/coverage/
+/cloudflare-email/coverage/
+/ui/type-errors.txt
+/ui/status.txt
+/ui/projects*.txt
 *.lcov
 
 # ======================================

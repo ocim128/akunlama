@@ -2,7 +2,8 @@
 
 import { decodeMimeWords } from '../utils/mime.ts';
 import { jsonResponse, getClientIP } from '../utils/http.ts';
-import { validateUsername, extractUsername } from '../utils/validation.ts';
+import { normalizeRecipientLookup } from '../utils/validation.ts';
+import { isAuthorizedAdmin } from '../utils/auth.ts';
 import { checkRateLimit } from '../services/rate-limiter.ts';
 import type { Env } from '../types/index.d.ts';
 
@@ -67,35 +68,27 @@ export async function handleStream(
     // Check for admin access (wildcard)
     const isAdminRequest = trimmedRecipient === '*' || trimmedRecipient === 'all';
     let lookupRecipient = trimmedRecipient;
+    let recipientCandidates: string[] = [];
 
     // For non-admin requests, validate username
     if (!isAdminRequest) {
-        const username = extractUsername(lookupRecipient);
-
-        const validation = validateUsername(username, env);
-        if (!validation.valid) {
-            return jsonResponse({ error: validation.error }, 400);
+        const lookup = normalizeRecipientLookup(lookupRecipient, env);
+        if (!lookup.success) {
+            return jsonResponse({ error: lookup.error }, 400);
         }
 
         // Rate limit (lighter for SSE)
         const clientIP = getClientIP(request);
-        const rateCheck = checkRateLimit(username, clientIP);
+        const rateCheck = checkRateLimit(lookup.username, clientIP);
         if (!rateCheck.allowed) {
             return jsonResponse({ error: rateCheck.error }, 429);
         }
 
-        if (!lookupRecipient.includes('@')) {
-            if (env.EMAIL_DOMAIN) {
-                lookupRecipient = `${lookupRecipient}@${env.EMAIL_DOMAIN}`;
-            } else {
-                return jsonResponse({ error: 'EMAIL_DOMAIN is not configured' }, 400);
-            }
-        }
+        lookupRecipient = lookup.recipient;
+        recipientCandidates = lookup.candidates;
     } else {
         // Admin wildcard requires key
-        const adminKey = url.searchParams.get('admin_key');
-        const validAdminKey = env.ADMIN_ACCESS_KEY;
-        if (!validAdminKey || !adminKey || adminKey !== validAdminKey) {
+        if (!isAuthorizedAdmin(request, url, env)) {
             return jsonResponse({ error: 'Unauthorized' }, 403);
         }
     }
@@ -115,12 +108,10 @@ export async function handleStream(
     ctx.waitUntil((async () => {
         try {
             let lastEmailId: string | null = null;
-            const rawUsername = lookupRecipient.split('@')[0].toLowerCase();
-            const fullEmail = (rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com')).toLowerCase();
-            const normalizedRecipient = lookupRecipient.toLowerCase();
             const pollInterval = 3000; // 3 seconds
             const maxDuration = 25000; // 25 seconds total
             const startTime = Date.now();
+            const placeholders = recipientCandidates.map(() => '?').join(', ');
 
             // Send initial connection event
             await sendEvent('connected', { recipient: lookupRecipient, timestamp: Date.now() });
@@ -139,10 +130,10 @@ export async function handleStream(
                     result = await env.DB.prepare(`
                         SELECT id, recipient, sender, subject, received_at, read_at 
                         FROM emails 
-                        WHERE recipient = ? OR recipient = ? OR recipient LIKE ?
+                        WHERE recipient IN (${placeholders})
                         ORDER BY received_at DESC 
                         LIMIT 20
-                    `).bind(normalizedRecipient, fullEmail, '%' + rawUsername + '@%').all<EmailRow>();
+                    `).bind(...recipientCandidates).all<EmailRow>();
                 }
 
                 const emails = result.results || [];

@@ -31,8 +31,30 @@ async function waitForLandingLoad(page: Page, timeout = 30000) {
     await page.waitForSelector('.hero-section', { timeout })
 }
 
+async function mockInboxList(page: Page, messages = []) {
+    await page.route('**/api/list**', route => {
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(messages)
+        })
+    })
+
+    await page.route('**/api/v1/mail/list**', route => {
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(messages)
+        })
+    })
+}
+
 test.describe('Complete User Flow', () => {
-    test('should complete full flow: generate name → navigate to inbox', async ({ page }) => {
+    test.beforeEach(async ({ page }) => {
+        await mockInboxList(page)
+    })
+
+    test('should complete full flow: generate name -> navigate to inbox', async ({ page }) => {
         // 1. Start at landing page
         await page.goto('/')
         await expect(page.locator('.hero-section')).toBeVisible()
@@ -57,7 +79,7 @@ test.describe('Complete User Flow', () => {
         await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
     })
 
-    test('should complete flow: enter custom name → navigate to inbox', async ({ page }) => {
+    test('should complete flow: enter custom name -> navigate to inbox', async ({ page }) => {
         // 1. Start at landing page
         await page.goto('/')
 
@@ -118,6 +140,7 @@ test.describe('Complete User Flow', () => {
 test.describe('Error Handling', () => {
     test('should handle network errors gracefully in inbox', async ({ page }) => {
         // Block API requests
+        await page.route('**/api/list**', route => route.abort())
         await page.route('**/api/v1/mail/list**', route => route.abort())
 
         // Navigate to inbox
@@ -129,9 +152,6 @@ test.describe('Error Handling', () => {
         // Should show empty state or error state (not crash)
         await page.waitForTimeout(2000)
 
-        const emptyState = page.locator('.empty-state')
-        const loadingState = page.locator('.loading-container')
-
         // Page should be in a valid state
         const pageLoaded = await page.locator('body').textContent()
         expect(pageLoaded).toBeTruthy()
@@ -139,13 +159,7 @@ test.describe('Error Handling', () => {
 
     test('should handle 404 API responses', async ({ page }) => {
         // Mock API to return empty
-        await page.route('**/api/v1/mail/list**', route => {
-            route.fulfill({
-                status: 200,
-                contentType: 'application/json',
-                body: JSON.stringify([])
-            })
-        })
+        await mockInboxList(page)
 
         await page.goto('/inbox/empty-test')
         await waitForInboxLoad(page)
@@ -156,6 +170,10 @@ test.describe('Error Handling', () => {
 })
 
 test.describe('Performance', () => {
+    test.beforeEach(async ({ page }) => {
+        await mockInboxList(page)
+    })
+
     test('should load landing page within acceptable time', async ({ page }) => {
         const startTime = Date.now()
 
@@ -184,6 +202,10 @@ test.describe('Performance', () => {
 })
 
 test.describe('Cross-Browser Visual Consistency', () => {
+    test.beforeEach(async ({ page }) => {
+        await mockInboxList(page)
+    })
+
     test('should render landing page consistently', async ({ page }) => {
         await page.goto('/')
 

@@ -8,7 +8,7 @@
     <div class="advisory-banner">
       <div class="advisory-content">
         <font-awesome-icon icon="cat" />
-        <span>🐱 Meow! This is for fun emails only - not for banking or your secret catnip orders! Our kittens are judgmental about boring stuff.</span>
+        <span>Use this disposable inbox only for low-risk emails. Avoid banking, account recovery, or sensitive messages.</span>
       </div>
     </div>
 
@@ -65,6 +65,8 @@ import SkeletonLoader from '../ui/SkeletonLoader.vue'
 import EmailListItem from './EmailListItem.vue'
 import EmptyInbox from './EmptyInbox.vue'
 
+const refreshIntervalSeconds = Math.max(1, Math.ceil((config.autoRefreshInterval || 30000) / 1000))
+
 export default {
   name: 'MessageList',
   components: {
@@ -78,7 +80,7 @@ export default {
       listOfMessages: [],
       refreshing: false,
       lastRefreshed: dayjs(),
-      countdown: 10,
+      countdown: refreshIntervalSeconds,
       countdownTimer: null
     }
   },
@@ -102,7 +104,7 @@ export default {
 
     this.getMessageList()
     
-    // Auto-refresh every 10 seconds
+    // Auto-refresh using the configured interval.
     this.countdownTimer = window.setInterval(() => {
       if (this.countdown > 0) {
         this.countdown--
@@ -120,62 +122,45 @@ export default {
     this.$eventHub.off('refresh', this.getMessageList)
   },
   methods: {
-    getInboxRecipientCandidates (email) {
+    getInboxRecipient (email) {
       const trimmedEmail = Array.isArray(email) ? (email[0] || '') : (email || '')
-      const recipient = trimmedEmail.trim()
-      if (!recipient || recipient.includes('@')) {
-        return [recipient]
-      }
-      return [recipient, `${recipient}@${config.domain}`]
+      return trimmedEmail.trim()
     },
 
-    async fetchMessageListForCandidates (recipients) {
-      let lastError = null
-
-      for (const recipient of recipients) {
-        try {
-          const res = await axios.get(config.apiUrl + '/list?recipient=' + encodeURIComponent(recipient))
-          if (!Array.isArray(res.data) || res.data.length > 0 || recipient.includes('@')) {
-            return res
-          }
-        } catch (e) {
-          lastError = e
-        }
-      }
-
-      if (lastError) {
-        throw lastError
-      }
-
-      return { data: [] }
+    fetchMessageList (recipient) {
+      return axios.get(
+        config.apiUrl + '/list?recipient=' + encodeURIComponent(recipient),
+        { timeout: config.requestTimeout }
+      )
     },
 
     refreshList () {
-      if (this.refreshing) return
-      this.refreshing = true
-      this.$eventHub.emit('refreshStart')
-      this.getMessageList()
+      return this.getMessageList()
     },
     
-    getMessageList () {
+    async getMessageList () {
+      if (this.refreshing) return
+
       this.refreshing = true
       this.$eventHub.emit('refreshStart')
-      
-      const recipients = this.getInboxRecipientCandidates(this.$route.params.email)
-      this.fetchMessageListForCandidates(recipients)
-        .then(res => {
-          this.listOfMessages = res.data
-          this.refreshing = false
-          this.lastRefreshed = dayjs()
-          this.countdown = 10 // Reset countdown
-          this.$eventHub.emit('refreshEnd')
-        }).catch((e) => {
-          this.refreshing = false
-          this.lastRefreshed = dayjs()
-          this.countdown = 10 // Reset countdown even on error
-          this.$eventHub.emit('refreshEnd')
-          console.error('Failed to fetch messages:', e)
-        })
+
+      try {
+        const recipient = this.getInboxRecipient(this.$route.params.email)
+        if (!recipient) {
+          this.listOfMessages = []
+          return
+        }
+
+        const res = await this.fetchMessageList(recipient)
+        this.listOfMessages = res.data
+      } catch (e) {
+        console.error('Failed to fetch messages:', e)
+      } finally {
+        this.refreshing = false
+        this.lastRefreshed = dayjs()
+        this.countdown = refreshIntervalSeconds
+        this.$eventHub.emit('refreshEnd')
+      }
     },
 
     getMessage (msg) {

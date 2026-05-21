@@ -9,7 +9,7 @@
             "DOM.Iterable"
         ],
         "strict": true,
-        "allowJs": true,
+        "allowJs": false,
         "checkJs": false,
         "skipLibCheck": true,
         "esModuleInterop": true,
@@ -31,7 +31,6 @@
         "src/**/*.ts",
         "src/**/*.tsx",
         "src/**/*.vue",
-        "src/**/*.js",
         "vite.config.ts",
         "tests/**/*.ts"
     ],

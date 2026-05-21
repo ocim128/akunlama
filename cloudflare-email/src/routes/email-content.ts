@@ -6,7 +6,7 @@ import {
     truncate
 } from '../utils/mime.ts';
 import { jsonResponse, cachedJsonResponse } from '../utils/http.ts';
-import { validateUsername, extractUsername } from '../utils/validation.ts';
+import { normalizeRecipientLookup } from '../utils/validation.ts';
 import type { Env } from '../types/index.d.ts';
 
 /** Extended Env with EMAIL_DOMAIN */
@@ -64,31 +64,20 @@ export async function handleGetEmail(
         return jsonResponse({ error: 'Missing recipient parameter' }, 400);
     }
 
-    let lookupRecipient = recipient.trim();
-    const username = extractUsername(lookupRecipient);
-
-    const validation = validateUsername(username, env);
-    if (!validation.valid) {
-        return jsonResponse({ error: validation.error }, 400);
+    const lookup = normalizeRecipientLookup(recipient, env);
+    if (!lookup.success) {
+        return jsonResponse({ error: lookup.error }, 400);
     }
 
-    if (!lookupRecipient.includes('@')) {
-        if (env.EMAIL_DOMAIN) {
-            lookupRecipient = `${lookupRecipient}@${env.EMAIL_DOMAIN}`;
-        } else {
-            return jsonResponse({ error: 'EMAIL_DOMAIN is not configured' }, 400);
-        }
-    }
-
-    // Validate both ID AND recipient match (compound key security)
-    const rawUsername = lookupRecipient.split('@')[0];
-    const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
+    const candidates = lookup.candidates;
+    const placeholders = candidates.map(() => '?').join(', ');
 
     const result = await env.DB.prepare(`
-        SELECT * FROM emails 
+        SELECT id, sender, recipient, subject, body_html, body_text, received_at
+        FROM emails
         WHERE id = ? 
-        AND (recipient = ? OR recipient = ? OR recipient = ?)
-    `).bind(emailId, lookupRecipient, rawUsername, fullEmail).first<EmailRow>();
+        AND recipient IN (${placeholders})
+    `).bind(emailId, ...candidates).first<EmailRow>();
 
     if (!result) {
         return jsonResponse({ error: 'Email not found' }, 404);
@@ -133,33 +122,22 @@ export async function handleMarkRead(
         return jsonResponse({ error: 'Missing recipient parameter' }, 400);
     }
 
-    let lookupRecipient = recipient.trim();
-    const username = extractUsername(lookupRecipient);
-
-    const validation = validateUsername(username, env);
-    if (!validation.valid) {
-        return jsonResponse({ error: validation.error }, 400);
+    const lookup = normalizeRecipientLookup(recipient, env);
+    if (!lookup.success) {
+        return jsonResponse({ error: lookup.error }, 400);
     }
 
-    if (!lookupRecipient.includes('@')) {
-        if (env.EMAIL_DOMAIN) {
-            lookupRecipient = `${lookupRecipient}@${env.EMAIL_DOMAIN}`;
-        } else {
-            return jsonResponse({ error: 'EMAIL_DOMAIN is not configured' }, 400);
-        }
-    }
-
-    // Security: Verify email belongs to this recipient
-    const rawUsername = lookupRecipient.split('@')[0];
-    const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
+    const candidates = lookup.candidates;
+    const placeholders = candidates.map(() => '?').join(', ');
+    const readAt = Date.now();
 
     const result = await env.DB.prepare(`
         UPDATE emails 
         SET read_at = ? 
         WHERE id = ? 
         AND read_at IS NULL
-        AND (recipient LIKE ? OR recipient LIKE ? OR recipient LIKE ?)
-    `).bind(Date.now(), emailId, lookupRecipient, rawUsername, fullEmail).run();
+        AND recipient IN (${placeholders})
+    `).bind(readAt, emailId, ...candidates).run();
 
     if (result.meta.changes === 0) {
         const exists = await env.DB.prepare(`
@@ -172,5 +150,5 @@ export async function handleMarkRead(
         return jsonResponse({ success: true, message: 'Already read or not authorized' });
     }
 
-    return jsonResponse({ success: true, read_at: Date.now() });
+    return jsonResponse({ success: true, read_at: readAt });
 }

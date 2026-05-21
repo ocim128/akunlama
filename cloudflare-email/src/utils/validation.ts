@@ -15,6 +15,19 @@ export interface NormalizeResult {
     error?: string;
 }
 
+/** Result of recipient normalization for exact database lookups */
+export type RecipientLookupResult =
+    | {
+        success: true;
+        recipient: string;
+        username: string;
+        candidates: string[];
+    }
+    | {
+        success: false;
+        error: string;
+    };
+
 /**
  * Load banned usernames from environment variable
  */
@@ -71,4 +84,39 @@ export const normalizeRecipient = (recipient: string, env: Env): NormalizeResult
  */
 export const extractUsername = (recipient: string): string => {
     return recipient.includes('@') ? recipient.split('@')[0] : recipient;
+};
+
+/**
+ * Normalize a user-supplied recipient and build exact-match lookup candidates.
+ * Includes bare usernames for backwards compatibility with older stored rows.
+ */
+export const normalizeRecipientLookup = (recipient: string, env: Env): RecipientLookupResult => {
+    const trimmed = recipient.trim().toLowerCase();
+    const username = extractUsername(trimmed);
+
+    const validation = validateUsername(username, env);
+    if (!validation.valid) {
+        return { success: false, error: validation.error || 'Invalid username' };
+    }
+
+    const emailDomain = (env as { EMAIL_DOMAIN?: string }).EMAIL_DOMAIN;
+    if (!trimmed.includes('@') && !emailDomain) {
+        return { success: false, error: 'EMAIL_DOMAIN is not configured' };
+    }
+
+    const normalizedRecipient = trimmed.includes('@')
+        ? trimmed
+        : `${trimmed}@${emailDomain}`;
+    const domainRecipient = `${username}@${emailDomain || 'akunlama.com'}`;
+
+    return {
+        success: true,
+        recipient: normalizedRecipient,
+        username,
+        candidates: Array.from(new Set([
+            normalizedRecipient,
+            domainRecipient,
+            username
+        ].filter(Boolean)))
+    };
 };

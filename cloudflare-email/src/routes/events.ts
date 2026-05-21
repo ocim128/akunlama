@@ -2,7 +2,8 @@
 
 import { decodeMimeWords } from '../utils/mime.ts';
 import { jsonResponse, cachedJsonResponse, getClientIP } from '../utils/http.ts';
-import { validateUsername, extractUsername } from '../utils/validation.ts';
+import { normalizeRecipientLookup } from '../utils/validation.ts';
+import { isAuthorizedAdmin } from '../utils/auth.ts';
 import { checkRateLimit } from '../services/rate-limiter.ts';
 import type { Env } from '../types/index.d.ts';
 
@@ -39,11 +40,8 @@ interface HandlerResult {
 /**
  * Handle admin request for all emails
  */
-async function handleAdminRequest(url: URL, env: EventsEnv): Promise<HandlerResult> {
-    const adminKey = url.searchParams.get('admin_key');
-    const validAdminKey = env.ADMIN_ACCESS_KEY;
-
-    if (!validAdminKey || !adminKey || adminKey !== validAdminKey) {
+async function handleAdminRequest(request: Request, url: URL, env: EventsEnv): Promise<HandlerResult> {
+    if (!isAuthorizedAdmin(request, url, env)) {
         console.log('[SECURITY] Unauthorized admin access attempt');
         return { success: false, error: 'Unauthorized', status: 403 };
     }
@@ -67,45 +65,30 @@ async function handleUserRequest(
     request: Request,
     env: EventsEnv
 ): Promise<HandlerResult> {
-    const username = extractUsername(recipient);
-
-    // Validate username format
-    const validation = validateUsername(username, env);
-    if (!validation.valid) {
-        return { success: false, error: validation.error || 'Invalid username', status: 400 };
+    const lookup = normalizeRecipientLookup(recipient, env);
+    if (!lookup.success) {
+        return { success: false, error: lookup.error || 'Invalid username', status: 400 };
     }
 
     // Apply rate limiting
     const clientIP = getClientIP(request);
-    const rateCheck = checkRateLimit(username, clientIP);
+    const rateCheck = checkRateLimit(lookup.username, clientIP);
     if (!rateCheck.allowed) {
-        console.log(`[RATE LIMIT] ${clientIP} exceeded limit for ${username}`);
+        console.log(`[RATE LIMIT] ${clientIP} exceeded limit for ${lookup.username}`);
         return { success: false, error: rateCheck.error || 'Rate limit exceeded', status: 429 };
     }
 
-    // Add domain if missing
-    let lookupRecipient = recipient;
-    if (!lookupRecipient.includes('@')) {
-        if (env.EMAIL_DOMAIN) {
-            lookupRecipient = `${lookupRecipient}@${env.EMAIL_DOMAIN}`;
-        } else {
-            return { success: false, error: 'EMAIL_DOMAIN is not configured', status: 400 };
-        }
-    }
+    const candidates = lookup.candidates;
+    const placeholders = candidates.map(() => '?').join(', ');
 
-    // Query D1
-    const rawUsername = lookupRecipient.split('@')[0].toLowerCase();
-    const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
-    const normalizedRecipient = lookupRecipient.toLowerCase();
-
-    // Use direct matches only - LIKE with leading wildcard causes full table scans
+    // Use exact matches only - LIKE with leading wildcard causes full table scans.
     const result = await env.DB.prepare(`
         SELECT id, recipient, sender, subject, preview, received_at, read_at 
         FROM emails 
-        WHERE recipient = ? OR recipient = ?
+        WHERE recipient IN (${placeholders})
         ORDER BY received_at DESC 
         LIMIT 50
-    `).bind(normalizedRecipient, fullEmail).all<EmailSummaryRow>();
+    `).bind(...candidates).all<EmailSummaryRow>();
 
     return { success: true, result: result as DBResult };
 }
@@ -134,7 +117,7 @@ export async function handleEvents(
     let dbResult: DBResult;
 
     if (isAdminRequest) {
-        const adminResponse = await handleAdminRequest(url, env);
+        const adminResponse = await handleAdminRequest(request, url, env);
         if (!adminResponse.success) {
             return jsonResponse({ error: adminResponse.error }, adminResponse.status || 500);
         }
@@ -166,6 +149,10 @@ export async function handleEvents(
             url: `/api/email/${row.id}`
         }
     }));
+
+    if (isAdminRequest) {
+        return jsonResponse({ items }, 200, { 'Cache-Control': 'no-store' });
+    }
 
     return cachedJsonResponse(request, { items }, 200, 15);
 }

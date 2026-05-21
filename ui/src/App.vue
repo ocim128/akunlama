@@ -30,5 +30,4 @@ export default {
 
 <style lang="scss">
 	@use "./scss/index" as *;
-	@import url("https://unpkg.com/purecss@1.0.0/build/pure-min.css");
 </style>

@@ -3,7 +3,7 @@
  * 
  * Tests the DOMPurify-based HTML sanitization functionality.
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
     sanitizeEmailHTML,
     sanitizeText,
@@ -59,10 +59,8 @@ describe('Sanitizer Utility', () => {
         });
 
         it('should return empty string for null/undefined input', () => {
-            // @ts-ignore
-            expect(sanitizeEmailHTML(null)).toBe('');
-            // @ts-ignore
-            expect(sanitizeEmailHTML(undefined)).toBe('');
+            expect(sanitizeEmailHTML(null as unknown as string)).toBe('');
+            expect(sanitizeEmailHTML(undefined as unknown as string)).toBe('');
             expect(sanitizeEmailHTML('')).toBe('');
         });
 
@@ -97,8 +95,7 @@ describe('Sanitizer Utility', () => {
 
         it('should handle empty input', () => {
             expect(sanitizeText('')).toBe('');
-            // @ts-ignore
-            expect(sanitizeText(null)).toBe('');
+            expect(sanitizeText(null as unknown as string)).toBe('');
         });
     });
 
@@ -154,12 +151,19 @@ describe('Sanitizer Utility', () => {
 
         it('should handle empty/null input', () => {
             expect(detectDangerousPatterns('').isDangerous).toBe(false);
-            // @ts-ignore
-            expect(detectDangerousPatterns(null).isDangerous).toBe(false);
+            expect(detectDangerousPatterns(null as unknown as string).isDangerous).toBe(false);
         });
     });
 
     describe('sanitizeURL', () => {
+        beforeEach(() => {
+            vi.spyOn(console, 'warn').mockImplementation(() => {});
+        });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
         it('should allow safe http URLs', () => {
             const url = 'https://example.com/page';
             expect(sanitizeURL(url)).toBe(url);
@@ -179,8 +183,7 @@ describe('Sanitizer Utility', () => {
 
         it('should handle empty input', () => {
             expect(sanitizeURL('')).toBe('');
-            // @ts-ignore
-            expect(sanitizeURL(null)).toBe('');
+            expect(sanitizeURL(null as unknown as string)).toBe('');
         });
     });
 });

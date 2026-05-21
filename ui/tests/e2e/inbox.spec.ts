@@ -26,6 +26,28 @@ async function waitForInboxLoad(page: Page, timeout = 30000) {
     )
 }
 
+async function mockInboxList(page: Page, messages = []) {
+    await page.route('**/api/list**', route => {
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(messages)
+        })
+    })
+
+    await page.route('**/api/v1/mail/list**', route => {
+        route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify(messages)
+        })
+    })
+}
+
+test.beforeEach(async ({ page }) => {
+    await mockInboxList(page)
+})
+
 test.describe('Inbox Page', () => {
     test.beforeEach(async ({ page }) => {
         // Navigate to a test inbox
@@ -48,7 +70,7 @@ test.describe('Inbox Page', () => {
     test('should show advisory banner', async ({ page }) => {
         const advisory = page.locator('.advisory-banner')
         await expect(advisory).toBeVisible()
-        await expect(advisory).toContainText('Meow')
+        await expect(advisory).toContainText('low-risk emails')
     })
 
     test('should show refresh button', async ({ page }) => {

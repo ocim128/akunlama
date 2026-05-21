@@ -3,7 +3,8 @@
 
 import { decodeMimeWords, decodeContent } from '../utils/mime.ts';
 import { jsonResponse, cachedJsonResponse, getClientIP, generateETag } from '../utils/http.ts';
-import { validateUsername } from '../utils/validation.ts';
+import { normalizeRecipientLookup } from '../utils/validation.ts';
+import { isAuthorizedAdmin as isAuthorizedAdminRequest } from '../utils/auth.ts';
 import { checkRateLimit } from '../services/rate-limiter.ts';
 import type { Env } from '../types/index.d.ts';
 
@@ -48,42 +49,36 @@ export async function handleList(
     if (!recipient) return jsonResponse({ error: 'Missing recipient' }, 400);
 
     const trimmedRecipient = recipient.trim();
-    const validAdminKey = env.ADMIN_ACCESS_KEY;
-
     // Check if this is an authorized admin request
-    let isAuthorizedAdmin = false;
-    let debugReason = 'User access';
+    let authorizedAdmin = false;
+    const isWildcardAdminRequest = trimmedRecipient === '*' || trimmedRecipient === 'all';
 
-    if (validAdminKey) {
-        if (trimmedRecipient === validAdminKey) {
-            isAuthorizedAdmin = true;
-            debugReason = 'Admin key match';
-        } else if (trimmedRecipient === '*' || trimmedRecipient === 'all') {
-            const providedKey = url.searchParams.get('admin_key');
-            if (providedKey === validAdminKey) {
-                isAuthorizedAdmin = true;
-                debugReason = 'Admin wildcard match';
-            }
+    if (env.ADMIN_ACCESS_KEY && trimmedRecipient === env.ADMIN_ACCESS_KEY) {
+        console.warn('[SECURITY] Legacy admin key in recipient parameter used; prefer Authorization: Bearer.');
+        authorizedAdmin = true;
+    } else if (isWildcardAdminRequest) {
+        authorizedAdmin = isAuthorizedAdminRequest(request, url, env);
+        if (!authorizedAdmin) {
+            return jsonResponse({ error: 'Unauthorized' }, 403);
         }
-    } else {
-        debugReason = 'ADMIN_ACCESS_KEY not configured';
     }
 
     // Validate if not authorized admin
-    if (!isAuthorizedAdmin) {
-        const username = trimmedRecipient.split('@')[0];
-        const v = validateUsername(username, env);
-        if (!v.valid) return jsonResponse({ error: v.error }, 400);
+    let userCandidates: string[] = [];
+    if (!authorizedAdmin) {
+        const userLookup = normalizeRecipientLookup(trimmedRecipient, env);
+        if (!userLookup.success) return jsonResponse({ error: userLookup.error }, 400);
 
         // Rate limit
         const ip = getClientIP(request);
-        const rl = checkRateLimit(username, ip);
+        const rl = checkRateLimit(userLookup.username, ip);
         if (!rl.allowed) return jsonResponse({ error: rl.error }, 429);
+        userCandidates = userLookup.candidates;
     }
 
     // Query DB
     let result: { results: EmailSummaryRow[] };
-    if (isAuthorizedAdmin) {
+    if (authorizedAdmin) {
         result = await env.DB.prepare(`
             SELECT id, recipient, sender, subject, preview, received_at, read_at 
             FROM emails 
@@ -91,18 +86,17 @@ export async function handleList(
             LIMIT 100
         `).all<EmailSummaryRow>();
     } else {
-        const rawUsername = trimmedRecipient.split('@')[0].toLowerCase();
-        const fullEmail = rawUsername + '@' + (env.EMAIL_DOMAIN || 'akunlama.com');
-        const normalizedRecipient = trimmedRecipient.toLowerCase();
+        const candidates = userCandidates;
+        const placeholders = candidates.map(() => '?').join(', ');
 
-        // Use direct matches only - LIKE with leading wildcard causes full table scans
+        // Use exact matches only - LIKE with leading wildcard causes full table scans.
         result = await env.DB.prepare(`
             SELECT id, recipient, sender, subject, preview, received_at, read_at 
             FROM emails 
-            WHERE recipient = ? OR recipient = ?
+            WHERE recipient IN (${placeholders})
             ORDER BY received_at DESC 
             LIMIT 50
-        `).bind(normalizedRecipient, fullEmail).all<EmailSummaryRow>();
+        `).bind(...candidates).all<EmailSummaryRow>();
     }
 
     // Format as array of messages
@@ -124,6 +118,10 @@ export async function handleList(
         }
     }));
 
+    if (authorizedAdmin) {
+        return jsonResponse(items, 200, { 'Cache-Control': 'no-store' });
+    }
+
     return cachedJsonResponse(request, items, 200, 15);
 }
 
@@ -139,7 +137,11 @@ export async function handleGetKey(
     const key = url.searchParams.get('key');
     if (!key) return jsonResponse({ error: 'Missing key' }, 400);
 
-    const row = await env.DB.prepare('SELECT * FROM emails WHERE id = ?')
+    const row = await env.DB.prepare(`
+        SELECT id, sender, recipient, subject, received_at
+        FROM emails
+        WHERE id = ?
+    `)
         .bind(key)
         .first<FullEmailRow>();
     if (!row) return jsonResponse({ error: 'Not found' }, 404);

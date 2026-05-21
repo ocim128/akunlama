@@ -1,6 +1,7 @@
 // admin.ts - Admin route handlers (/api/cleanup, /api/debug, /api/health)
 
 import { jsonResponse } from '../utils/http.ts';
+import { isAuthorizedAdmin } from '../utils/auth.ts';
 import { runCleanup } from '../services/cleanup.ts';
 import type { Env } from '../types/index.d.ts';
 
@@ -30,7 +31,7 @@ export async function handleHealth(
 
 /**
  * GET /api/debug
- * Debug endpoint - check env vars
+ * Admin-only debug endpoint - check env vars
  */
 export async function handleDebug(
     request: Request,
@@ -38,15 +39,20 @@ export async function handleDebug(
     env: AdminEnv,
     ctx: ExecutionContext
 ): Promise<Response> {
+    if (!isAuthorizedAdmin(request, url, env)) {
+        return jsonResponse({ error: 'Unauthorized' }, 403, { 'Cache-Control': 'no-store' });
+    }
+
     return jsonResponse({
         EMAIL_DOMAIN: env.EMAIL_DOMAIN,
         computedFullEmail: ('test' + '@' + (env.EMAIL_DOMAIN || 'akunlama.com')).toLowerCase()
-    });
+    }, 200, { 'Cache-Control': 'no-store' });
 }
 
 /**
- * POST /api/cleanup?key=...
+ * POST /api/cleanup
  * Manual cleanup trigger (admin only)
+ * Prefer Authorization: Bearer <ADMIN_ACCESS_KEY>; legacy key query is still accepted.
  */
 export async function handleCleanup(
     request: Request,
@@ -54,17 +60,15 @@ export async function handleCleanup(
     env: AdminEnv,
     ctx: ExecutionContext
 ): Promise<Response> {
-    const key = url.searchParams.get('key');
-
-    if (key !== env.ADMIN_ACCESS_KEY) {
-        return jsonResponse({ error: 'Unauthorized' }, 403);
+    if (!isAuthorizedAdmin(request, url, env)) {
+        return jsonResponse({ error: 'Unauthorized' }, 403, { 'Cache-Control': 'no-store' });
     }
 
     if (ctx.waitUntil) {
         ctx.waitUntil(runCleanup(env));
-        return jsonResponse({ status: 'Cleanup started in background' });
+        return jsonResponse({ status: 'Cleanup started in background' }, 200, { 'Cache-Control': 'no-store' });
     } else {
         const result = await runCleanup(env);
-        return jsonResponse(result);
+        return jsonResponse(result, 200, { 'Cache-Control': 'no-store' });
     }
 }

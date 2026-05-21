@@ -1,7 +1,7 @@
 {
     "name": "Akunlama - Disposable Email",
     "short_name": "Akunlama",
-    "description": "Open-source disposable email powered by adorable kittens 🐱",
+    "description": "Free open-source disposable email powered by Cloudflare.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#F9FAFB",
@@ -61,22 +61,6 @@
             "purpose": "any maskable"
         }
     ],
-    "screenshots": [
-        {
-            "src": "/static/screenshots/screenshot-wide.png",
-            "sizes": "1280x720",
-            "type": "image/png",
-            "form_factor": "wide",
-            "label": "Akunlama Desktop View"
-        },
-        {
-            "src": "/static/screenshots/screenshot-mobile.png",
-            "sizes": "750x1334",
-            "type": "image/png",
-            "form_factor": "narrow",
-            "label": "Akunlama Mobile View"
-        }
-    ],
     "shortcuts": [
         {
             "name": "New Email",
@@ -86,7 +70,8 @@
             "icons": [
                 {
                     "src": "/static/icons/icon-96x96.png",
-                    "sizes": "96x96"
+                    "sizes": "96x96",
+                    "type": "image/png"
                 }
             ]
         }
