@@ -5,6 +5,7 @@ import { decodeMimeWords, decodeContent } from '../utils/mime.ts';
 import { jsonResponse, cachedJsonResponse, getClientIP, generateETag } from '../utils/http.ts';
 import { normalizeRecipientLookup } from '../utils/validation.ts';
 import { isAuthorizedAdmin as isAuthorizedAdminRequest } from '../utils/auth.ts';
+import { queryRecentEmailsByRecipients } from '../utils/db.ts';
 import { checkRateLimit } from '../services/rate-limiter.ts';
 import type { Env } from '../types/index.d.ts';
 
@@ -79,24 +80,29 @@ export async function handleList(
     // Query DB
     let result: { results: EmailSummaryRow[] };
     if (authorizedAdmin) {
-        result = await env.DB.prepare(`
-            SELECT id, recipient, sender, subject, preview, received_at, read_at 
-            FROM emails 
-            ORDER BY received_at DESC 
-            LIMIT 100
-        `).all<EmailSummaryRow>();
+        try {
+            result = await env.DB.prepare(`
+                SELECT id, recipient, sender, subject, preview, received_at, read_at 
+                FROM emails 
+                ORDER BY received_at DESC 
+                LIMIT 100
+            `).all<EmailSummaryRow>() as { results: EmailSummaryRow[] };
+        } catch (error) {
+            console.error('[LEGACY] Admin database query failed:', error);
+            return jsonResponse({ error: 'Database query failed' }, 503);
+        }
     } else {
-        const candidates = userCandidates;
-        const placeholders = candidates.map(() => '?').join(', ');
-
-        // Use exact matches only - LIKE with leading wildcard causes full table scans.
-        result = await env.DB.prepare(`
-            SELECT id, recipient, sender, subject, preview, received_at, read_at 
-            FROM emails 
-            WHERE recipient IN (${placeholders})
-            ORDER BY received_at DESC 
-            LIMIT 50
-        `).bind(...candidates).all<EmailSummaryRow>();
+        try {
+            result = await queryRecentEmailsByRecipients<EmailSummaryRow>(
+                env.DB,
+                'id, recipient, sender, subject, preview, received_at, read_at',
+                userCandidates,
+                50
+            );
+        } catch (error) {
+            console.error('[LEGACY] Database query failed:', error);
+            return jsonResponse({ error: 'Database query failed' }, 503);
+        }
     }
 
     // Format as array of messages
@@ -137,13 +143,20 @@ export async function handleGetKey(
     const key = url.searchParams.get('key');
     if (!key) return jsonResponse({ error: 'Missing key' }, 400);
 
-    const row = await env.DB.prepare(`
-        SELECT id, sender, recipient, subject, received_at
-        FROM emails
-        WHERE id = ?
-    `)
-        .bind(key)
-        .first<FullEmailRow>();
+    let row: FullEmailRow | null;
+    try {
+        row = await env.DB.prepare(`
+            SELECT id, sender, recipient, subject, received_at
+            FROM emails
+            WHERE id = ?
+        `)
+            .bind(key)
+            .first<FullEmailRow>();
+    } catch (error) {
+        console.error('[LEGACY getKey] Database query failed:', error);
+        return jsonResponse({ error: 'Database query failed' }, 503);
+    }
+
     if (!row) return jsonResponse({ error: 'Not found' }, 404);
 
     // Extract name/email from sender
@@ -174,9 +187,16 @@ export async function handleGetHtml(
     const key = url.searchParams.get('key');
     if (!key) return new Response('Missing key', { status: 400 });
 
-    const row = await env.DB.prepare('SELECT body_html, body_text FROM emails WHERE id = ?')
-        .bind(key)
-        .first<{ body_html: string | null; body_text: string | null }>();
+    let row: { body_html: string | null; body_text: string | null } | null;
+    try {
+        row = await env.DB.prepare('SELECT body_html, body_text FROM emails WHERE id = ?')
+            .bind(key)
+            .first<{ body_html: string | null; body_text: string | null }>();
+    } catch (error) {
+        console.error('[LEGACY getHtml] Database query failed:', error);
+        return new Response('Database query failed', { status: 503 });
+    }
+
     if (!row) return new Response('Not found', { status: 404 });
 
     let html = row.body_html;

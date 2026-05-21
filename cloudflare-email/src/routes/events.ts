@@ -4,6 +4,7 @@ import { decodeMimeWords } from '../utils/mime.ts';
 import { jsonResponse, cachedJsonResponse, getClientIP } from '../utils/http.ts';
 import { normalizeRecipientLookup } from '../utils/validation.ts';
 import { isAuthorizedAdmin } from '../utils/auth.ts';
+import { queryRecentEmailsByRecipients } from '../utils/db.ts';
 import { checkRateLimit } from '../services/rate-limiter.ts';
 import type { Env } from '../types/index.d.ts';
 
@@ -47,14 +48,20 @@ async function handleAdminRequest(request: Request, url: URL, env: EventsEnv): P
     }
 
     console.log('[ADMIN] Authorized - Fetching all emails');
-    const result = await env.DB.prepare(`
-        SELECT id, recipient, sender, subject, preview, received_at, read_at 
-        FROM emails 
-        ORDER BY received_at DESC 
-        LIMIT 100
-    `).all<EmailSummaryRow>();
+    let result: DBResult;
+    try {
+        result = await env.DB.prepare(`
+            SELECT id, recipient, sender, subject, preview, received_at, read_at 
+            FROM emails 
+            ORDER BY received_at DESC 
+            LIMIT 100
+        `).all<EmailSummaryRow>() as DBResult;
+    } catch (error) {
+        console.error('[EVENTS] Admin database query failed:', error);
+        return { success: false, error: 'Database query failed', status: 503 };
+    }
 
-    return { success: true, result: result as DBResult };
+    return { success: true, result };
 }
 
 /**
@@ -78,19 +85,19 @@ async function handleUserRequest(
         return { success: false, error: rateCheck.error || 'Rate limit exceeded', status: 429 };
     }
 
-    const candidates = lookup.candidates;
-    const placeholders = candidates.map(() => '?').join(', ');
+    try {
+        const result = await queryRecentEmailsByRecipients<EmailSummaryRow>(
+            env.DB,
+            'id, recipient, sender, subject, preview, received_at, read_at',
+            lookup.candidates,
+            50
+        );
 
-    // Use exact matches only - LIKE with leading wildcard causes full table scans.
-    const result = await env.DB.prepare(`
-        SELECT id, recipient, sender, subject, preview, received_at, read_at 
-        FROM emails 
-        WHERE recipient IN (${placeholders})
-        ORDER BY received_at DESC 
-        LIMIT 50
-    `).bind(...candidates).all<EmailSummaryRow>();
-
-    return { success: true, result: result as DBResult };
+        return { success: true, result };
+    } catch (error) {
+        console.error('[EVENTS] Database query failed:', error);
+        return { success: false, error: 'Database query failed', status: 503 };
+    }
 }
 
 /**

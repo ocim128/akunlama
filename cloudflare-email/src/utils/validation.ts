@@ -88,7 +88,8 @@ export const extractUsername = (recipient: string): string => {
 
 /**
  * Normalize a user-supplied recipient and build exact-match lookup candidates.
- * Includes bare usernames for backwards compatibility with older stored rows.
+ * Only full email-address candidates are returned because stored email rows
+ * always include a domain.
  */
 export const normalizeRecipientLookup = (recipient: string, env: Env): RecipientLookupResult => {
     const trimmed = recipient.trim().toLowerCase();
@@ -109,6 +110,9 @@ export const normalizeRecipientLookup = (recipient: string, env: Env): Recipient
         : `${trimmed}@${emailDomain}`;
     const domainRecipient = `${username}@${emailDomain || 'akunlama.com'}`;
 
+    // Only include full email addresses.  Bare usernames (e.g. "john") never
+    // match stored rows which always contain a domain, so including them just
+    // adds a wasted index probe on every query.
     return {
         success: true,
         recipient: normalizedRecipient,
@@ -116,7 +120,6 @@ export const normalizeRecipientLookup = (recipient: string, env: Env): Recipient
         candidates: Array.from(new Set([
             normalizedRecipient,
             domainRecipient,
-            username
         ].filter(Boolean)))
     };
 };

@@ -72,12 +72,18 @@ export async function handleGetEmail(
     const candidates = lookup.candidates;
     const placeholders = candidates.map(() => '?').join(', ');
 
-    const result = await env.DB.prepare(`
-        SELECT id, sender, recipient, subject, body_html, body_text, received_at
-        FROM emails
-        WHERE id = ? 
-        AND recipient IN (${placeholders})
-    `).bind(emailId, ...candidates).first<EmailRow>();
+    let result: EmailRow | null;
+    try {
+        result = await env.DB.prepare(`
+            SELECT id, sender, recipient, subject, body_html, body_text, received_at
+            FROM emails
+            WHERE id = ? 
+            AND recipient IN (${placeholders})
+        `).bind(emailId, ...candidates).first<EmailRow>();
+    } catch (error) {
+        console.error('[EMAIL-CONTENT] Database query failed:', error);
+        return jsonResponse({ error: 'Database query failed' }, 503);
+    }
 
     if (!result) {
         return jsonResponse({ error: 'Email not found' }, 404);
@@ -131,18 +137,30 @@ export async function handleMarkRead(
     const placeholders = candidates.map(() => '?').join(', ');
     const readAt = Date.now();
 
-    const result = await env.DB.prepare(`
-        UPDATE emails 
-        SET read_at = ? 
-        WHERE id = ? 
-        AND read_at IS NULL
-        AND recipient IN (${placeholders})
-    `).bind(readAt, emailId, ...candidates).run();
+    let result;
+    try {
+        result = await env.DB.prepare(`
+            UPDATE emails 
+            SET read_at = ? 
+            WHERE id = ? 
+            AND read_at IS NULL
+            AND recipient IN (${placeholders})
+        `).bind(readAt, emailId, ...candidates).run();
+    } catch (error) {
+        console.error('[MARK-READ] Database query failed:', error);
+        return jsonResponse({ error: 'Database query failed' }, 503);
+    }
 
     if (result.meta.changes === 0) {
-        const exists = await env.DB.prepare(`
-            SELECT id FROM emails WHERE id = ?
-        `).bind(emailId).first();
+        let exists: { id: string } | null;
+        try {
+            exists = await env.DB.prepare(`
+                SELECT id FROM emails WHERE id = ?
+            `).bind(emailId).first<{ id: string }>();
+        } catch (error) {
+            console.error('[MARK-READ] Database existence check failed:', error);
+            return jsonResponse({ error: 'Database query failed' }, 503);
+        }
 
         if (!exists) {
             return jsonResponse({ error: 'Email not found' }, 404);

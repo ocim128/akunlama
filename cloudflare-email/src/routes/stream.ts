@@ -4,6 +4,7 @@ import { decodeMimeWords } from '../utils/mime.ts';
 import { jsonResponse, getClientIP } from '../utils/http.ts';
 import { normalizeRecipientLookup } from '../utils/validation.ts';
 import { isAuthorizedAdmin } from '../utils/auth.ts';
+import { queryRecentEmailsByRecipients } from '../utils/db.ts';
 import { checkRateLimit } from '../services/rate-limiter.ts';
 import type { Env } from '../types/index.d.ts';
 
@@ -111,7 +112,6 @@ export async function handleStream(
             const pollInterval = 3000; // 3 seconds
             const maxDuration = 25000; // 25 seconds total
             const startTime = Date.now();
-            const placeholders = recipientCandidates.map(() => '?').join(', ');
 
             // Send initial connection event
             await sendEvent('connected', { recipient: lookupRecipient, timestamp: Date.now() });
@@ -120,20 +120,31 @@ export async function handleStream(
                 let result: { results: EmailRow[] };
 
                 if (isAdminRequest) {
-                    result = await env.DB.prepare(`
-                        SELECT id, recipient, sender, subject, received_at, read_at 
-                        FROM emails 
-                        ORDER BY received_at DESC 
-                        LIMIT 20
-                    `).all<EmailRow>();
+                    try {
+                        result = await env.DB.prepare(`
+                            SELECT id, recipient, sender, subject, received_at, read_at 
+                            FROM emails 
+                            ORDER BY received_at DESC 
+                            LIMIT 20
+                        `).all<EmailRow>() as { results: EmailRow[] };
+                    } catch (dbError) {
+                        console.error('[SSE] Admin database query failed:', dbError);
+                        await sendEvent('error', { message: 'Database query failed' });
+                        break;
+                    }
                 } else {
-                    result = await env.DB.prepare(`
-                        SELECT id, recipient, sender, subject, received_at, read_at 
-                        FROM emails 
-                        WHERE recipient IN (${placeholders})
-                        ORDER BY received_at DESC 
-                        LIMIT 20
-                    `).bind(...recipientCandidates).all<EmailRow>();
+                    try {
+                        result = await queryRecentEmailsByRecipients<EmailRow>(
+                            env.DB,
+                            'id, recipient, sender, subject, received_at, read_at',
+                            recipientCandidates,
+                            20
+                        );
+                    } catch (dbError) {
+                        console.error('[SSE] Database query failed:', dbError);
+                        await sendEvent('error', { message: 'Database query failed' });
+                        break;
+                    }
                 }
 
                 const emails = result.results || [];

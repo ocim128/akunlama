@@ -14,6 +14,9 @@ CREATE TABLE IF NOT EXISTS emails (
     read_at INTEGER DEFAULT NULL  -- NULL = unread, timestamp = when read
 );
 
+-- Index for fast lookups by recipient (most common query)
+CREATE INDEX IF NOT EXISTS idx_emails_recipient ON emails(recipient);
+
 -- Index for cleanup queries (delete old emails)
 CREATE INDEX IF NOT EXISTS idx_emails_received_at ON emails(received_at);
 

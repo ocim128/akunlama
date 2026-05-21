@@ -199,17 +199,17 @@ describe('Validation Utils', () => {
                 success: true,
                 recipient: 'testuser@example.com',
                 username: 'testuser',
-                candidates: ['testuser@example.com', 'testuser']
+                candidates: ['testuser@example.com']
             });
         });
 
-        test('includes environment-domain and bare compatibility candidates for full email', () => {
+        test('includes full email-address candidates only for full email', () => {
             const result = normalizeRecipientLookup('User@Other.com', mockEnv);
 
             expect(result.success).toBe(true);
             expect(result.recipient).toBe('user@other.com');
             expect(result.username).toBe('user');
-            expect(result.candidates).toEqual(['user@other.com', 'user@example.com', 'user']);
+            expect(result.candidates).toEqual(['user@other.com', 'user@example.com']);
         });
 
         test('fails for bare username without EMAIL_DOMAIN', () => {
