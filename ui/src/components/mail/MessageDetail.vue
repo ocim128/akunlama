@@ -151,16 +151,59 @@
 				const doc = iframe.contentDocument
 				const head = doc.head || doc.getElementsByTagName('head')[0]
 
-				if (head && !doc.querySelector('base[target]')) {
+				const bases = doc.querySelectorAll('base')
+				if (bases.length > 0) {
+					bases.forEach(base => {
+						base.setAttribute('target', '_blank')
+					})
+				} else if (head) {
 					const base = doc.createElement('base')
 					base.setAttribute('target', '_blank')
 					head.prepend(base)
 				}
 
-				doc.querySelectorAll('a[href]').forEach(link => {
+				doc.querySelectorAll('a[href], area[href]').forEach(link => {
 					link.setAttribute('target', '_blank')
 					link.setAttribute('rel', 'noopener noreferrer')
 				})
+
+				if (doc.documentElement.dataset.akunlamaLinksPrepared === 'true') return
+
+				doc.addEventListener('click', event => {
+					const target = event.target
+					const element = target && target.nodeType === Node.ELEMENT_NODE
+						? target
+						: target?.parentElement
+					const link = element?.closest?.('a[href], area[href]')
+
+					if (!link) return
+
+					let url
+					try {
+						url = new URL(link.getAttribute('href'), doc.baseURI || window.location.href)
+					} catch (_) {
+						return
+					}
+
+					const currentHref = doc.location?.href || doc.URL || ''
+					const currentHash = doc.location?.hash || ''
+					if (url.hash && url.href.replace(url.hash, '') === currentHref.replace(currentHash, '')) {
+						return
+					}
+
+					if (['javascript:', 'vbscript:', 'data:', 'file:'].includes(url.protocol.toLowerCase())) {
+						event.preventDefault()
+						return
+					}
+
+					event.preventDefault()
+					const openedWindow = window.open(url.href, '_blank', 'noopener,noreferrer')
+					if (openedWindow) {
+						openedWindow.opener = null
+					}
+				}, true)
+
+				doc.documentElement.dataset.akunlamaLinksPrepared = 'true'
 			},
 
 			onIframeLoad() {

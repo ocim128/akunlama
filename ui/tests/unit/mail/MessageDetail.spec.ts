@@ -229,12 +229,12 @@ describe('MessageDetail.vue', () => {
 
         it('forces email iframe links to open in a new tab', () => {
             const doc = document.implementation.createHTMLDocument('Email')
+            doc.head.innerHTML = '<base target="_self">'
             doc.body.innerHTML = '<a href="https://example.com" target="_self">Open</a>'
 
-            const originalGetElementById = document.getElementById
-            document.getElementById = vi.fn().mockReturnValue({
+            const getElementSpy = vi.spyOn(document, 'getElementById').mockReturnValue({
                 contentDocument: doc
-            })
+            } as unknown as HTMLElement)
 
             wrapper.vm.onIframeLoad()
 
@@ -245,7 +245,28 @@ describe('MessageDetail.vue', () => {
             expect(link?.getAttribute('rel')).toBe('noopener noreferrer')
             expect(base?.getAttribute('target')).toBe('_blank')
 
-            document.getElementById = originalGetElementById
+            getElementSpy.mockRestore()
+        })
+
+        it('opens button-styled email links in a new tab instead of the iframe', () => {
+            const doc = document.implementation.createHTMLDocument('Email')
+            doc.body.innerHTML = '<a href="https://example.com/learn" target="_self"><span>Learn more</span></a>'
+
+            const getElementSpy = vi.spyOn(document, 'getElementById').mockReturnValue({
+                contentDocument: doc
+            } as unknown as HTMLElement)
+            const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
+
+            wrapper.vm.onIframeLoad()
+
+            const event = new MouseEvent('click', { bubbles: true, cancelable: true })
+            doc.querySelector('span')?.dispatchEvent(event)
+
+            expect(event.defaultPrevented).toBe(true)
+            expect(openSpy).toHaveBeenCalledWith('https://example.com/learn', '_blank', 'noopener,noreferrer')
+
+            openSpy.mockRestore()
+            getElementSpy.mockRestore()
         })
     })
 
