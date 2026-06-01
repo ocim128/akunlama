@@ -37,6 +37,34 @@ interface FullEmailRow {
     received_at: number;
 }
 
+const EMAIL_HTML_LINK_POLICY_VERSION = 'email-link-target-v1';
+
+const addNoopenerRel = (rel: string | null): string => {
+    const tokens = new Set((rel || '').split(/\s+/).filter(Boolean));
+    tokens.add('noopener');
+    tokens.add('noreferrer');
+    return Array.from(tokens).join(' ');
+};
+
+const forceExternalLinkTarget = (element: Element): void => {
+    if (!element.getAttribute('href')) return;
+
+    element.setAttribute('target', '_blank');
+    element.setAttribute('rel', addNoopenerRel(element.getAttribute('rel')));
+};
+
+const emailHtmlResponse = (
+    htmlContent: string,
+    headers: Record<string, string>
+): Response => {
+    const response = new Response(htmlContent, { headers });
+
+    return new HTMLRewriter()
+        .on('a[href]', { element: forceExternalLinkTarget })
+        .on('area[href]', { element: forceExternalLinkTarget })
+        .transform(response);
+};
+
 /**
  * GET /api/list?recipient=user@domain.com
  * Legacy endpoint - returns array format
@@ -222,7 +250,10 @@ export async function handleGetHtml(
 
     // Generate ETag for HTML content
     const htmlContent = html || '';
-    const htmlEtag = generateETag(htmlContent);
+    const htmlEtag = generateETag({
+        htmlContent,
+        linkPolicy: EMAIL_HTML_LINK_POLICY_VERSION
+    });
     const ifNoneMatch = request.headers.get('If-None-Match');
 
     if (ifNoneMatch && ifNoneMatch === htmlEtag) {
@@ -235,12 +266,10 @@ export async function handleGetHtml(
         });
     }
 
-    return new Response(htmlContent, {
-        headers: {
-            'Content-Type': 'text/html; charset=utf-8',
-            'X-Frame-Options': 'SAMEORIGIN',
-            'ETag': htmlEtag,
-            'Cache-Control': 'public, max-age=300, stale-while-revalidate=60'
-        }
+    return emailHtmlResponse(htmlContent, {
+        'Content-Type': 'text/html; charset=utf-8',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'ETag': htmlEtag,
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=60'
     });
 }
