@@ -61,17 +61,8 @@ export async function handleEmail(
         const subject = decodeMimeWords(subjectRaw) || '(No Subject)';
         const sender = headers['from'] || message.from;
 
-        // Extract clean email address from "To" header
-        const rawTo = headers['to'] || message.to;
-        let recipient = rawTo;
-        const emailMatch = rawTo.match(/<([^>]+)>/);
-        if (emailMatch) {
-            recipient = emailMatch[1];
-        } else if (rawTo.includes('@')) {
-            recipient = rawTo.trim();
-        }
-        // Normalize to lowercase
-        recipient = recipient.toLowerCase();
+        // Route by the SMTP envelope recipient; To headers may differ for Bcc/Cc.
+        const recipient = message.to.trim().toLowerCase();
 
         const { html, text } = extractBodiesFromRaw(rawEmail);
 

@@ -16,6 +16,10 @@
 
 ## Runtime Issues
 
+### "Unable to check this inbox" in the UI
+- **Meaning**: The inbox request failed, so the UI cannot confirm whether new messages are present. Previously loaded messages remain visible, and "Last checked" keeps the last successful check time. The empty-inbox message appears only after a successful empty response.
+- **Fix**: Check your connection and use **Try again**. Automatic checks also continue. If failures persist, inspect the list request: a `429` response means rate limiting, while `503` can indicate a database outage. Navigating to a different inbox clears the previous inbox's error.
+
 ### Emails not appearing
 - **Cause**:
   1. Email Routing rule is missing or disabled in Cloudflare Dashboard.

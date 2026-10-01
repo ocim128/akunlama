@@ -241,6 +241,91 @@ describe('MessageList.vue', () => {
     })
 
     describe('UI States', () => {
+        it.each([
+            ['network failure', new Error('Network error')],
+            ['rate limiting', { response: { status: 429 } }],
+            ['service outage', { response: { status: 503 } }]
+        ])('shows a retryable error instead of claiming an empty inbox after %s', async (_scenario, error) => {
+            vi.spyOn(console, 'error').mockImplementation(() => {})
+            mockedAxiosGet.mockRejectedValueOnce(error)
+
+            await router.push('/inbox/unavailable-user')
+            await flushPromises()
+
+            const alert = wrapper.find('[role="alert"]')
+            expect(alert.exists()).toBe(true)
+            expect(alert.text()).toContain('Unable to check this inbox')
+            expect(alert.find('button').text()).toBe('Try again')
+            expect(alert.find('button').attributes('disabled')).toBeUndefined()
+            expect(wrapper.findComponent({ name: 'EmptyInbox' }).exists()).toBe(false)
+            expect(wrapper.vm.refreshing).toBe(false)
+        })
+
+        it('keeps previously loaded messages and the last successful check time when refresh fails', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => {})
+            const lastSuccess = wrapper.vm.lastRefreshed
+            const rows = wrapper.findAllComponents({ name: 'EmailListItem' })
+            mockedAxiosGet.mockRejectedValueOnce(new Error('Network error'))
+
+            await wrapper.vm.refreshList()
+            await flushPromises()
+
+            expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+            expect(wrapper.findAllComponents({ name: 'EmailListItem' })[0].vm).toBe(rows[0].vm)
+            expect(wrapper.vm.listOfMessages).toEqual(mockMessages)
+            expect(wrapper.vm.lastRefreshed).toBe(lastSuccess)
+        })
+
+        it('retries a failed inbox check and shows the empty state only after success', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => {})
+            mockedAxiosGet.mockRejectedValueOnce(new Error('Network error'))
+            await router.push('/inbox/unavailable-user')
+            await flushPromises()
+            const lastSuccess = wrapper.vm.lastRefreshed
+
+            let resolveRetry!: (value: unknown) => void
+            mockedAxiosGet.mockReturnValueOnce(new Promise(resolve => { resolveRetry = resolve }) as any)
+            await wrapper.find('[role="alert"] button').trigger('click')
+            expect(wrapper.find('[role="alert"] button').attributes('disabled')).toBeDefined()
+            expect(wrapper.findComponent({ name: 'EmptyInbox' }).exists()).toBe(false)
+
+            resolveRetry({ data: [] })
+            await flushPromises()
+            expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+            expect(wrapper.findComponent({ name: 'EmptyInbox' }).exists()).toBe(true)
+            expect(wrapper.vm.lastRefreshed).not.toBe(lastSuccess)
+        })
+
+        it('clears the previous inbox error when navigating to a different inbox', async () => {
+            vi.spyOn(console, 'error').mockImplementation(() => {})
+            mockedAxiosGet.mockRejectedValueOnce(new Error('Network error'))
+            await wrapper.vm.refreshList()
+            await flushPromises()
+            expect(wrapper.find('[role="alert"]').exists()).toBe(true)
+
+            mockedAxiosGet.mockReturnValueOnce(new Promise(() => {}) as any)
+            await router.push('/inbox/second-user')
+            await flushPromises()
+            expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+            expect(wrapper.findComponent({ name: 'SkeletonLoader' }).exists()).toBe(true)
+        })
+
+        it('ignores an old inbox failure after the new inbox has loaded successfully', async () => {
+            let rejectOld!: (reason: unknown) => void
+            mockedAxiosGet.mockReturnValueOnce(new Promise((_resolve, reject) => { rejectOld = reject }) as any)
+            const oldRequest = wrapper.vm.refreshList()
+            mockedAxiosGet.mockResolvedValueOnce({ data: [] })
+
+            await router.push('/inbox/second-user')
+            await flushPromises()
+            rejectOld(new Error('Old inbox unavailable'))
+            await oldRequest
+            await flushPromises()
+
+            expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+            expect(wrapper.findComponent({ name: 'EmptyInbox' }).exists()).toBe(true)
+        })
+
         it('keeps rows mounted while refreshing and preserves their identity when reordered', async () => {
             const rows = wrapper.findAllComponents({ name: 'EmailListItem' })
             let resolveRequest!: (value: unknown) => void

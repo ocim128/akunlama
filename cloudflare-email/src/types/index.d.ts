@@ -79,6 +79,7 @@ export interface Env {
 /** Cloudflare Email message (incoming) */
 export interface IncomingEmail {
     from: string;
+    /** SMTP envelope RCPT TO supplied by Cloudflare, independent of MIME To/Cc headers. */
     to: string;
     raw: ReadableStream<Uint8Array>;
     rawSize: number;

@@ -92,6 +92,75 @@ describe('legacy getHtml route', () => {
         globalThis.HTMLRewriter = originalHTMLRewriter;
     });
 
+    test.each([
+        [
+            'inline tracking image markup',
+            'Example: <img src="https://example.net/track">',
+            'Example: &lt;img src="https://example.net/track"&gt;'
+        ],
+        [
+            'a body that starts with HTML-like markup',
+            '<style>body { display: none }</style><a href="https://example.net">Example</a>',
+            '&lt;style&gt;body { display: none }&lt;/style&gt;&lt;a href="https://example.net"&gt;Example&lt;/a&gt;'
+        ],
+        [
+            'angle brackets and literal HTML entities',
+            'Contact <person@example.net> & use &lt;value&gt; when 1 < 2 > 0.',
+            'Contact &lt;person@example.net&gt; &amp; use &amp;lt;value&amp;gt; when 1 &lt; 2 &gt; 0.'
+        ],
+        [
+            'already-decoded Unicode and literal quoted-printable syntax',
+            'Literal =3D, café, and 😀',
+            'Literal =3D, café, and 😀'
+        ],
+        ['LF line breaks', 'First\nSecond', 'First<br>Second'],
+        ['CRLF line breaks', 'First\r\nSecond', 'First\r<br>Second']
+    ])('displays %s as plain text without interpreting message content', async (_scenario, text, escaped) => {
+        const request = new Request('https://example.com/api/getHtml?key=plain-email');
+        const response = await handleGetHtml(request, new URL(request.url), createEnv({
+            body_html: null,
+            body_text: text
+        }));
+
+        expect(response.status).toBe(200);
+        expect(response.headers.get('Content-Type')).toBe('text/html; charset=utf-8');
+        expect(await response.text()).toContain(`>${escaped}</div>`);
+    });
+
+    test('renders the HTML MIME alternative when both HTML and plain text are stored', async () => {
+        const request = new Request('https://example.com/api/getHtml?key=html-email');
+        const response = await handleGetHtml(request, new URL(request.url), createEnv({
+            body_html: '<p>Formatted <strong>content</strong></p>',
+            body_text: 'Plain alternative'
+        }));
+
+        const body = await response.text();
+        expect(body).toBe('<p>Formatted <strong>content</strong></p>');
+        expect(body).not.toContain('Plain alternative');
+    });
+
+    test('revalidates escaped plain text without serving a stale response for changed content', async () => {
+        const request = new Request('https://example.com/api/getHtml?key=plain-email');
+        const row = { body_html: null, body_text: 'Example <img src="https://example.net/track">' };
+        const response = await handleGetHtml(request, new URL(request.url), createEnv(row));
+        const etag = response.headers.get('ETag');
+        expect(etag).toBeTruthy();
+        expect(await response.text()).toContain('Example &lt;img src="https://example.net/track"&gt;');
+
+        const conditional = new Request(request.url, { headers: { 'If-None-Match': etag } });
+        const cached = await handleGetHtml(conditional, new URL(conditional.url), createEnv(row));
+        expect(cached.status).toBe(304);
+        expect(await cached.text()).toBe('');
+        expect(cached.headers.get('Content-Security-Policy')).toBe(response.headers.get('Content-Security-Policy'));
+
+        const changed = await handleGetHtml(conditional, new URL(conditional.url), createEnv({
+            ...row, body_text: 'Updated <example>'
+        }));
+        expect(changed.status).toBe(200);
+        expect(changed.headers.get('ETag')).not.toBe(etag);
+        expect(await changed.text()).toContain('Updated &lt;example&gt;');
+    });
+
     test('forces stored email links to open outside the iframe', async () => {
         const request = new Request('https://example.com/api/getHtml?key=email-1');
         const response = await handleGetHtml(request, new URL(request.url), createEnv({

@@ -1,7 +1,7 @@
 // legacy.ts - Legacy endpoint handlers (/api/list, /api/getKey, /api/getHtml)
 // For backward compatibility with older frontend versions
 
-import { decodeMimeWords, decodeContent } from '../utils/mime.ts';
+import { decodeMimeWords } from '../utils/mime.ts';
 import { jsonResponse, cachedJsonResponse, getClientIP, generateETag } from '../utils/http.ts';
 import { normalizeRecipientLookup } from '../utils/validation.ts';
 import { isAuthorizedAdmin as isAuthorizedAdminRequest } from '../utils/auth.ts';
@@ -230,23 +230,12 @@ export async function handleGetHtml(
 
     let html = row.body_html;
     if (!html && row.body_text) {
-        let text = row.body_text;
-
-        // Heuristic: if text contains QP artifacts, try to decode
-        if (text.includes('=\r\n') || text.includes('=\n') || text.includes('=3D')) {
-            try {
-                text = decodeContent(text, 'quoted-printable', 'utf-8');
-            } catch (e) {
-                console.warn('[getHtml] Failed to decode QP:', e);
-            }
-        }
-
-        // Heuristic: if it looks like HTML, treat as HTML
-        if (text.trim().startsWith('<') || text.includes('</')) {
-            html = text;
-        } else {
-            html = `<div style="font-family: system-ui, -apple-system, sans-serif; padding: 20px; line-height: 1.5; text-wrap: pretty; color: #374151;">${text.replace(/\n/g, '<br>')}</div>`;
-        }
+        // Ingress already decodes MIME text; render it literally, even if it resembles HTML.
+        const text = row.body_text
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+        html = `<div style="font-family: system-ui, -apple-system, sans-serif; padding: 20px; line-height: 1.5; text-wrap: pretty; color: #374151;">${text.replace(/\n/g, '<br>')}</div>`;
     }
 
     // Generate ETag for HTML content

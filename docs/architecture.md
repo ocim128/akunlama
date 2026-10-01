@@ -62,6 +62,8 @@ graph TB
 5. Content is filtered (spam checks) and sanitized.
 6. Details are stored in the D1 database.
 
+The inbox recipient is the lowercase SMTP envelope address supplied by Cloudflare as `message.to`. Both `emails.recipient` and `recipient_registry.recipient` use this address, including registry entries for filtered messages. The sender-supplied MIME `To` and `Cc` headers do not choose the inbox: they may list multiple addresses, omit a Bcc recipient, or name a different address. Each Worker email event stores only its envelope recipient's copy. See the [Cloudflare email handler contract](https://developers.cloudflare.com/email-service/api/route-emails/email-handler/).
+
 ### Email Retrieval
 1. User opens UI, generates a random username (e.g., `user123`).
 2. UI polls (or streams) `/api/events?recipient=user123`.

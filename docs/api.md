@@ -4,6 +4,8 @@ The Akunlama API is built on Cloudflare Workers and provides endpoints for manag
 
 Base URL (Production): `https://akunlama.com/api`
 
+Inbox lookups use the email's SMTP delivery recipient, normalized to lowercase. Recipient fields returned by the API (`message.headers.to`, `to`, and legacy `recipients`) identify that inbox, which may differ from the original MIME `To` header for Bcc, Cc, or messages with multiple recipients.
+
 ## Core Endpoints
 
 ### 1. List Events (Emails)
@@ -128,6 +130,8 @@ Trigger the email cleanup process manually (delete old emails).
 ## Legacy Endpoints (Deprecated)
 
 These endpoints exist for backward compatibility with older clients.
+
+`GET /getHtml?key=...` returns the stored HTML MIME body when available. For text-only mail, it escapes the decoded plain-text body before adding display line breaks. Text that resembles HTML, literal entities, and quoted-printable syntax remains literal; MIME transfer decoding happens at ingestion. HTML stored only in a historical `body_text` column is consequently displayed as text. The response keeps the email sandbox policy and ETag caching.
 
 | Endpoint | Method | Redirects To |
 |----------|--------|--------------|

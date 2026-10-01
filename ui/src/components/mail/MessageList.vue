@@ -12,6 +12,11 @@
       </div>
     </div>
 
+    <div v-if="loadError" class="inbox-error" role="alert">
+      <p>Unable to check this inbox. Please try again.</p>
+      <button type="button" @click="refreshList" :disabled="refreshing">Try again</button>
+    </div>
+
     <!-- Skeleton loading state -->
     <skeleton-loader v-if="refreshing && listOfMessages.length === 0" :count="4" />
 
@@ -46,7 +51,7 @@
 
     <!-- Empty state -->
     <empty-inbox 
-      v-if="listOfMessages.length == 0 && !refreshing"
+      v-if="listOfMessages.length == 0 && !refreshing && !loadError"
       :is-refreshing="refreshing"
       :formatted-last-refreshed="formattedLastRefreshed"
       :countdown="countdown"
@@ -78,6 +83,7 @@ export default {
   data: () => {
     return {
       listOfMessages: [],
+      loadError: false,
       refreshing: false,
       lastRefreshed: dayjs(),
       countdown: refreshIntervalSeconds,
@@ -96,6 +102,7 @@ export default {
         this.requestController?.abort()
         this.refreshing = false
         this.listOfMessages = []
+        this.loadError = false
         this.getMessageList()
       }
     }
@@ -175,16 +182,18 @@ export default {
         const res = await this.fetchMessageList(recipient, controller.signal)
         if (!controller.signal.aborted) {
           this.listOfMessages = res.data
+          this.loadError = false
+          this.lastRefreshed = dayjs()
         }
       } catch (e) {
         if (!controller.signal.aborted) {
           console.error('Failed to fetch messages:', e)
+          this.loadError = true
         }
       } finally {
         if (!controller.signal.aborted) {
           this.requestController = null
           this.refreshing = false
-          this.lastRefreshed = dayjs()
           this.countdown = refreshIntervalSeconds
           this.$eventHub.emit('refreshEnd')
         }
@@ -206,6 +215,30 @@ export default {
 
 <style lang="scss">
   @use "../../scss/color" as *;
+
+  .inbox-error {
+    margin: 0.75rem;
+    padding: 1rem;
+    border: 1px solid $error;
+    border-radius: $radius;
+    background: var(--color-surface);
+    color: $dark-text;
+
+    p { margin: 0 0 0.75rem; }
+
+    button {
+      padding: 0.5rem 1rem;
+      min-height: 44px;
+      border: none;
+      border-radius: $radius;
+      background: $primary;
+      color: white;
+      font: inherit;
+      cursor: pointer;
+
+      &:disabled { opacity: 0.6; cursor: not-allowed; }
+    }
+  }
 
   .advisory-banner {
     background: linear-gradient(135deg, #FEF3C7, #FCD34D);
