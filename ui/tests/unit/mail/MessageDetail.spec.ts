@@ -16,7 +16,8 @@ vi.mock('axios')
 vi.mock('@/../config/apiconfig', () => ({
     default: {
         domain: 'test-domain.com',
-        apiUrl: 'http://localhost:8080/api'
+        apiUrl: 'http://localhost:8080/api',
+        requestTimeout: 10000
     }
 }))
 
@@ -121,7 +122,8 @@ describe('MessageDetail.vue', () => {
             await flushPromises()
 
             expect(axios.get).toHaveBeenCalledWith(
-                expect.stringContaining('getKey?region=us&key=123')
+                expect.stringContaining('getKey?region=us&key=123'),
+                { timeout: 10000, signal: expect.any(AbortSignal) }
             )
         })
 
@@ -135,6 +137,32 @@ describe('MessageDetail.vue', () => {
             expect(wrapper.vm.emailContent.subject).toBe('Test Subject')
             expect(wrapper.vm.emailContent.name).toBe('John Doe')
             expect(wrapper.vm.loading).toBe(false)
+        })
+
+        it('never replaces the selected message metadata with an older response', async () => {
+            await flushPromises()
+            let resolveOld!: (value: unknown) => void
+            vi.mocked(axios.get).mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }) as any)
+            const oldRequest = wrapper.vm.getMessage()
+            const oldSignal = vi.mocked(axios.get).mock.calls.at(-1)?.[1]?.signal
+            vi.mocked(axios.get).mockResolvedValueOnce({ data: { ...mockEmailContent, subject: 'New message' } })
+
+            await router.push('/inbox/test-user/us/456')
+            await flushPromises()
+            expect(oldSignal?.aborted).toBe(true)
+            resolveOld({ data: mockEmailContent })
+            await oldRequest
+            expect(wrapper.vm.emailContent.subject).toBe('New message')
+            expect(wrapper.vm.src).toContain('key=456')
+        })
+
+        it('cancels metadata requests when leaving the message view', async () => {
+            await flushPromises()
+            vi.mocked(axios.get).mockReturnValueOnce(new Promise(() => {}) as any)
+            wrapper.vm.getMessage()
+            const signal = vi.mocked(axios.get).mock.calls.at(-1)?.[1]?.signal
+            wrapper.unmount()
+            expect(signal?.aborted).toBe(true)
         })
     })
 
@@ -218,6 +246,13 @@ describe('MessageDetail.vue', () => {
     })
 
     describe('Iframe Loading', () => {
+        it('permits browser printing while keeping email scripts sandboxed', async () => {
+            await flushPromises()
+            const sandbox = wrapper.find('iframe').attributes('sandbox')
+            expect(sandbox).toContain('allow-modals')
+            expect(sandbox).not.toContain('allow-scripts')
+        })
+
         it('sets iframeLoading to false on load event', async () => {
             // Initially true
             expect(wrapper.vm.iframeLoading).toBe(true)

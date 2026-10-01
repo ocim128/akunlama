@@ -13,10 +13,10 @@
     </div>
 
     <!-- Skeleton loading state -->
-    <skeleton-loader v-if="refreshing" :count="4" />
+    <skeleton-loader v-if="refreshing && listOfMessages.length === 0" :count="4" />
 
     <!-- Email list -->
-    <div class="email-list-container" v-if="listOfMessages.length > 0 && !refreshing">
+    <div class="email-list-container" v-if="listOfMessages.length > 0">
       <div class="email-list-header">
         <div class="header-main">
           <h3>
@@ -37,7 +37,7 @@
       <div class="email-list">
         <email-list-item 
           v-for="msg in listOfMessages" 
-          :key="msg.url"
+          :key="msg.storage.key"
           :message="msg"
           @select="getMessage"
         />
@@ -81,7 +81,8 @@ export default {
       refreshing: false,
       lastRefreshed: dayjs(),
       countdown: refreshIntervalSeconds,
-      countdownTimer: null
+      countdownTimer: null,
+      requestController: null
     }
   },
   computed: {
@@ -92,6 +93,9 @@ export default {
   watch: {
     '$route.params.email'(newEmail) {
       if (newEmail) {
+        this.requestController?.abort()
+        this.refreshing = false
+        this.listOfMessages = []
         this.getMessageList()
       }
     }
@@ -104,33 +108,48 @@ export default {
 
     this.getMessageList()
     
-    // Auto-refresh using the configured interval.
-    this.countdownTimer = window.setInterval(() => {
-      if (this.countdown > 0) {
-        this.countdown--
-      } else {
-        this.refreshList()
-      }
-    }, 1000)
+    this.startAutoRefresh()
+    document.addEventListener('visibilitychange', this.handleVisibilityChange)
 
     this.$eventHub.on('refreshInbox', this.getMessageList)
     this.$eventHub.on('refresh', this.getMessageList)
   },
   beforeUnmount () {
     window.clearInterval(this.countdownTimer)
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange)
+    this.requestController?.abort()
     this.$eventHub.off('refreshInbox', this.getMessageList)
     this.$eventHub.off('refresh', this.getMessageList)
   },
   methods: {
+    startAutoRefresh () {
+      if (document.hidden || this.countdownTimer !== null) return
+      this.countdownTimer = window.setInterval(() => {
+        if (this.countdown > 0) {
+          this.countdown--
+        } else {
+          this.refreshList()
+        }
+      }, 1000)
+    },
+
+    handleVisibilityChange () {
+      window.clearInterval(this.countdownTimer)
+      this.countdownTimer = null
+      if (document.hidden) return
+      this.refreshList()
+      this.startAutoRefresh()
+    },
+
     getInboxRecipient (email) {
       const trimmedEmail = Array.isArray(email) ? (email[0] || '') : (email || '')
       return trimmedEmail.trim()
     },
 
-    fetchMessageList (recipient) {
+    fetchMessageList (recipient, signal) {
       return axios.get(
         config.apiUrl + '/list?recipient=' + encodeURIComponent(recipient),
-        { timeout: config.requestTimeout }
+        { timeout: config.requestTimeout, signal }
       )
     },
 
@@ -141,6 +160,8 @@ export default {
     async getMessageList () {
       if (this.refreshing) return
 
+      const controller = new AbortController()
+      this.requestController = controller
       this.refreshing = true
       this.$eventHub.emit('refreshStart')
 
@@ -151,15 +172,22 @@ export default {
           return
         }
 
-        const res = await this.fetchMessageList(recipient)
-        this.listOfMessages = res.data
+        const res = await this.fetchMessageList(recipient, controller.signal)
+        if (!controller.signal.aborted) {
+          this.listOfMessages = res.data
+        }
       } catch (e) {
-        console.error('Failed to fetch messages:', e)
+        if (!controller.signal.aborted) {
+          console.error('Failed to fetch messages:', e)
+        }
       } finally {
-        this.refreshing = false
-        this.lastRefreshed = dayjs()
-        this.countdown = refreshIntervalSeconds
-        this.$eventHub.emit('refreshEnd')
+        if (!controller.signal.aborted) {
+          this.requestController = null
+          this.refreshing = false
+          this.lastRefreshed = dayjs()
+          this.countdown = refreshIntervalSeconds
+          this.$eventHub.emit('refreshEnd')
+        }
       }
     },
 

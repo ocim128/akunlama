@@ -2,7 +2,7 @@
 	<div>
 		<!-- <carbon-ads placement="InboxKittenLanding"></carbon-ads> -->
 		<div class="kittenrouter-navigation">
-			<img class="kittenrouter-nav-main-logo" src="@/assets/inbox_kitten.png" @click="goToMainPage"/>
+			<img class="kittenrouter-nav-main-logo" src="@/assets/inbox_kitten-400.webp" @click="goToMainPage"/>
 		</div>
 		<div class="header-gradient-background">
 			<div class="header">

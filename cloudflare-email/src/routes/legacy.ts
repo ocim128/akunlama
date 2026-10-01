@@ -37,7 +37,8 @@ interface FullEmailRow {
     received_at: number;
 }
 
-const EMAIL_HTML_LINK_POLICY_VERSION = 'email-link-target-v1';
+const EMAIL_HTML_LINK_POLICY_VERSION = 'email-link-target-v2';
+const EMAIL_HTML_CSP = "sandbox allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals; script-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'";
 
 const addNoopenerRel = (rel: string | null): string => {
     const tokens = new Set((rel || '').split(/\s+/).filter(Boolean));
@@ -261,6 +262,7 @@ export async function handleGetHtml(
             status: 304,
             headers: {
                 'ETag': htmlEtag,
+                'Content-Security-Policy': EMAIL_HTML_CSP,
                 'Cache-Control': 'public, max-age=300, stale-while-revalidate=60'
             }
         });
@@ -269,6 +271,7 @@ export async function handleGetHtml(
     return emailHtmlResponse(htmlContent, {
         'Content-Type': 'text/html; charset=utf-8',
         'X-Frame-Options': 'SAMEORIGIN',
+        'Content-Security-Policy': EMAIL_HTML_CSP,
         'ETag': htmlEtag,
         'Cache-Control': 'public, max-age=300, stale-while-revalidate=60'
     });

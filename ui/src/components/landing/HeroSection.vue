@@ -11,7 +11,7 @@
     </div>
     
     <div class="hero-content">
-      <img class="logo" src="@/assets/inbox_kitten.png" alt="Akunlama Logo" />
+      <img class="logo" src="@/assets/inbox_kitten-400.webp" width="400" height="267" alt="Akunlama Logo" />
       <h1>Open-Source <span class="highlight">Disposable Email</span></h1>
       <h2>(Served by Adorably Lazy Kittens 🐱)</h2>
       

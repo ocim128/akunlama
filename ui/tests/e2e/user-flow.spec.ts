@@ -20,6 +20,7 @@ async function waitForInboxLoad(page: Page, timeout = 30000) {
             const emailList = document.querySelector('.email-list-container')
             return (!skeleton || !skeleton.offsetParent) && (emptyState || emailList)
         },
+        undefined,
         { timeout }
     )
 }
@@ -149,17 +150,17 @@ test.describe('Error Handling', () => {
         // Should still load the page structure
         await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
 
-        // Should show empty state or error state (not crash)
-        await page.waitForTimeout(2000)
-
-        // Page should be in a valid state
-        const pageLoaded = await page.locator('body').textContent()
-        expect(pageLoaded).toBeTruthy()
+        await expect(page.locator('.skeleton-container')).toHaveCount(0)
+        await expect(page.locator('.empty-state')).toBeVisible()
+        await expect(page.locator('.empty-state button')).toBeEnabled()
     })
 
     test('should handle 404 API responses', async ({ page }) => {
-        // Mock API to return empty
-        await mockInboxList(page)
+        await page.route('**/api/list**', route => route.fulfill({
+            status: 404,
+            contentType: 'application/json',
+            body: JSON.stringify({ error: 'Not found' })
+        }))
 
         await page.goto('/inbox/empty-test')
         await waitForInboxLoad(page)
@@ -186,18 +187,24 @@ test.describe('Performance', () => {
         expect(loadTime).toBeLessThan(5000)
     })
 
-    test('should not have memory leaks on navigation', async ({ page }) => {
-        // Navigate back and forth multiple times
+    test('should stop polling after leaving the inbox', async ({ page }) => {
+        await page.clock.install()
+        let requestCount = 0
+        page.on('request', request => {
+            if (request.url().includes('/api/list')) requestCount++
+        })
         for (let i = 0; i < 3; i++) {
             await page.goto('/')
             await waitForLandingLoad(page)
-
-            await page.goto('/inbox/memory-test')
+            await page.locator('.main-email-input').fill('memory-test')
+            await page.locator('.btn-get-mail').click()
             await waitForInboxLoad(page)
+            await page.locator('.nav-logo').click()
+            await waitForLandingLoad(page)
+            const requestsBefore = requestCount
+            await page.clock.runFor(31000)
+            expect(requestCount).toBe(requestsBefore)
         }
-
-        // If we get here without crashing, basic memory handling is OK
-        expect(true).toBe(true)
     })
 })
 

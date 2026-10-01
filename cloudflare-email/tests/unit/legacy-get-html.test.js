@@ -118,4 +118,30 @@ describe('legacy getHtml route', () => {
         expect(body).toContain('target="_blank"');
         expect(body).toContain('rel="nofollow noopener noreferrer"');
     });
+
+    test('protects directly opened email HTML while preserving its layout', async () => {
+        const request = new Request('https://example.com/api/getHtml?key=email-1');
+        const response = await handleGetHtml(request, new URL(request.url), createEnv({
+            body_html: '<style>p { color: red }</style><p>Hello</p><script>alert(1)</script>',
+            body_text: null
+        }));
+        const policy = response.headers.get('Content-Security-Policy');
+
+        expect(policy).toContain("script-src 'none'");
+        expect(policy).toContain('sandbox allow-same-origin allow-popups allow-popups-to-escape-sandbox');
+        expect(policy).toContain("form-action 'none'");
+        expect(policy).toContain('allow-modals');
+        expect(policy).not.toContain('allow-scripts');
+        expect(await response.text()).toContain('<style>p { color: red }</style><p>Hello</p>');
+
+        const conditionalRequest = new Request(request.url, {
+            headers: { 'If-None-Match': response.headers.get('ETag') }
+        });
+        const cached = await handleGetHtml(conditionalRequest, new URL(request.url), createEnv({
+            body_html: '<style>p { color: red }</style><p>Hello</p><script>alert(1)</script>',
+            body_text: null
+        }));
+        expect(cached.status).toBe(304);
+        expect(cached.headers.get('Content-Security-Policy')).toBe(policy);
+    });
 });

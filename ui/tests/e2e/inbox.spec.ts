@@ -22,6 +22,7 @@ async function waitForInboxLoad(page: Page, timeout = 30000) {
             // Return true when loading is done (skeleton gone AND content visible)
             return (!skeleton || !skeleton.offsetParent) && (emptyState || emailList)
         },
+        undefined,
         { timeout }
     )
 }
@@ -56,15 +57,8 @@ test.describe('Inbox Page', () => {
     })
 
     test('should display inbox page correctly', async ({ page }) => {
-        // Should show either empty state or email list
-        const emptyState = page.locator('.empty-state')
-        const emailList = page.locator('.email-list-container')
-
-        // One of these should be visible
-        const emptyVisible = await emptyState.isVisible()
-        const listVisible = await emailList.isVisible()
-
-        expect(emptyVisible || listVisible).toBe(true)
+        await expect(page.locator('.empty-state')).toBeVisible()
+        await expect(page.locator('.email-list-container')).toHaveCount(0)
     })
 
     test('should show advisory banner', async ({ page }) => {
@@ -82,14 +76,9 @@ test.describe('Inbox Page', () => {
     test('should refresh inbox when refresh button is clicked', async ({ page }) => {
         const refreshBtn = page.locator('button:visible:has-text("Refresh"), button:visible:has-text("Check for messages")').first()
 
-        // Click refresh
+        const refreshed = page.waitForResponse(response => response.url().includes('/api/list'))
         await refreshBtn.click()
-
-        // Should show loading indicator or spin icon
-        // Wait for refresh to complete
-        await page.waitForTimeout(1000)
-
-        // Refresh should complete (button should be enabled again)
+        expect((await refreshed).status()).toBe(200)
         await expect(refreshBtn).toBeEnabled({ timeout: 10000 })
     })
 
@@ -105,30 +94,26 @@ test.describe('Inbox - Empty State', () => {
         const uniqueInbox = `test-${Date.now()}`
         await page.goto(`/inbox/${uniqueInbox}`)
 
-        // Wait for loading to complete
-        await page.waitForSelector('.empty-state, .email-list-container', { timeout: 30000 })
+        await waitForInboxLoad(page)
 
         const emptyState = page.locator('.empty-state')
 
-        if (await emptyState.isVisible()) {
-            await expect(emptyState).toContainText('No messages')
-            await expect(emptyState.locator('button')).toBeVisible()
-        }
+        await expect(emptyState).toBeVisible()
+        await expect(emptyState).toContainText('No messages')
+        await expect(emptyState.locator('button')).toBeVisible()
     })
 
     test('should show cat icon in empty state', async ({ page }) => {
         const uniqueInbox = `test-${Date.now()}`
         await page.goto(`/inbox/${uniqueInbox}`)
 
-        await page.waitForSelector('.empty-state, .email-list-container', { timeout: 30000 })
+        await waitForInboxLoad(page)
 
         const emptyState = page.locator('.empty-state')
 
-        if (await emptyState.isVisible()) {
-            // Check for the cat icon - support both <i> and <svg> (from font-awesome-icon)
-            const catIcon = emptyState.locator('.fa-cat, [data-icon="cat"]')
-            await expect(catIcon.first()).toBeVisible()
-        }
+        await expect(emptyState).toBeVisible()
+        const catIcon = emptyState.locator('.fa-cat, [data-icon="cat"]')
+        await expect(catIcon.first()).toBeVisible()
     })
 })
 
@@ -140,10 +125,9 @@ test.describe('Inbox - Navigation', () => {
         // Click on logo or home link
         const logo = page.locator('img[class*="logo"]').first()
 
-        if (await logo.isVisible()) {
-            await logo.click()
-            await expect(page).toHaveURL('/')
-        }
+        await expect(logo).toBeVisible()
+        await logo.click()
+        await expect(page).toHaveURL('/')
     })
 
     test('should handle direct URL navigation to inbox', async ({ page }) => {
@@ -169,9 +153,7 @@ test.describe('Inbox - Mobile', () => {
 
 test.describe('Inbox - Auto Refresh', () => {
     test('should set up auto-refresh interval', async ({ page }) => {
-        // Check that the app sets up auto-refresh
-        // We can verify this by checking that new requests are made periodically
-
+        await page.clock.install()
         let requestCount = 0
 
         page.on('request', request => {
@@ -183,10 +165,9 @@ test.describe('Inbox - Auto Refresh', () => {
         await page.goto('/inbox/auto-refresh-test')
         await waitForInboxLoad(page)
 
-        // Initial request
-        expect(requestCount).toBeGreaterThanOrEqual(1)
-
-        // Wait for potential auto-refresh (if interval is short enough for testing)
-        // Note: In real tests, you might mock timers
+        expect(requestCount).toBe(1)
+        await page.clock.runFor(31000)
+        await expect.poll(() => requestCount).toBe(2)
+        await expect(page.locator('.empty-state')).toBeVisible()
     })
 })

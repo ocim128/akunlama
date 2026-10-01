@@ -3,7 +3,7 @@
     <div class="empty-state-content">
       <div class="kitten-animation-container">
         <font-awesome-icon icon="cat" size="3x" class="cat-icon-animation" />
-        <img src="@/assets/sleeping-kitten.png" alt="Sleeping Kitten" class="sleeping-kitten">
+        <img src="@/assets/sleeping-kitten-400.webp" width="400" height="400" alt="Sleeping Kitten" class="sleeping-kitten">
       </div>
       <h3>No messages yet</h3>
       <p>Your inbox is empty. Send an email to this address to see it appear here!</p>

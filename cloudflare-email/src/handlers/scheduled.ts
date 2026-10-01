@@ -25,5 +25,9 @@ export async function handleScheduled(
     env: Env,
     ctx: ExecutionContext
 ): Promise<void> {
-    ctx.waitUntil(runCleanup(env));
+    ctx.waitUntil(runCleanup(env).then(result => {
+        if (!result.success) {
+            throw new Error(result.error || 'Cleanup failed');
+        }
+    }));
 }

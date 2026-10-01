@@ -35,7 +35,8 @@ describe('MessageList.vue', () => {
 
     const mockMessages = [
         {
-            url: 'http://api.mailgun.net/storage/1',
+            url: '/api/list?recipient=test-user@test-domain.com',
+            read_at: null,
             timestamp: Math.floor(Date.now() / 1000) - 300, // 5 minutes ago
             message: {
                 headers: {
@@ -51,7 +52,8 @@ describe('MessageList.vue', () => {
             }
         },
         {
-            url: 'http://api.mailgun.net/storage/2',
+            url: '/api/list?recipient=test-user@test-domain.com',
+            read_at: null,
             timestamp: Math.floor(Date.now() / 1000) - 86400, // 1 day ago
             message: {
                 headers: {
@@ -126,7 +128,7 @@ describe('MessageList.vue', () => {
         it('should call API to fetch messages on mount', () => {
             expect(mockedAxiosGet).toHaveBeenCalledWith(
                 expect.stringContaining('list?recipient=test-user'),
-                { timeout: 10000 }
+                { timeout: 10000, signal: expect.any(AbortSignal) }
             )
         })
 
@@ -140,7 +142,7 @@ describe('MessageList.vue', () => {
             expect(mockedAxiosGet).toHaveBeenCalledTimes(1)
             expect(mockedAxiosGet).toHaveBeenCalledWith(
                 expect.stringContaining('list?recipient=test-user'),
-                { timeout: 10000 }
+                { timeout: 10000, signal: expect.any(AbortSignal) }
             )
             expect(wrapper.vm.listOfMessages).toEqual([])
         })
@@ -155,7 +157,7 @@ describe('MessageList.vue', () => {
             expect(mockedAxiosGet).toHaveBeenCalledTimes(1)
             expect(mockedAxiosGet).toHaveBeenCalledWith(
                 expect.stringContaining('list?recipient=test-user'),
-                { timeout: 10000 }
+                { timeout: 10000, signal: expect.any(AbortSignal) }
             )
         })
 
@@ -239,6 +241,44 @@ describe('MessageList.vue', () => {
     })
 
     describe('UI States', () => {
+        it('keeps rows mounted while refreshing and preserves their identity when reordered', async () => {
+            const rows = wrapper.findAllComponents({ name: 'EmailListItem' })
+            let resolveRequest!: (value: unknown) => void
+            mockedAxiosGet.mockReturnValueOnce(new Promise(resolve => { resolveRequest = resolve }) as any)
+
+            const refresh = wrapper.vm.refreshList()
+            await wrapper.vm.$nextTick()
+            expect(wrapper.findAllComponents({ name: 'EmailListItem' })[0].vm).toBe(rows[0].vm)
+            expect(wrapper.findComponent({ name: 'SkeletonLoader' }).exists()).toBe(false)
+
+            resolveRequest({ data: [...mockMessages].reverse() })
+            await refresh
+            await flushPromises()
+            const reordered = wrapper.findAllComponents({ name: 'EmailListItem' })
+            expect(reordered[0].vm).toBe(rows[1].vm)
+            expect(reordered[1].vm).toBe(rows[0].vm)
+        })
+
+        it('fetches the new inbox immediately and ignores the previous inbox response', async () => {
+            let resolveOld!: (value: unknown) => void
+            mockedAxiosGet.mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }) as any)
+            const oldRequest = wrapper.vm.refreshList()
+            const oldSignal = mockedAxiosGet.mock.calls.at(-1)?.[1]?.signal
+            mockedAxiosGet.mockResolvedValueOnce({ data: [] })
+
+            await router.push('/inbox/second-user')
+            await flushPromises()
+            expect(oldSignal?.aborted).toBe(true)
+            expect(mockedAxiosGet).toHaveBeenLastCalledWith(
+                expect.stringContaining('recipient=second-user'),
+                { timeout: 10000, signal: expect.any(AbortSignal) }
+            )
+            resolveOld({ data: mockMessages })
+            await oldRequest
+            expect(wrapper.vm.listOfMessages).toEqual([])
+            expect(wrapper.vm.refreshing).toBe(false)
+        })
+
         it('should show empty state when no messages', async () => {
             // Mock empty response
             mockedAxiosGet.mockResolvedValueOnce({ data: [] })
@@ -252,6 +292,30 @@ describe('MessageList.vue', () => {
     })
 
     describe('Cleanup', () => {
+        it('pauses polling while hidden and refreshes once when visible again', async () => {
+            vi.clearAllMocks()
+            const hidden = vi.spyOn(document, 'hidden', 'get').mockReturnValue(true)
+            document.dispatchEvent(new Event('visibilitychange'))
+            expect(window.clearInterval).toHaveBeenCalled()
+            expect(mockedAxiosGet).not.toHaveBeenCalled()
+
+            hidden.mockReturnValue(false)
+            document.dispatchEvent(new Event('visibilitychange'))
+            await flushPromises()
+            expect(mockedAxiosGet).toHaveBeenCalledTimes(1)
+            expect(window.setInterval).toHaveBeenCalledTimes(1)
+        })
+
+        it('cancels pending requests and removes the visibility listener on unmount', () => {
+            mockedAxiosGet.mockReturnValueOnce(new Promise(() => {}) as any)
+            wrapper.vm.refreshList()
+            const signal = mockedAxiosGet.mock.calls.at(-1)?.[1]?.signal
+            const removeListener = vi.spyOn(document, 'removeEventListener')
+            wrapper.unmount()
+            expect(signal?.aborted).toBe(true)
+            expect(removeListener).toHaveBeenCalledWith('visibilitychange', expect.any(Function))
+        })
+
         it('should clear interval on component destroy', async () => {
             wrapper.unmount()
 

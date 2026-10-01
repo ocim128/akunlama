@@ -9,7 +9,7 @@
         :src="src" 
         @load="$emit('load')"
         scrolling="yes"
-        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+        sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals"
         referrerpolicy="no-referrer"
         title="Email content"
         :class="{ 'is-loading': loading }"

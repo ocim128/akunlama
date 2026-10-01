@@ -1,11 +1,10 @@
 import {
     runCleanup,
     OLD_EMAIL_BATCH_SIZE,
-    MAX_OLD_EMAIL_BATCHES_PER_RUN
+    MAX_OLD_EMAIL_BATCHES_PER_RUN,
+    MAX_CLEANUP_RUNTIME_MS
 } from '../../src/services/cleanup.ts';
 import { describe, test, expect, vi, beforeEach, afterEach } from 'vitest';
-
-const SPAM_PATTERN_COUNT = 11;
 
 function createEnv(oldEmailDeletes, spamDeleteCount = 0) {
     let oldEmailIndex = 0;
@@ -62,12 +61,15 @@ describe('Cleanup Service', () => {
 
         const result = await runCleanup(env);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             success: true,
-            deleted: (SPAM_PATTERN_COUNT * 2) + (OLD_EMAIL_BATCH_SIZE * 2) + 2500
+            completed: true,
+            stop_reason: 'exhausted',
+            batches: 4,
+            deleted: 2 + (OLD_EMAIL_BATCH_SIZE * 2) + 2500
         });
         expect(getStats()).toEqual({
-            spamCalls: SPAM_PATTERN_COUNT,
+            spamCalls: 1,
             oldEmailCalls: 4
         });
     });
@@ -78,14 +80,62 @@ describe('Cleanup Service', () => {
 
         const result = await runCleanup(env);
 
-        expect(result).toEqual({
+        expect(result).toMatchObject({
             success: true,
+            completed: false,
+            stop_reason: 'batch_limit',
             deleted: MAX_OLD_EMAIL_BATCHES_PER_RUN * OLD_EMAIL_BATCH_SIZE
         });
         expect(getStats()).toEqual({
-            spamCalls: SPAM_PATTERN_COUNT,
+            spamCalls: 1,
             oldEmailCalls: MAX_OLD_EMAIL_BATCHES_PER_RUN
         });
         expect(console.warn).toHaveBeenCalled();
+    });
+
+    test('reports when spam cleanup consumes the retention runtime budget', async () => {
+        const { env, getStats } = createEnv([OLD_EMAIL_BATCH_SIZE], 2);
+        vi.spyOn(Date, 'now').mockReturnValueOnce(0).mockReturnValueOnce(0).mockReturnValue(MAX_CLEANUP_RUNTIME_MS);
+
+        expect(await runCleanup(env)).toMatchObject({
+            success: true, completed: false, stop_reason: 'runtime_limit',
+            deleted: 2, batches: 0, duration_ms: MAX_CLEANUP_RUNTIME_MS
+        });
+        expect(getStats()).toEqual({ spamCalls: 1, oldEmailCalls: 0 });
+    });
+
+    test('binds all existing spam patterns in one deletion', async () => {
+        const { env } = createEnv([0]);
+        const bind = vi.fn().mockReturnValue({ run: async () => ({ meta: { changes: 0 } }) });
+        const prepare = vi.spyOn(env.DB, 'prepare');
+        prepare.mockReturnValueOnce({ bind });
+        await runCleanup(env);
+
+        const spamQuery = prepare.mock.calls[0][0];
+        expect(spamQuery.match(/sender LIKE \?/g)).toHaveLength(11);
+        expect(spamQuery.match(/ OR /g)).toHaveLength(10);
+        expect(bind).toHaveBeenCalledWith(
+            '%registration@facebook.com%',
+            '%registration@facebookmail.com%',
+            '%friendsuggestion@facebookmail.com%',
+            '%reminders@facebookmail.com%',
+            '%groupupdates@facebookmail.com%',
+            '%pageupdates@facebookmail.com%',
+            '%notification@facebookmail.com%',
+            '%friendupdates@facebookmail.com%',
+            '%friends@facebookmail.com%',
+            '%close_friend_updates@facebookmail.com%',
+            '%posts-recaps@mail.instagram.com%'
+        );
+    });
+
+    test('reports a database failure instead of claiming completion', async () => {
+        const env = { DB: { prepare() { throw new Error('DB unavailable'); } } };
+
+        expect(await runCleanup(env)).toMatchObject({
+            success: false, completed: false, stop_reason: 'error', error: 'DB unavailable'
+        });
+        const summary = JSON.parse(console.error.mock.calls.at(-1)[0]);
+        expect(summary).toMatchObject({ event: 'cleanup', success: false, stop_reason: 'error' });
     });
 });

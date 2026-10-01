@@ -12,7 +12,7 @@ export interface RateLimitResult {
 
 /** IP data stored in rate limits map */
 interface IPData {
-    requestTimestamps: number[];
+    requestTimestamps: { timestamp: number; username: string }[];
     uniqueUsernames: Set<string>;
     resetTime: number;
 }
@@ -83,7 +83,7 @@ export const checkRateLimit = (username: string, clientIP: string | null): RateL
 
     // Remove old timestamps from sliding window
     const windowStart = now - RATE_LIMITS.WINDOW_MS;
-    ipData.requestTimestamps = ipData.requestTimestamps.filter(timestamp => timestamp > windowStart);
+    ipData.requestTimestamps = ipData.requestTimestamps.filter(entry => entry.timestamp > windowStart);
 
     // Check total requests limit
     if (ipData.requestTimestamps.length >= RATE_LIMITS.TOTAL_REQUESTS_PER_MINUTE) {
@@ -99,16 +99,14 @@ export const checkRateLimit = (username: string, clientIP: string | null): RateL
     }
 
     // Check same username frequency
-    const recentUsernameRequests = ipData.requestTimestamps.filter((_, index) => {
-        return index >= ipData.requestTimestamps.length - RATE_LIMITS.SAME_USERNAME_PER_MINUTE;
-    });
+    const recentUsernameRequests = ipData.requestTimestamps.filter(entry => entry.username === username);
 
     if (recentUsernameRequests.length >= RATE_LIMITS.SAME_USERNAME_PER_MINUTE) {
         return { allowed: false, error: 'Rate limit exceeded: Too many requests for this email. Please try again later.' };
     }
 
     // Add current request timestamp
-    ipData.requestTimestamps.push(now);
+    ipData.requestTimestamps.push({ timestamp: now, username });
 
     return { allowed: true, error: null };
 };

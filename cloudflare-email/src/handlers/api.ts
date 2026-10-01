@@ -103,7 +103,7 @@ export async function handleFetch(
                 if (route.methods && !route.methods.includes(request.method)) {
                     return jsonResponse({ error: 'Method not allowed' }, 405);
                 }
-                return route.handler(request, url, env, ctx);
+                return await route.handler(request, url, env, ctx);
             }
         }
 
@@ -112,7 +112,7 @@ export async function handleFetch(
         // GET /api/email/:id
         if (path.startsWith('/api/email/') && !path.includes('/read')) {
             const emailId = path.replace('/api/email/', '');
-            return handleGetEmail(request, url, emailId, env);
+            return await handleGetEmail(request, url, emailId, env);
         }
 
         // PATCH /api/email/:id/read
@@ -122,7 +122,7 @@ export async function handleFetch(
             }
             const pathParts = path.split('/');
             const emailId = pathParts[3];
-            return handleMarkRead(request, url, emailId, env);
+            return await handleMarkRead(request, url, emailId, env);
         }
 
         // 3. Fallback

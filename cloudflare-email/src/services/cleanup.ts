@@ -6,6 +6,10 @@ import type { Env } from '../types/index.d.ts';
 /** Cleanup result */
 export interface CleanupResult {
     success: boolean;
+    completed: boolean;
+    stop_reason: 'exhausted' | 'batch_limit' | 'runtime_limit' | 'error';
+    batches: number;
+    duration_ms: number;
     deleted?: number;
     error?: string;
 }
@@ -38,29 +42,25 @@ export const runCleanup = async (env: Env): Promise<CleanupResult> => {
     let deletedBatch = 0;
     let batchCount = 0;
     const cleanupStartedAt = Date.now();
-
-    console.log('[CLEANUP] Starting cleanup...');
+    let stopReason: CleanupResult['stop_reason'] = 'exhausted';
+    let errorMessage: string | undefined;
 
     try {
         // 1. Delete spam/blocked senders (aggressive)
-        for (const pattern of SPAM_PATTERNS) {
-            const result = await env.DB.prepare(`
-                DELETE FROM emails WHERE sender LIKE ?
-            `).bind(pattern).run();
-            const deletedSpam = result.meta.changes || 0;
-            totalDeleted += deletedSpam;
-            console.log(`[CLEANUP] Deleted spam pattern ${pattern}: ${deletedSpam} rows`);
-        }
+        const spamResult = await env.DB.prepare(`
+            DELETE FROM emails WHERE ${SPAM_PATTERNS.map(() => 'sender LIKE ?').join(' OR ')}
+        `).bind(...SPAM_PATTERNS).run();
+        totalDeleted += spamResult.meta.changes || 0;
 
         // 2. Delete old emails in batches until caught up or runtime budget is reached.
         do {
             if (batchCount >= MAX_OLD_EMAIL_BATCHES_PER_RUN) {
-                console.warn(`[CLEANUP] Stopping after ${batchCount} batches to stay within per-run delete budget.`);
+                stopReason = 'batch_limit';
                 break;
             }
 
             if (Date.now() - cleanupStartedAt >= MAX_CLEANUP_RUNTIME_MS) {
-                console.warn('[CLEANUP] Stopping early to stay within runtime budget.');
+                stopReason = 'runtime_limit';
                 break;
             }
 
@@ -76,15 +76,24 @@ export const runCleanup = async (env: Env): Promise<CleanupResult> => {
             deletedBatch = result.meta.changes || 0;
             totalDeleted += deletedBatch;
             batchCount += 1;
-            console.log(`[CLEANUP] Old-email batch ${batchCount}: ${deletedBatch} rows`);
-
         } while (deletedBatch > 0);
-
-        console.log(`[CLEANUP] Completed. Total rows deleted: ${totalDeleted}`);
-        return { success: true, deleted: totalDeleted };
-
     } catch (error) {
-        console.error('[CLEANUP] Error:', error);
-        return { success: false, error: (error as Error).message };
+        stopReason = 'error';
+        errorMessage = (error as Error).message;
     }
+
+    const result: CleanupResult = {
+        success: stopReason !== 'error',
+        completed: stopReason === 'exhausted',
+        stop_reason: stopReason,
+        deleted: totalDeleted,
+        batches: batchCount,
+        duration_ms: Date.now() - cleanupStartedAt,
+        ...(errorMessage ? { error: errorMessage } : {})
+    };
+    const summary = JSON.stringify({ event: 'cleanup', ...result });
+    if (!result.success) console.error(summary);
+    else if (!result.completed) console.warn(summary);
+    else console.log(summary);
+    return result;
 };

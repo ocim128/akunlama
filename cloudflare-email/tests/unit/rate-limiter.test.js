@@ -51,17 +51,26 @@ describe('Rate Limiter Service', () => {
         test('blocks after exceeding total requests limit', () => {
             const ip = '192.168.1.3';
 
-            // Make maximum allowed requests using SAME username
-            // to avoid hitting unique usernames limit first
+            // Spread requests across mailboxes so only the IP limit is reached.
             for (let i = 0; i < RATE_LIMITS.TOTAL_REQUESTS_PER_MINUTE; i++) {
                 vi.advanceTimersByTime(10); // Small time increment for unique timestamps
-                checkRateLimit('sameuser', ip);
+                expect(checkRateLimit(`user${i % 2}`, ip).allowed).toBe(true);
             }
 
             // Next request should be blocked due to total requests limit
             const result = checkRateLimit('sameuser', ip);
             expect(result.allowed).toBe(false);
-            expect(result.error).toContain('Too many requests');
+            expect(result.error).toBe('Rate limit exceeded: Too many requests. Please try again later.');
+        });
+
+        test('a busy mailbox does not consume another mailbox allowance', () => {
+            const ip = '192.168.1.7';
+            for (let i = 0; i < RATE_LIMITS.SAME_USERNAME_PER_MINUTE; i++) {
+                expect(checkRateLimit('busy', ip).allowed).toBe(true);
+            }
+
+            expect(checkRateLimit('busy', ip).error).toContain('Too many requests for this email');
+            expect(checkRateLimit('other', ip).allowed).toBe(true);
         });
 
         test('blocks after exceeding unique usernames limit', () => {

@@ -1,9 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw, type RouteLocationNormalized } from 'vue-router'
 import LandingPage from '@/LandingPage.vue'
-import KittenRouter from '@/KittenRouter.vue'
-import Inbox from '@/components/mail/Inbox.vue'
-import MessageDetail from '@/components/mail/MessageDetail.vue'
-import MessageList from '@/components/mail/MessageList.vue'
 
 const routes: RouteRecordRaw[] = [
     {
@@ -15,7 +11,7 @@ const routes: RouteRecordRaw[] = [
         path: '/inbox/:email',
         name: 'Inbox',
         redirect: { name: 'List' },
-        component: Inbox,
+        component: () => import('@/components/mail/Inbox.vue'),
         children: [
             {
                 path: '',
@@ -24,12 +20,12 @@ const routes: RouteRecordRaw[] = [
             {
                 path: 'list',
                 name: 'List',
-                component: MessageList
+                component: () => import('@/components/mail/MessageList.vue')
             },
             {
                 path: 'message/:region/:key',
                 name: 'Message',
-                component: MessageDetail,
+                component: () => import('@/components/mail/MessageDetail.vue'),
                 props: (route: RouteLocationNormalized) => ({
                     region: route.params.region,
                     key: route.params.key,
@@ -45,7 +41,7 @@ const routes: RouteRecordRaw[] = [
     {
         path: '/kittenrouter',
         name: 'KittenRouter',
-        component: KittenRouter
+        component: () => import('@/KittenRouter.vue')
     },
     {
         path: '/:pathMatch(.*)*',

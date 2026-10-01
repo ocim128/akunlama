@@ -57,7 +57,8 @@
 				iframeLoading: true,
 				refreshing: false,
 				showCopiedFeedback: false,
-				windowWidth: window.innerWidth
+				windowWidth: window.innerWidth,
+				requestController: null
 			}
 		},
 		computed: {
@@ -77,6 +78,7 @@
 			window.addEventListener('resize', this.handleResize)
 		},
 		beforeUnmount () {
+			this.requestController?.abort()
 			this.$eventHub.off('refresh', this.refreshMessage)
 			window.removeEventListener('resize', this.handleResize)
 		},
@@ -85,6 +87,9 @@
 		},
 		methods: {
 			getMessage () {
+				this.requestController?.abort()
+				const controller = new AbortController()
+				this.requestController = controller
 				this.loading = true
 				let region = this.$route.params.region
 				let key = this.$route.params.key
@@ -93,11 +98,16 @@
 				this.src = `${config.apiUrl}/getHtml?region=${region}&key=${key}`
 				
 				// Fetch metadata in parallel
-				axios.get(`${config.apiUrl}/getKey?region=${region}&key=${key}`)
+				return axios.get(`${config.apiUrl}/getKey?region=${region}&key=${key}`, {
+					timeout: config.requestTimeout,
+					signal: controller.signal
+				})
 					.then(res => {
+						if (controller.signal.aborted) return
 						this.emailContent = res.data
 						this.loading = false
 					}).catch((e) => {
+						if (controller.signal.aborted) return
 						console.error('Failed to load message:', e)
 						this.emailContent = {
 							name: 'Error',
@@ -133,15 +143,17 @@
 							</html>
 						`)
 						this.loading = false
+					}).finally(() => {
+						if (!controller.signal.aborted) {
+							this.requestController = null
+							this.refreshing = false
+						}
 					})
 			},
 
 			refreshMessage() {
 				this.refreshing = true
-				setTimeout(() => {
-					this.getMessage()
-					this.refreshing = false
-				}, 500)
+				return this.getMessage()
 			},
 
 			prepareIframeLinks() {
