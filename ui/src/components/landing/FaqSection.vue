@@ -1,18 +1,22 @@
 <template>
-  <section class="faq-section">
-    <h2>Questions You Might Ask (Or Not):</h2>
+  <section class="faq-section" aria-labelledby="faq-title">
+    <div class="faq-heading">
+      <p class="section-kicker">curious cat corner</p>
+      <h2 id="faq-title">Good questions.</h2>
+      <p class="faq-note">No nine lives needed to figure this out.</p>
+    </div>
     <div class="faq-grid">
       <div class="faq-item">
-        <h4>🤔 Is this actually free?</h4>
-        <p>Yep! Our kittens work for treats and belly rubs.</p>
+        <h3>Is it really free?</h3>
+        <p>Yep. No signup, no subscription. Just a free, open-source inbox for your little internet adventures.</p>
       </div>
       <div class="faq-item">
-        <h4>😱 What if I forget to check?</h4>
-        <p>The kittens will judge you silently, then delete everything after 24h.</p>
+        <h3>How long do emails stay?</h3>
+        <p>Emails are automatically deleted after 3 days. Save anything you need before it expires.</p>
       </div>
       <div class="faq-item">
-        <h4>🔒 Is my data safe?</h4>
-        <p>Safer than your secrets are from your cat who definitely knows everything.</p>
+        <h3>What should I use it for?</h3>
+        <p>Use it for low-risk, temporary emails. Anyone who knows an address can open its inbox, so keep sensitive messages in your personal email.</p>
       </div>
     </div>
   </section>
@@ -27,37 +31,20 @@ export default {
 <style lang="scss" scoped>
 @use "../../scss/color" as *;
 
-.faq-section {
-  text-align: center;
-  
-  h2 { color: #1f2937; font-size: 1.8rem; font-weight: 600; margin-bottom: 2rem; }
-}
-
-.faq-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 2rem;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
+.faq-section { display: grid; grid-template-columns: 1fr 1.3fr; gap: 2rem; }
+.section-kicker { color: $primary; font-family: var(--font-note); font-size: 0.8rem; font-weight: 600; margin: 0 0 0.75rem; }
+.faq-section h2 { color: $dark-text; font-family: var(--font-display); font-size: clamp(1.6rem, 3vw, 2rem); line-height: 1.25; letter-spacing: -0.04em; margin: 0 0 1rem; }
+.faq-note { color: $muted-text; font-size: 0.875rem; line-height: 1.75; margin: 0; }
+.faq-grid { display: grid; gap: 1.5rem; }
 .faq-item {
-  background: var(--color-surface);
-  border-radius: 16px;
-  padding: 2rem;
   text-align: left;
-  box-shadow: $shadow-md;
-  transition: transform 0.3s ease, background 0.3s ease;
-  
-  &:hover { transform: translateY(-5px); }
-  
-  h4 { color: $dark-text; font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0; }
-  p { color: $muted-text; line-height: 1.6; margin: 0; }
+  border-bottom: 1px dashed $gray-300;
+  padding-bottom: 1.5rem;
+  &:last-child { border-bottom: none; padding-bottom: 0; }
+  h3 { color: $dark-text; font-size: 0.95rem; font-weight: 650; margin: 0 0 0.75rem; }
+  p { color: $muted-text; font-size: 0.875rem; line-height: 1.75; margin: 0; }
 }
-
-@media (max-width: 768px) {
-  .faq-section h2 { font-size: 1.25rem; }
-  .faq-grid { grid-template-columns: 1fr; gap: 1rem; }
-  .faq-item { padding: 1.25rem; h4 { font-size: 1rem; } }
+@media (max-width: 900px) {
+  .faq-section { grid-template-columns: 1fr; }
 }
 </style>

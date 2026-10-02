@@ -1,7 +1,7 @@
 <template>
   <div class="message-header">
     <!-- Loading Skeleton -->
-    <div v-if="loading" class="header-skeleton">
+    <div v-if="loading" class="header-skeleton" role="status" aria-label="Loading message">
       <div class="skeleton-subject"></div>
       <div class="skeleton-meta">
         <div class="skeleton-avatar"></div>
@@ -55,9 +55,7 @@ export default {
   computed: {
     avatarColor() {
       const colors = [
-        '#4F46E5', '#7C3AED', '#EC4899', '#EF4444', '#F97316',
-        '#F59E0B', '#10B981', '#14B8A6', '#06B6D4', '#3B82F6',
-        '#8B5CF6', '#6366F1', '#D946EF', '#0EA5E9', '#22C55E'
+        '#4338CA', '#6D28D9', '#047857', '#0E7490', '#1D4ED8', '#BE185D'
       ]
       const email = this.emailContent.emailAddress
       if (!email) return colors[0]
@@ -104,76 +102,27 @@ export default {
 <style lang="scss" scoped>
 @use "../../scss/color" as *;
 
-.message-header {
-  background: var(--color-surface);
-  border-bottom: 1px solid $gray-200;
-  box-shadow: $shadow-sm;
-  position: relative;
-  z-index: 1;
-  flex-shrink: 0;
-}
-
+.message-header { background: var(--color-surface); border-bottom: 1px solid $gray-200; flex-shrink: 0; }
 .message-subject {
-  padding: 0.75rem 1rem 0.5rem;
-  border-bottom: 1px solid $gray-100;
-  h1 { margin: 0; font-size: 1.25rem; font-weight: 600; color: $dark-text; line-height: 1.3; }
+  padding: 1.75rem 1.5rem 1rem;
+  h1 { margin: 0; color: $dark-text; font-size: clamp(1.25rem, 2vw, 1.65rem); font-weight: 650; line-height: 1.35; letter-spacing: -0.035em; overflow-wrap: anywhere; }
 }
-
-.message-meta {
-  padding: 0.5rem 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.sender-info { display: flex; align-items: flex-start; gap: 1rem; flex: 1; }
-
-.sender-avatar {
-  width: 48px;
-  height: 48px;
-  color: white;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  font-weight: 600;
-  font-size: 1rem;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-}
-
-.sender-details { flex: 1; min-width: 0; }
-.sender-name {
-  color: $dark-text;
-  margin-bottom: 0.25rem;
-  .sender-email { color: $muted-text; font-weight: normal; margin-left: 0.5rem; }
-}
-
-.recipients {
-  color: $muted-text;
-  font-size: 0.9rem;
-  .label { margin-right: 0.5rem; }
-  .recipient-list { color: $dark-text; }
-}
-
-.message-date { color: $muted-text; font-size: 0.9rem; text-align: right; flex-shrink: 0; margin-left: 1rem; }
-
-@media (max-width: 768px) {
-  .message-subject { padding: 1rem; h1 { font-size: 1.25rem; } }
-  .message-meta { padding: 1rem; flex-direction: column; gap: 1rem; }
-  .sender-avatar { width: 40px; height: 40px; }
-  .sender-name { font-size: 0.9rem; }
-  .recipients, .message-date { font-size: 0.8rem; }
-  .message-date { text-align: left; margin-left: 0; }
-}
-
-// Skeleton styles
-.header-skeleton { padding: 1rem; }
+.message-meta { padding: 0 1.5rem 1.5rem; display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.sender-info { display: flex; align-items: flex-start; gap: 0.75rem; flex: 1; min-width: 0; }
+.sender-avatar { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 12px; color: white; font-size: 0.8rem; font-weight: 600; }
+.sender-details { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sender-name { color: $dark-text; font-size: 0.875rem; .sender-email { display: block; color: $muted-text; font-size: 0.75rem; } }
+.recipients { color: $muted-text; font-size: 0.75rem; margin-top: 0.25rem; .label { margin-right: 0.25rem; } }
+.message-date { color: $muted-text; font-size: 0.75rem; }
+.header-skeleton { padding: 1.5rem; }
 .skeleton-subject { height: 28px; background: $gray-200; border-radius: 6px; width: 60%; margin-bottom: 24px; animation: pulse 2s infinite; }
 .skeleton-meta { display: flex; gap: 16px; animation: pulse 2s infinite; }
-.skeleton-avatar { width: 48px; height: 48px; border-radius: 50%; background: $gray-200; }
+.skeleton-avatar { width: 40px; height: 40px; border-radius: 12px; background: $gray-200; }
 .skeleton-info { flex: 1; display: flex; flex-direction: column; gap: 8px; justify-content: center; }
 .skeleton-line { height: 16px; background: $gray-200; border-radius: 4px; &.w-40 { width: 40%; } &.w-20 { width: 20%; } }
-
 @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+@media (max-width: 767px) {
+  .message-subject { padding: 1.25rem 1rem 1rem; }
+  .message-meta { padding: 0 1rem 1rem; }
+}
 </style>

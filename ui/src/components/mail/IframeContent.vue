@@ -1,7 +1,7 @@
 <template>
-  <div class="message-body">
+  <div class="message-body" :aria-busy="loading">
     <div class="iframe-container">
-      <div v-if="loading" class="iframe-loading-overlay">
+      <div v-if="loading" class="iframe-loading-overlay" role="status" aria-label="Loading email content">
         <div class="loading-spinner"></div>
       </div>
       <iframe 
@@ -38,12 +38,12 @@ export default {
   flex: 1;
   display: flex;
   flex-direction: column;
-  margin: 0 0.5rem 0.5rem;
+  margin: 0 1rem 1rem;
   min-height: 0;
   overflow: hidden;
   
   @media (min-width: 1024px) {
-    margin: 0 0.75rem 0.75rem;
+    margin: 0 1.5rem 1.5rem;
   }
 }
 
@@ -56,12 +56,12 @@ export default {
   border: 1px solid $gray-200;
   display: flex;
   flex-direction: column;
-  min-height: 300px;
+  min-height: 180px;
   position: relative;
 
   [data-theme='dark'] & {
     background: #f8fafc;
-    border-color: $gray-700;
+    border-color: $gray-200;
   }
 }
 

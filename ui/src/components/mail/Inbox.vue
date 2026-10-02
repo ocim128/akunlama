@@ -2,9 +2,9 @@
   <div class="inbox-wrapper" :class="{ 'split-view': showSplitView, 'has-mobile-nav': showMobileNav }">
     <nav-bar class="nav-bar"></nav-bar>
     
-    <div class="inbox-content">
+    <main class="inbox-content" aria-label="Inbox workspace">
       <!-- Message list panel -->
-      <aside class="list-panel" :class="{ 'panel-hidden': isMobileMessageView }">
+      <aside class="list-panel" aria-label="Email inbox" :class="{ 'panel-hidden': isMobileMessageView }">
         <message-list 
           ref="messageList"
           @message-selected="handleMessageSelected"
@@ -13,19 +13,19 @@
       </aside>
       
       <!-- Message detail panel (shown in split view or mobile) -->
-      <main class="detail-panel" v-if="showDetailPanel">
+      <section class="detail-panel" aria-label="Selected message" v-if="showDetailPanel">
         <router-view />
-      </main>
+      </section>
       
       <!-- Empty state for split view when no message selected -->
-      <main class="detail-panel detail-empty" v-else-if="showSplitView">
+      <section class="detail-panel detail-empty" aria-label="Reading pane" v-else-if="showSplitView">
         <div class="empty-detail">
-          <font-awesome-icon icon="envelope-open-text" />
-          <h3>Select an email to read</h3>
-          <p>Choose an email from the list to view its contents here</p>
+          <img src="@/assets/logo_no_text.svg" width="112" height="140" alt="" />
+          <h2>Select an email to read</h2>
+          <p>Pick a message on the left. We'll open it right here.</p>
         </div>
-      </main>
-    </div>
+      </section>
+    </main>
 
     <!-- Mobile Bottom Navigation -->
     <mobile-nav />
@@ -89,143 +89,36 @@
 </script>
 
 <style lang="scss">
-  @use "../../scss/color" as *;
+@use "../../scss/color" as *;
 
-  .inbox-wrapper {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-    background: var(--color-background);
-
-    // Add padding for mobile nav
-    &.has-mobile-nav {
-      padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
-    }
-  }
-
-  .nav-bar {
-    flex-shrink: 0;
-  }
-
-  .inbox-content {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-  }
-
-  // List panel
-  .list-panel {
-    flex: 1;
-    overflow-y: auto;
-    min-width: 0;
-    transition: all 0.3s ease;
-  }
-
-  // Detail panel
-  .detail-panel {
-    display: none;
-  }
-
-  // Split view mode (desktop)
-  .split-view {
-    .inbox-content {
-      display: flex;
-      gap: 0;
-    }
-
-    .list-panel {
-      flex: 0 0 350px;
-      max-width: 400px;
-      border-right: 1px solid $gray-200;
-      background: var(--color-surface);
-      
-      @media (min-width: 1280px) {
-        flex: 0 0 400px;
-        max-width: 480px;
-      }
-      
-      @media (min-width: 1536px) {
-        flex: 0 0 450px;
-        max-width: 550px;
-      }
-      
-      @media (min-width: 1800px) {
-        flex: 0 0 500px;
-        max-width: 650px;
-      }
-    }
-
-    .detail-panel {
-      display: flex;
-      flex: 1;
-      min-width: 0;
-      background: var(--color-background);
-    }
-
-    .detail-empty {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: $gray-50;
-      
-      .empty-detail {
-        text-align: center;
-        color: $muted-text;
-        padding: 2rem;
-        
-        i {
-          font-size: 4rem;
-          color: $gray-300;
-          margin-bottom: 1.5rem;
-        }
-        
-        h3 {
-          font-size: 1.5rem;
-          color: $gray-600;
-          margin: 0 0 0.5rem 0;
-          font-weight: 600;
-        }
-        
-        p {
-          margin: 0;
-          font-size: 1rem;
-        }
-      }
-    }
-  }
-
-  // Mobile: hide list when viewing message
-  .panel-hidden {
-    display: none;
-  }
-
-  // On non-split view, show detail panel when viewing message
-  .inbox-wrapper:not(.split-view) {
-    .detail-panel {
-      display: flex;
-      flex: 1;
-    }
-  }
-
-  // Dark mode adjustments
-  [data-theme='dark'] {
-    .split-view {
-      .list-panel {
-        border-right-color: $gray-700;
-      }
-      
-      .detail-empty {
-        background: var(--color-background);
-        
-        .empty-detail i {
-          color: $gray-600;
-        }
-        
-        .empty-detail h3 {
-          color: $gray-400;
-        }
-      }
-    }
-  }
+.inbox-wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  background: var(--color-background);
+  &.has-mobile-nav { padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)); }
+}
+.nav-bar { flex-shrink: 0; }
+.inbox-content { flex: 1; min-height: 0; display: flex; overflow: hidden; }
+.list-panel { flex: 1; min-width: 0; min-height: 0; background: var(--color-surface); }
+.detail-panel { display: none; min-height: 0; }
+.split-view {
+  .list-panel { flex: 0 0 clamp(340px, 32vw, 460px); border-right: 1px solid $gray-200; }
+  .detail-panel { display: flex; flex: 1; min-width: 0; background: var(--color-background); }
+  .detail-empty { align-items: center; justify-content: center; }
+}
+.empty-detail {
+  text-align: center;
+  max-width: 380px;
+  padding: 2rem;
+  color: $muted-text;
+  img { display: block; object-fit: contain; margin: 0 auto 1.25rem; }
+  h2 { color: $dark-text; font-family: var(--font-display); font-size: 1.25rem; font-weight: 650; letter-spacing: -0.03em; margin: 0 0 0.5rem; }
+  p { font-size: 0.875rem; line-height: 1.7; margin: 0; }
+}
+.panel-hidden { display: none; }
+.inbox-wrapper:not(.split-view) .detail-panel { display: flex; flex: 1; min-width: 0; }
 </style>

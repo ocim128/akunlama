@@ -1,5 +1,6 @@
 // Vue 3 Application Entry Point
 import { createApp, type App as VueApp } from 'vue'
+import 'normalize.css'
 import App from "./App.vue"
 import router from './router'
 import { createPinia } from 'pinia'

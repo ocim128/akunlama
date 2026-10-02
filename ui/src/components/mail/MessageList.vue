@@ -18,16 +18,17 @@
     </div>
 
     <!-- Skeleton loading state -->
-    <skeleton-loader v-if="refreshing && listOfMessages.length === 0" :count="4" />
+    <div v-if="refreshing && listOfMessages.length === 0" role="status" aria-label="Checking for new messages">
+      <skeleton-loader :count="4" />
+    </div>
 
     <!-- Email list -->
     <div class="email-list-container" v-if="listOfMessages.length > 0">
       <div class="email-list-header">
         <div class="header-main">
-          <h3>
-            <font-awesome-icon icon="inbox" />
-            Inbox ({{listOfMessages.length}})
-          </h3>
+          <h1>
+            Inbox <span class="message-count">{{listOfMessages.length}}</span>
+          </h1>
           <div class="refresh-info">
             <span class="last-refreshed">Last checked: {{formattedLastRefreshed}}</span>
             <span class="countdown">Next update in: {{countdown}}s</span>
@@ -44,6 +45,7 @@
           v-for="msg in listOfMessages" 
           :key="msg.storage.key"
           :message="msg"
+          :selected="$route.name === 'Message' && $route.params.key === msg.storage.key"
           @select="getMessage"
         />
       </div>
@@ -214,193 +216,57 @@ export default {
 </script>
 
 <style lang="scss">
-  @use "../../scss/color" as *;
+@use "../../scss/color" as *;
 
-  .inbox-error {
-    margin: 0.75rem;
-    padding: 1rem;
-    border: 1px solid $error;
-    border-radius: $radius;
-    background: var(--color-surface);
-    color: $dark-text;
-
-    p { margin: 0 0 0.75rem; }
-
-    button {
-      padding: 0.5rem 1rem;
-      min-height: 44px;
-      border: none;
-      border-radius: $radius;
-      background: $primary;
-      color: white;
-      font: inherit;
-      cursor: pointer;
-
-      &:disabled { opacity: 0.6; cursor: not-allowed; }
-    }
-  }
-
-  .advisory-banner {
-    background: linear-gradient(135deg, #FEF3C7, #FCD34D);
-    border: 1px solid #F59E0B;
-    border-radius: $radius;
-    margin: 0.5rem auto;
-    padding: 0.4rem 0.6rem;
-    max-width: 600px;
-    width: calc(100% - 1rem);
-
-    .advisory-content {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      color: #92400E;
-      font-size: 0.8rem;
-      text-align: center;
-
-      svg {
-        color: #F59E0B;
-        font-size: 0.9rem;
-        flex-shrink: 0;
-      }
-
-      span {
-        flex: 1;
-      }
-    }
-  }
-
-  .email-list-container {
-    margin: 0.75rem;
-
-    @media (min-width: 1024px) {
-      margin: 1rem 0.5rem;
-    }
-  }
-
-  .email-list-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem 0;
-    border-bottom: 1px solid $gray-200;
-    margin-bottom: 0.75rem;
-
-    .header-main {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-    }
-
-    h3 {
-      margin: 0;
-      color: $dark-text;
-      font-size: 1rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-
-      i {
-        color: $primary;
-        font-size: 0.9rem;
-      }
-    }
-
-    .refresh-info {
-      display: flex;
-      gap: 1rem;
-      font-size: 0.75rem;
-      color: $muted-text;
-
-      .last-refreshed {
-        font-weight: 500;
-      }
-
-      .countdown {
-        color: $primary;
-        font-weight: 600;
-      }
-    }
-
-    .refresh-btn-inline {
-      background: $gray-100;
-      border: 1px solid $gray-300;
-      color: $gray-700;
-      padding: 0.5rem 1rem;
-      border-radius: $radius;
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      min-height: 44px;
-      min-width: 44px;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: transparent;
-
-      &:hover:not(:disabled) {
-        background: $gray-200;
-        color: $gray-800;
-      }
-
-      &:active:not(:disabled) {
-        transform: scale(0.97);
-      }
-
-      &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-
-      .fa-spin {
-        animation-duration: 1s;
-      }
-    }
-  }
-
-  .email-list {
-    background: var(--color-surface);
-    border-radius: $radius-lg;
-    box-shadow: $shadow;
-    overflow: hidden;
-    transition: background 0.3s ease;
-  }
-
-  // Mobile optimizations
-  @media (max-width: 768px) {
-    .email-list-header {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 0.75rem;
-      padding: 0.75rem;
-
-      .refresh-btn-inline {
-        display: none;
-      }
-    }
-
-    .advisory-banner {
-      margin: 0.5rem;
-      padding: 0.6rem;
-      border-radius: 8px;
-
-      .advisory-content {
-        gap: 0.5rem;
-        font-size: 0.75rem;
-
-        i {
-          font-size: 1rem;
-        }
-      }
-    }
-  }
-
-  @media (max-width: 480px) {
-    .email-list-container {
-      margin: 0.25rem;
-      border-radius: 12px;
-    }
-  }
+.inbox-error {
+  margin: 1rem;
+  padding: 1.25rem;
+  border: 1px solid $error;
+  border-radius: 12px;
+  background: var(--color-surface);
+  color: $dark-text;
+  p { margin: 0 0 0.75rem; font-size: 0.875rem; }
+  button { padding: 0.5rem 1rem; min-height: 44px; border-radius: 8px; background: var(--color-action); color: white; font: inherit; &:disabled { opacity: 0.5; } }
+}
+.advisory-banner { margin: 1rem; padding: 0.75rem; background: var(--color-background); border: 1px solid $gray-200; border-radius: 10px; }
+.advisory-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  color: $muted-text;
+  font-size: 0.75rem;
+  line-height: 1.65;
+  svg { color: $primary; flex-shrink: 0; margin-top: 0.2rem; }
+}
+.email-list-container { margin: 1rem; }
+.email-list-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.5rem 0 1.25rem;
+  h1 { display: flex; align-items: center; gap: 0.65rem; margin: 0 0 0.5rem; color: $dark-text; font-family: var(--font-display); font-size: 1.35rem; font-weight: 650; letter-spacing: -0.03em; }
+  .message-count { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; padding: 0.1rem 0.4rem; border-radius: 6px; background: var(--color-accent-soft); color: $primary; font-size: 0.75rem; letter-spacing: 0; }
+  .refresh-info { display: flex; flex-wrap: wrap; gap: 0.25rem 0.75rem; font-size: 0.7rem; color: $muted-text; }
+  .countdown { color: $primary; }
+}
+.refresh-btn-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid $gray-200;
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+  min-height: 44px;
+  font-size: 0.75rem;
+  color: $muted-text;
+  &:hover:not(:disabled) { background: $gray-100; }
+  &:disabled { opacity: 0.5; }
+}
+.email-list { border: 1px solid $gray-200; border-radius: 12px; overflow: hidden; background: var(--color-surface); }
+@media (max-width: 767px) {
+  .email-list-header .refresh-btn-inline { display: none; }
+}
 </style>

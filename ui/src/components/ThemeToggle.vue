@@ -1,6 +1,8 @@
 <template>
   <button 
-    class="theme-toggle" 
+    class="theme-toggle"
+    type="button"
+    :aria-pressed="isDark"
     @click="toggleTheme" 
     :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
     :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
@@ -61,7 +63,9 @@ export default {
 .theme-toggle {
   background: transparent;
   border: none;
-  padding: 0;
+  padding: 7px 0;
+  min-width: 56px;
+  min-height: 44px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -88,8 +92,8 @@ export default {
   border: 1px solid $gray-300;
 
   [data-theme='dark'] & {
-    background: $gray-700;
-    border-color: $gray-600;
+    background: var(--color-accent-soft);
+    border-color: $gray-300;
   }
 }
 
@@ -110,11 +114,11 @@ export default {
 
   &.is-dark {
     transform: translateX(26px);
-    background: #1e293b;
-    color: #818cf8; // Moon color
+    background: $primary;
+    color: var(--color-background); // Moon color
   }
 
-  i {
+  svg {
     font-size: 0.9rem;
   }
 }
@@ -153,7 +157,7 @@ export default {
       transform: translateX(20px);
     }
 
-    i {
+    svg {
       font-size: 0.7rem;
     }
   }

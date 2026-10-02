@@ -5,12 +5,19 @@
     box-sizing: border-box;
 }
 
-#app {
+body {
+    margin: 0;
+    background: var(--color-background);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+#app {
+    font-family: inherit;
     color: $dark-text;
-    width: 100vw;
+    width: 100%;
+    line-height: 1.5;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -45,12 +52,12 @@
 
 // Global text selection
 ::selection {
-    background: rgba(79, 70, 229, 0.2);
+    background: var(--color-accent-soft);
     color: $dark-text;
 }
 
 // Focus states
-*:focus {
+*:focus-visible {
     outline: 2px solid $primary;
     outline-offset: 2px;
 }
@@ -64,6 +71,19 @@ button {
 }
 
 // Improved link styles
+input, textarea, select { font: inherit; }
+button { touch-action: manipulation; }
+button:disabled { cursor: not-allowed; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
 a {
     color: $primary;
     text-decoration: none;

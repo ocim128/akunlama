@@ -88,6 +88,8 @@ test.describe('Landing Page', () => {
         // Wait for text to reset - allow more time for animation
         await expect(domainDisplay).not.toContainText('Copied', { timeout: 10000 })
         await expect(domainDisplay).toContainText('@')
+        // Keep the screen-reader announcement from shifting the form after feedback ends.
+        await expect(page.locator('.copy-status')).toHaveClass(/sr-only/)
     })
 
     test('should navigate to inbox on form submit', async ({ page }) => {
@@ -194,8 +196,11 @@ test.describe('Landing Page - Accessibility', () => {
         // Type in input
         await input.fill('keyboardtest')
 
-        // Tab to submit button and press Enter
+        // The copy control is keyboard accessible between the input and submit.
         await page.keyboard.press('Tab')
+        await expect(page.getByRole('button', { name: 'Copy email address', exact: true })).toBeFocused()
+        await page.keyboard.press('Tab')
+        await expect(page.locator('.btn-get-mail')).toBeFocused()
         await page.keyboard.press('Enter')
 
         // Should navigate

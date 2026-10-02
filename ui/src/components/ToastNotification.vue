@@ -1,6 +1,6 @@
 <template>
   <teleport to="body">
-    <transition-group name="toast-slide" tag="div" class="toast-container">
+    <transition-group name="toast-slide" tag="div" class="toast-container" role="status" aria-live="polite" aria-atomic="false">
       <div
         v-for="toast in toasts"
         :key="toast.id"
@@ -9,11 +9,12 @@
         @click="removeToast(toast.id)"
       >
         <div class="toast-icon">
-          <i :class="getIcon(toast.type)"></i>
+          <font-awesome-icon :icon="getIcon(toast.type)" />
         </div>
         <div class="toast-content">
           <span class="toast-message">{{ toast.message }}</span>
         </div>
+        <button type="button" class="toast-dismiss" aria-label="Dismiss notification" @click.stop="removeToast(toast.id)">×</button>
       </div>
     </transition-group>
   </teleport>
@@ -58,10 +59,10 @@ export default {
     },
     getIcon(type) {
       const icons = {
-        success: 'fas fa-check-circle',
-        error: 'fas fa-exclamation-circle',
-        warning: 'fas fa-exclamation-triangle',
-        info: 'fas fa-info-circle'
+        success: 'check',
+        error: 'circle-exclamation',
+        warning: 'triangle-exclamation',
+        info: 'circle-info'
       }
       return icons[type] || icons.info
     }
@@ -95,7 +96,7 @@ export default {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  background: white;
+  background: var(--color-surface);
   border-radius: 12px;
   box-shadow: 
     0 4px 20px rgba(0, 0, 0, 0.15),
@@ -106,7 +107,7 @@ export default {
   max-width: 100%;
 
   [data-theme='dark'] & {
-    background: $gray-800;
+    background: var(--color-surface);
     box-shadow: 
       0 4px 20px rgba(0, 0, 0, 0.4),
       0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -150,7 +151,7 @@ export default {
   justify-content: center;
   flex-shrink: 0;
 
-  i {
+  svg {
     font-size: 0.9rem;
   }
 }
@@ -160,7 +161,11 @@ export default {
   font-weight: 500;
   color: $dark-text;
   line-height: 1.4;
+  overflow-wrap: anywhere;
 }
+
+.toast-content { min-width: 0; }
+.toast-dismiss { color: $muted-text; flex-shrink: 0; min-width: 44px; min-height: 44px; font-size: 1.25rem; border-radius: 8px; &:hover { background: $gray-100; } }
 
 // Slide animation
 .toast-slide-enter-active,

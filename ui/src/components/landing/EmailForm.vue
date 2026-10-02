@@ -1,43 +1,55 @@
 <template>
-  <div class="email-form-container glass-card">
+  <div class="email-form-container">
     <div class="form-header">
-      <p class="form-instruction">🐾 Claim your cat-tastic identity!</p>
+      <p class="form-kicker">one inbox, coming right up</p>
+      <h2 class="form-instruction">What shall we call you?</h2>
+      <p class="form-description">Pick a name, or let the dice decide.</p>
     </div>
     
     <form @submit.prevent="handleSubmit" class="email-form">
       <div class="email-input-wrapper">
         <div class="email-input-group">
+          <label for="email-name-input" class="input-label">Email name</label>
           <input
             id="email-name-input"
             type="text"
             v-model="randomName"
-            placeholder="Enter your username"
+            placeholder="sleepy-kitten"
             class="main-email-input"
+            autocomplete="off"
+            autocapitalize="none"
+            spellcheck="false"
+            aria-describedby="email-form-hint"
             required
           />
-          <span 
+          <button
+            type="button"
             class="domain-display" 
             :class="{ 'copied': isCopied }"
+            :disabled="!randomName.trim()"
+            :aria-label="isCopied ? 'Email address copied' : 'Copy email address'"
             @click="copyEmail" 
             :title="'Click to copy: ' + fullEmailAddress"
           >
             {{ isCopied ? '✓ Copied!' : '@' + domain }}
-          </span>
+          </button>
         </div>
       </div>
       
       <div class="action-buttons">
         <button type="submit" class="btn-get-mail" :disabled="!randomName.trim()">
           <font-awesome-icon icon="paper-plane" />
-          Get Mail Nyow!
+          Open inbox
         </button>
         
         <button type="button" class="btn-shuffle" @click="generateNewName">
           <font-awesome-icon icon="dice" class="dice-icon" />
-          Cat-shuffle!
+          Random name
         </button>
       </div>
     </form>
+    <p id="email-form-hint" class="form-hint">No password needed. Emails are deleted after 3 days.</p>
+    <p class="copy-status" :class="{ 'sr-only': !copyFailed }" role="status">{{ copyStatus }}</p>
   </div>
 </template>
 
@@ -51,7 +63,10 @@ export default {
   data() {
     return {
       randomName: '',
-      isCopied: false
+      isCopied: false,
+      copyFailed: false,
+      copyStatus: '',
+      copyTimer: null
     }
   },
   computed: {
@@ -66,9 +81,10 @@ export default {
     }
   },
   mounted() {
-    this.initClipboard()
+    if (!navigator.clipboard) this.initClipboard()
   },
   beforeUnmount() {
+    clearTimeout(this.copyTimer)
     if (this.$clipboard) {
       this.$clipboard.destroy()
     }
@@ -122,25 +138,36 @@ export default {
     },
     generateNewName() {
       this.randomName = this.generateRandomName()
+      this.isCopied = false
+      this.copyFailed = false
+      this.copyStatus = ''
     },
     initClipboard() {
-      this.$clipboard = new ClipboardJS('.domain-display', {
+      this.$clipboard = new ClipboardJS(this.$el.querySelector('.domain-display'), {
         text: () => this.fullEmailAddress
       })
       this.$clipboard.on('success', () => this.handleCopySuccess())
+      this.$clipboard.on('error', () => this.handleCopyError())
     },
     copyEmail() {
+      if (!this.randomName.trim()) return
       if (navigator.clipboard) {
         navigator.clipboard.writeText(this.fullEmailAddress).then(() => {
           this.handleCopySuccess()
-        }).catch(() => this.handleCopySuccess())
-      } else {
-        this.handleCopySuccess()
+        }).catch(() => this.handleCopyError())
       }
     },
     handleCopySuccess() {
+      clearTimeout(this.copyTimer)
       this.isCopied = true
-      setTimeout(() => { this.isCopied = false }, 2000)
+      this.copyFailed = false
+      this.copyStatus = 'Email address copied.'
+      this.copyTimer = setTimeout(() => { this.isCopied = false }, 2000)
+    },
+    handleCopyError() {
+      this.isCopied = false
+      this.copyFailed = true
+      this.copyStatus = 'Unable to copy. Select the address and copy it manually.'
     },
     handleSubmit() {
       if (!this.randomName.trim()) return
@@ -155,127 +182,96 @@ export default {
 
 .email-form-container {
   position: relative;
-  z-index: 1;
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-ink);
   border-radius: 20px;
-  padding: 2rem 1.5rem;
-  margin: 1.5rem auto;
-  max-width: 480px;
-  width: 90%;
+  padding: clamp(1.25rem, 3vw, 2.25rem);
+  width: 100%;
   color: $dark-text;
-  text-align: center;
-  
-  &.glass-card {
-    background: rgba(255, 255, 255, 0.85);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 
-      0 8px 32px rgba(0, 0, 0, 0.15),
-      0 0 0 1px rgba(255, 255, 255, 0.2) inset,
-      0 4px 16px rgba(79, 70, 229, 0.1);
-  }
+  box-shadow: 5px 6px 0 var(--color-ink);
+  &::before { content: ''; position: absolute; top: -9px; left: 1.5rem; width: 64px; height: 18px; border: 1px solid $gray-300; background: var(--color-background); transform: rotate(-6deg); pointer-events: none; }
 }
-
-.form-header { margin-bottom: 1.2rem; }
-.form-instruction { font-weight: 600; color: #1f2937; font-size: 1rem; margin: 0; }
-
-.email-form { display: flex; flex-direction: column; gap: 1.2rem; align-items: center; }
-.email-input-wrapper { width: 100%; max-width: 400px; }
-
+.form-header { margin-bottom: 1.75rem; }
+.form-kicker { color: $primary; font-family: var(--font-note); font-size: 0.8rem; font-weight: 600; margin: 0 0 0.75rem; }
+.form-instruction { font-family: var(--font-display); font-size: clamp(1.3rem, 2vw, 1.6rem); letter-spacing: -0.04em; line-height: 1.25; margin: 0 0 0.6rem; }
+.form-description { color: $muted-text; font-size: 0.875rem; margin: 0; }
+.email-form { display: flex; flex-direction: column; gap: 1rem; }
 .email-input-group {
   display: flex;
-  background: var(--color-surface);
-  border: 2px solid $primary;
+  flex-wrap: wrap;
+  border: 1px solid $gray-300;
   border-radius: 10px;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.1);
-  
-  &:focus-within {
-    border-color: #FF6B9D;
-    box-shadow: 0 4px 12px rgba(255, 107, 157, 0.2);
-    transform: translateY(-1px);
-  }
+  background: var(--color-background);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  &:focus-within { border-color: $primary; box-shadow: 0 0 0 3px var(--color-accent-soft); }
 }
-
+.email-input-wrapper { padding-top: 1.75rem; position: relative; }
+.input-label { position: absolute; top: 0; left: 0; font-size: 0.8rem; font-weight: 600; }
 .main-email-input {
   flex: 1;
-  padding: 0.9rem 1rem !important;
-  border: none !important;
-  font-size: 0.95rem !important;
-  font-weight: 500 !important;
-  background: transparent !important;
-  color: $dark-text !important;
-  outline: none !important;
-  min-height: auto !important;
+  width: 0;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0.85rem 0.75rem;
+  border: none;
+  border-radius: 10px 0 0 10px;
+  font-size: 1rem;
+  background: transparent;
+  color: $dark-text;
+  outline: none;
+  &::placeholder { color: $muted-text; font-size: 0.875rem; }
 }
-
 .domain-display {
   display: flex;
   align-items: center;
-  padding: 0.9rem 1rem;
-  background: #f8fafc;
-  color: #4F46E5;
+  justify-content: center;
+  padding: 0.5rem 0.75rem;
+  max-width: 55%;
+  overflow-wrap: anywhere;
+  border-left: 1px solid $gray-200;
+  border-radius: 0 10px 10px 0;
+  color: $primary;
+  font-size: 0.8rem;
   font-weight: 600;
-  font-size: 0.9rem;
-  cursor: pointer;
-  user-select: none;
-  transition: all 0.3s ease;
-  border-left: 1px solid #e2e8f0;
-  
-  &:hover { background: #f1f5f9; color: #3730A3; }
-  &.copied { background: #10B981; color: white; font-size: 0.8rem; }
+  min-height: 52px;
+  &:hover:not(:disabled) { background: var(--color-accent-soft); }
+  &:focus-visible { outline-offset: -4px; }
+  &:disabled { color: $muted-text; }
+  &.copied { color: $primary; background: var(--color-accent-soft); }
 }
-
-.action-buttons { display: flex; gap: 0.8rem; width: 100%; max-width: 400px; justify-content: center; }
-
+.action-buttons { display: flex; gap: 0.75rem; }
 .btn-get-mail, .btn-shuffle {
   flex: 1;
-  padding: 0.85rem 1.2rem;
-  border: none;
-  border-radius: 8px;
-  font-size: 0.9rem;
+  min-height: 48px;
+  padding: 0.75rem 0.65rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
   font-weight: 600;
-  cursor: pointer;
-  transition: all 0.25s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  min-height: 48px;
+  gap: 0.5rem;
+  transition: background 0.2s ease, transform 0.2s ease;
+  &:active:not(:disabled) { transform: scale(0.98); }
 }
-
 .btn-get-mail {
-  background: linear-gradient(135deg, #FF6B9D, #C084FC);
+  background: var(--color-action);
   color: white;
-  box-shadow: 0 3px 10px rgba(255, 107, 157, 0.3);
-  
-  &:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 15px rgba(255, 107, 157, 0.4); }
-  &:active:not(:disabled) { transform: scale(0.97); }
+  border: 1px solid var(--color-ink);
+  box-shadow: 0 3px 0 var(--color-ink);
+  &:hover:not(:disabled) { background: var(--color-action-hover); transform: translateY(-1px); }
+  &:active:not(:disabled) { transform: translateY(2px); box-shadow: none; }
+  &:disabled { opacity: 0.5; box-shadow: none; }
 }
-
 .btn-shuffle {
-  background: white;
-  color: #4F46E5;
-  border: 2px solid #4F46E5;
-  
-  &:hover {
-    background: #4F46E5;
-    color: white;
-    .dice-icon { animation: diceRoll 0.6s ease-in-out; }
-  }
+  background: var(--color-surface);
+  color: $dark-text;
+  border: 1px solid $gray-300;
+  &:hover { background: $gray-100; }
 }
-
-@keyframes diceRoll {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
+.copy-status { color: $muted-text; font-size: 0.75rem; }
+.form-hint { margin: 1.25rem 0 0; color: $muted-text; font-size: 0.75rem; line-height: 1.6; }
 @media (max-width: 768px) {
-  .email-form-container { padding: 1.25rem 1rem; border-radius: 16px; }
-  .email-input-group { border-radius: 8px; }
-  .main-email-input { font-size: 1rem !important; }
   .action-buttons { flex-direction: column; }
-  .btn-get-mail, .btn-shuffle { max-width: none; width: 100%; }
 }
 </style>

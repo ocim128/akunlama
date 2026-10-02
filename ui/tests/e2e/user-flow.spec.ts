@@ -139,6 +139,20 @@ test.describe('Complete User Flow', () => {
 })
 
 test.describe('Error Handling', () => {
+    test.use({ serviceWorkers: 'block' })
+
+    test.beforeEach(async ({ page }) => {
+        await page.route('**/config/apiconfig.ts', route => route.fulfill({
+            contentType: 'application/javascript',
+            body: `export default ${JSON.stringify({
+                apiUrl: '/api',
+                domain: 'akunlama.com',
+                autoRefreshInterval: 30000,
+                requestTimeout: 10000
+            })}`
+        }))
+    })
+
     test('should handle network errors gracefully in inbox', async ({ page }) => {
         // Block API requests
         await page.route('**/api/list**', route => route.abort())
@@ -151,8 +165,9 @@ test.describe('Error Handling', () => {
         await expect(page.locator('.advisory-banner')).toBeVisible({ timeout: 30000 })
 
         await expect(page.locator('.skeleton-container')).toHaveCount(0)
-        await expect(page.locator('.empty-state')).toBeVisible()
-        await expect(page.locator('.empty-state button')).toBeEnabled()
+        await expect(page.getByRole('alert')).toContainText('Unable to check this inbox')
+        await expect(page.locator('.empty-state')).toHaveCount(0)
+        await expect(page.getByRole('button', { name: 'Try again' })).toBeEnabled()
     })
 
     test('should handle 404 API responses', async ({ page }) => {
@@ -163,10 +178,8 @@ test.describe('Error Handling', () => {
         }))
 
         await page.goto('/inbox/empty-test')
-        await waitForInboxLoad(page)
-
-        // Should show empty state
-        await expect(page.locator('.empty-state')).toBeVisible({ timeout: 10000 })
+        await expect(page.getByRole('alert')).toContainText('Unable to check this inbox')
+        await expect(page.locator('.empty-state')).toHaveCount(0)
     })
 })
 

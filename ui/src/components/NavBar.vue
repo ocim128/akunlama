@@ -1,5 +1,5 @@
 <template>
-	<nav class="modern-nav">
+	<nav class="modern-nav" aria-label="Inbox navigation">
 		<div class="nav-container">
 			<!-- Back button with label -->
 			<button class="nav-back-btn" @click="backAPage" :aria-label="backButtonLabel">
@@ -8,9 +8,10 @@
 			</button>
 
 			<!-- Logo -->
-			<div class="nav-logo" @click="goMainPage">
-				<img class="logo-img" src="@/assets/logo_no_text.svg" alt="Akunlama Logo"/>
-			</div>
+			<button type="button" class="nav-logo" @click="goMainPage" aria-label="Akunlama home">
+				<img class="logo-img" src="@/assets/logo_no_text.svg" alt=""/>
+				<span>Akunlama.</span>
+			</button>
 
 			<!-- Email Input -->
 			<email-input-group 
@@ -121,115 +122,63 @@
 </script>
 
 <style lang="scss" scoped>
-	@use "../scss/color" as *;
+@use "../scss/color" as *;
 
-	.modern-nav {
-		background: var(--color-surface);
-		border-bottom: 1px solid $gray-200;
-		box-shadow: $shadow-sm;
-		position: sticky;
-		top: 0;
-		z-index: 40;
-		transition: all 0.3s ease;
-
-		.nav-container {
-			width: 100%;
-			max-width: 100%;
-			padding: 0.75rem 1.5rem;
-			margin: 0;
-			display: flex;
-			align-items: center;
-			gap: 1.5rem;
-
-			@media (max-width: 1024px) {
-				gap: 1rem;
-				padding: 0.75rem 1rem;
-			}
-		}
-	}
-
-	.nav-theme-toggle {
-		flex-shrink: 0;
-		display: flex;
-		align-items: center;
-		margin-left: auto;
-
-		@media (max-width: 768px) {
-			display: none;
-		}
-	}
-
-	.nav-back-btn {
-		background: linear-gradient(135deg, #4F46E5, #6366F1);
-		border: none;
-		border-radius: $radius-lg;
-		padding: 0.6rem 1rem;
-		cursor: pointer;
-		transition: all 0.2s ease;
-		color: white;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 0.5rem;
-		min-width: 44px;
-		min-height: 44px;
-		box-shadow: 0 2px 8px rgba(79, 70, 229, 0.3);
-
-		.back-label {
-			font-weight: 600;
-			font-size: 0.85rem;
-		}
-
-		&:hover {
-			background: linear-gradient(135deg, #3730A3, #4F46E5);
-			transform: translateX(-2px);
-			box-shadow: 0 4px 12px rgba(79, 70, 229, 0.4);
-		}
-
-		&:active { transform: scale(0.95); }
-	}
-
-	.nav-logo {
-		cursor: pointer;
-		transition: transform 0.2s ease;
-		padding: 0.25rem;
-		min-width: 44px;
-		min-height: 44px;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-
-		&:hover { transform: scale(1.05); }
-		&:active { transform: scale(0.95); }
-
-		.logo-img {
-			height: 2.5rem;
-			width: auto;
-		}
-	}
-
-	@media (max-width: 768px) {
-		.nav-container {
-			padding: 0.75rem;
-			flex-wrap: nowrap;
-			gap: 0.5rem;
-		}
-
-		.nav-back-btn {
-			padding: 0.5rem 0.75rem;
-			.back-label { display: none; }
-		}
-
-		.nav-logo {
-			min-width: auto;
-			padding: 0.25rem;
-			.logo-img { height: 2rem; }
-		}
-	}
-
-	@media (max-width: 480px) {
-		.nav-container { padding: 0.5rem; }
-		.nav-back-btn { padding: 0.5rem; min-width: 40px; min-height: 40px; }
-		.nav-logo .logo-img { height: 1.75rem; }
-	}
+.modern-nav {
+  background: var(--color-surface);
+  border-bottom: 1px solid $gray-200;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+}
+.nav-container {
+  max-width: 1440px;
+  padding: 1rem 1.5rem;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+.nav-theme-toggle { flex-shrink: 0; display: flex; align-items: center; }
+.nav-back-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid $gray-200;
+  border-radius: 10px;
+  color: $muted-text;
+  font-size: 0.8rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  &:hover { background: $gray-100; color: $dark-text; }
+}
+.nav-logo {
+  font-family: var(--font-display);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  color: $dark-text;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: -0.04em;
+  flex-shrink: 0;
+  padding: 0;
+  .logo-img { height: 36px; width: 30px; object-fit: contain; }
+}
+@media (max-width: 1100px) {
+  .nav-logo span { display: none; }
+  .nav-container { gap: 0.75rem; }
+}
+@media (max-width: 767px) {
+  .nav-container { display: grid; grid-template-columns: 44px 1fr auto; gap: 0.5rem 0.75rem; padding: calc(0.5rem + env(safe-area-inset-top, 0px)) 1rem 0.75rem; }
+  .nav-logo { justify-self: start; span { display: inline; } }
+  .nav-back-btn .back-label { display: none; }
+  .nav-theme-toggle { justify-self: end; }
+  .nav-email-section { grid-column: 1 / -1; grid-row: 2; }
+}
 </style>

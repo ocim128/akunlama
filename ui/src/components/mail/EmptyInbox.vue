@@ -3,10 +3,10 @@
     <div class="empty-state-content">
       <div class="kitten-animation-container">
         <font-awesome-icon icon="cat" size="3x" class="cat-icon-animation" />
-        <img src="@/assets/sleeping-kitten-400.webp" width="400" height="400" alt="Sleeping Kitten" class="sleeping-kitten">
+        <img src="@/assets/sleeping-kitten-400.webp" width="400" height="400" alt="" class="sleeping-kitten">
       </div>
-      <h3>No messages yet</h3>
-      <p>Your inbox is empty. Send an email to this address to see it appear here!</p>
+      <h1>No messages. Cat's napping.</h1>
+      <p>Send an email to the address above. We'll keep watch and show new messages here automatically.</p>
       
       <div class="empty-refresh-info">
           <p class="last-refreshed">Last checked: {{ formattedLastRefreshed }}</p>
@@ -44,156 +44,40 @@ export default {
 <style lang="scss" scoped>
 @use "../../scss/color" as *;
 
-.empty-state {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
-  padding: 2rem;
-}
-
+.empty-state { display: flex; align-items: center; justify-content: center; padding: 2rem 1.5rem; }
 .empty-state-content {
   text-align: center;
-  max-width: 400px;
-
-  .kitten-animation-container {
-    margin-bottom: 2rem;
-    perspective: 1000px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    
-    .cat-icon-animation {
-      color: $primary;
-      margin-bottom: 1.5rem;
-      animation: gentle-float 4s ease-in-out infinite;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 48px;
-      min-height: 48px;
-    }
-
-    .sleeping-kitten {
-      width: 200px;
-      height: auto;
-      border-radius: $radius-lg;
-      box-shadow: $shadow-lg;
-      animation: breathing 4s ease-in-out infinite, gentle-float 6s ease-in-out infinite;
-      filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.1));
-    }
-  }
-
-  h3 {
-    color: $dark-text;
-    font-size: 1.75rem;
-    font-weight: 700;
-    margin: 0 0 0.5rem 0;
-    background: linear-gradient(135deg, $primary, $primary-light);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  p {
-    color: $muted-text;
-    line-height: 1.6;
-    margin: 0 0 1.5rem 0;
-  }
-
-  .empty-refresh-info {
-      margin-bottom: 2rem;
-      background: var(--color-background);
-      padding: 0.75rem;
-      border-radius: $radius;
-      border: 1px dashed $gray-200;
-
-      p {
-          margin: 0.25rem 0;
-          font-size: 0.85rem;
-          
-          &.last-refreshed {
-              color: $muted-text;
-          }
-          
-          &.countdown {
-              color: $primary;
-              font-weight: 600;
-          }
-      }
-  }
+  max-width: 320px;
+  h1 { color: $dark-text; font-family: var(--font-display); font-size: 1.4rem; line-height: 1.3; letter-spacing: -0.04em; font-weight: 650; margin: 0 0 0.75rem; }
+  p { color: $muted-text; font-size: 0.875rem; line-height: 1.75; margin: 0 0 1.5rem; }
 }
-
-@keyframes breathing {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.05); }
+.kitten-animation-container {
+  position: relative;
+  margin: 0 auto 1.5rem;
+  width: 120px;
+  .sleeping-kitten { width: 120px; height: 120px; object-fit: contain; border-radius: 24px; }
+  .cat-icon-animation { position: absolute; bottom: -6px; right: -6px; width: 32px; height: 32px; padding: 8px; border-radius: 10px; background: var(--color-accent-soft); color: $primary; border: 2px solid var(--color-surface); }
 }
-
-@keyframes gentle-float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+.empty-refresh-info {
+  border-top: 1px solid $gray-200;
+  padding-top: 1rem;
+  margin-bottom: 1.25rem;
+  p { margin: 0.25rem 0; font-size: 0.75rem; }
+  .countdown { color: $primary; }
 }
-
 .refresh-button {
-  background: $primary;
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: $radius-lg;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  min-height: 48px;
-  touch-action: manipulation;
-  -webkit-tap-highlight-color: transparent;
-
-  &:hover:not(:disabled) {
-    background: $primary-dark;
-    transform: translateY(-1px);
-    box-shadow: $shadow;
-  }
-
-  &:active:not(:disabled) {
-    transform: scale(0.97);
-  }
-
-  &:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-  }
-
-  .fa-spin {
-    animation-duration: 1s;
-  }
-}
-
-@media (max-width: 768px) {
-  .empty-state {
-    padding: 2rem 1rem;
-  }
-
-  .empty-state-content {
-    h3 { font-size: 1.25rem; }
-    p { font-size: 0.9rem; }
-  }
-
-  .kitten-animation-container {
-    margin-bottom: 1.5rem;
-    .sleeping-kitten { width: 100px; }
-  }
-}
-
-@media (max-width: 480px) {
-  .empty-state-content {
-    padding: 1rem;
-    h3 { font-size: 1.1rem; }
-    p { font-size: 0.85rem; }
-  }
-  .refresh-button {
-    font-size: 0.85rem;
-    padding: 0.75rem 1.25rem;
-  }
+  min-height: 44px;
+  border: 1px solid $gray-300;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  color: $dark-text;
+  font-size: 0.8rem;
+  font-weight: 600;
+  &:hover:not(:disabled) { background: $gray-100; }
+  &:disabled { opacity: 0.5; }
 }
 </style>

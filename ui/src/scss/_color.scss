@@ -1,12 +1,20 @@
 @use "sass:color";
 
 :root {
+	color-scheme: light;
+	--color-action: #68458F;
+	--color-action-hover: #523370;
+	--color-ink: #393240;
+	--color-sticker: #F4C861;
+	--color-sticker-text: #44331C;
+	--font-display: Georgia, 'Times New Roman', serif;
+	--font-note: 'Segoe Print', 'Bradley Hand', cursive;
 	//-----------------------------------------------
 	// Modern Color Palette (Light)
 	//-----------------------------------------------
-	--color-primary: #4F46E5;
-	--color-primary-dark: #3730A3;
-	--color-primary-light: #6366F1;
+	--color-primary: #68458F;
+	--color-primary-dark: #523370;
+	--color-primary-light: #8964B2;
 	--color-secondary: #06B6D4;
 	--color-secondary-dark: #0891B2;
 	--color-secondary-light: #22D3EE;
@@ -19,26 +27,27 @@
 	//-----------------------------------------------
 	// Neutral Colors (Light)
 	//-----------------------------------------------
-	--color-gray-50: #F9FAFB;
-	--color-gray-100: #F3F4F6;
-	--color-gray-200: #E5E7EB;
-	--color-gray-300: #D1D5DB;
-	--color-gray-400: #9CA3AF;
-	--color-gray-500: #6B7280;
-	--color-gray-600: #4B5563;
-	--color-gray-700: #374151;
-	--color-gray-800: #1F2937;
-	--color-gray-900: #111827;
+	--color-gray-50: #FBF7F0;
+	--color-gray-100: #F2EBE4;
+	--color-gray-200: #E8DDD4;
+	--color-gray-300: #D5C5B9;
+	--color-gray-400: #A99A9F;
+	--color-gray-500: #7B6E79;
+	--color-gray-600: #655B63;
+	--color-gray-700: #514650;
+	--color-gray-800: #393240;
+	--color-gray-900: #302A36;
 
 	//-----------------------------------------------
 	// Text colors (Light)
 	//-----------------------------------------------
-	--color-background: #F9FAFB;
-	--color-surface: #FFFFFF;
+	--color-background: #FBF7F0;
+	--color-accent-soft: #EEE1F5;
+	--color-surface: #FFFDF9;
 	--color-text-bright: #FFFFFF;
-	--color-text-dark: #111827;
-	--color-text-muted: #4B5563;
-	--color-text-light: #9CA3AF;
+	--color-text-dark: #302A36;
+	--color-text-muted: #655B63;
+	--color-text-light: #7B6E79;
 
 	//-----------------------------------------------
 	// Shadows
@@ -51,12 +60,16 @@
 }
 
 [data-theme='dark'] {
+	color-scheme: dark;
+	--color-action: #6E469C;
+	--color-action-hover: #5C3886;
+	--color-ink: #736478;
 	//-----------------------------------------------
 	// Modern Color Palette (Dark)
 	//-----------------------------------------------
-	--color-primary: #6366F1;
-	--color-primary-dark: #4F46E5;
-	--color-primary-light: #818CF8;
+	--color-primary: #D6B8F3;
+	--color-primary-dark: #EBD5FD;
+	--color-primary-light: #B996DF;
 	--color-secondary: #22D3EE;
 	--color-secondary-dark: #06B6D4;
 	--color-secondary-light: #67E8F9;
@@ -64,26 +77,27 @@
 	//-----------------------------------------------
 	// Neutral Colors (Dark)
 	//-----------------------------------------------
-	--color-gray-50: #111827;
-	--color-gray-100: #1F2937;
-	--color-gray-200: #374151;
-	--color-gray-300: #4B5563;
-	--color-gray-400: #6B7280;
-	--color-gray-500: #9CA3AF;
-	--color-gray-600: #D1D5DB;
-	--color-gray-700: #E5E7EB;
-	--color-gray-800: #F3F4F6;
-	--color-gray-900: #F9FAFB;
+	--color-gray-50: #1B1722;
+	--color-gray-100: #2C2534;
+	--color-gray-200: #43384D;
+	--color-gray-300: #605268;
+	--color-gray-400: #89778F;
+	--color-gray-500: #B2A1BA;
+	--color-gray-600: #D6C9DC;
+	--color-gray-700: #E9DFED;
+	--color-gray-800: #F4EDF6;
+	--color-gray-900: #FBF5FC;
 
 	//-----------------------------------------------
 	// Text colors (Dark)
 	//-----------------------------------------------
-	--color-background: #0F172A;
-	--color-surface: #1E293B;
-	--color-text-bright: #F9FAFB;
-	--color-text-dark: #F9FAFB;
-	--color-text-muted: #D1D5DB;
-	--color-text-light: #9CA3AF;
+	--color-background: #1B1722;
+	--color-surface: #25202E;
+	--color-accent-soft: #3A2B49;
+	--color-text-bright: #FBF5FC;
+	--color-text-dark: #FBF5FC;
+	--color-text-muted: #D6C9DC;
+	--color-text-light: #B2A1BA;
 
 	//-----------------------------------------------
 	// Shadows (Dark)

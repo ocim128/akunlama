@@ -28,7 +28,10 @@ import {
     faArrowDown,
     faEnvelopeOpenText,
     faHome,
-    faChevronDown
+    faChevronDown,
+    faCircleExclamation,
+    faTriangleExclamation,
+    faCircleInfo
 } from '@fortawesome/free-solid-svg-icons'
 
 // Add icons to the library
@@ -54,7 +57,10 @@ const icons = [
     faArrowDown,
     faEnvelopeOpenText,
     faHome,
-    faChevronDown
+    faChevronDown,
+    faCircleExclamation,
+    faTriangleExclamation,
+    faCircleInfo
 ] as const
 
 // Add each icon individually to the library

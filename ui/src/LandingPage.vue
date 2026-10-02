@@ -54,12 +54,12 @@ export default {
 
 .content-section {
   background: var(--color-background);
-  padding: 4rem 2rem;
+  padding: 4.5rem 2rem;
   transition: background 0.3s ease;
 }
 
 .content-wrapper {
-  max-width: 1000px;
+  max-width: 1120px;
   margin: 0 auto;
 }
 

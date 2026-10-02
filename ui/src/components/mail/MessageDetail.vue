@@ -1,10 +1,5 @@
 <template>
-	<div class="message-details" :class="{ 'has-mobile-nav': isMobile }">
-		<!-- Mobile floating back button -->
-		<button v-if="isMobile" class="floating-back-btn" @click="goBack">
-			<font-awesome-icon icon="arrow-left" />
-			<span>Back</span>
-		</button>
+	<div class="message-details">
 
 		<div class="message-container">
 			<message-header 
@@ -57,13 +52,7 @@
 				iframeLoading: true,
 				refreshing: false,
 				showCopiedFeedback: false,
-				windowWidth: window.innerWidth,
 				requestController: null
-			}
-		},
-		computed: {
-			isMobile() {
-				return this.windowWidth < 768
 			}
 		},
 		mounted () {
@@ -75,12 +64,10 @@
 
 			this.getMessage()
 			this.$eventHub.on('refresh', this.refreshMessage)
-			window.addEventListener('resize', this.handleResize)
 		},
 		beforeUnmount () {
 			this.requestController?.abort()
 			this.$eventHub.off('refresh', this.refreshMessage)
-			window.removeEventListener('resize', this.handleResize)
 		},
 		watch: {
 			'$route.params.key': 'getMessage'
@@ -236,10 +223,6 @@
 				}
 			},
 
-			handleResize() {
-				this.windowWidth = window.innerWidth
-			},
-
 			// Copy email content to clipboard
 			async copyEmailContent() {
 				try {
@@ -293,54 +276,31 @@
 </script>
 
 <style lang="scss" scoped>
-	@use "../../scss/color" as *;
+@use "../../scss/color" as *;
 
-	.message-details {
-		height: 100%;
-		width: 100%;
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		background: var(--color-background);
-		transition: background 0.3s ease;
-		position: relative;
-
-		&.has-mobile-nav {
-			padding-bottom: calc(70px + env(safe-area-inset-bottom, 0px));
-		}
-	}
-
-	.floating-back-btn {
-		position: fixed;
-		top: 1rem;
-		left: 1rem;
-		z-index: 100;
-		display: flex;
-		align-items: center;
-		gap: 0.5rem;
-		padding: 0.6rem 1rem;
-		background: linear-gradient(135deg, #4F46E5, #6366F1);
-		color: white;
-		border: none;
-		border-radius: 24px;
-		font-weight: 600;
-		font-size: 0.85rem;
-		cursor: pointer;
-		box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4);
-		touch-action: manipulation;
-		-webkit-tap-highlight-color: transparent;
-		transition: all 0.2s ease;
-
-		&:active {
-			transform: scale(0.95);
-			box-shadow: 0 2px 10px rgba(79, 70, 229, 0.3);
-		}
-	}
-
-	.message-container {
-		flex: 1;
-		display: flex;
-		flex-direction: column;
-		overflow: hidden;
-	}
+.message-details {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+}
+.message-container {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid $gray-200;
+  border-radius: 16px;
+  overflow: hidden;
+}
+@media (max-width: 767px) {
+  .message-details { padding: 0; }
+  .message-container { border: none; border-radius: 0; }
+}
 </style>

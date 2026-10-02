@@ -130,17 +130,18 @@ export default {
 
 .install-content {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
   padding: 1rem;
-  background: white;
+  background: var(--color-surface);
   border-radius: 16px;
   box-shadow: 
     0 10px 40px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(0, 0, 0, 0.05);
 
   [data-theme='dark'] & {
-    background: $gray-800;
+    background: var(--color-surface);
     box-shadow: 
       0 10px 40px rgba(0, 0, 0, 0.4),
       0 0 0 1px rgba(255, 255, 255, 0.1);
@@ -161,7 +162,7 @@ export default {
 
 .install-text {
   flex: 1;
-  min-width: 0;
+  min-width: 140px;
 
   h4 {
     margin: 0 0 0.25rem;
@@ -181,10 +182,12 @@ export default {
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .btn-dismiss {
   padding: 0.5rem 0.75rem;
+  min-height: 44px;
   background: transparent;
   border: none;
   color: $muted-text;
@@ -209,7 +212,8 @@ export default {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(135deg, #4F46E5, #6366F1);
+  min-height: 44px;
+  background: var(--color-action);
   border: none;
   color: white;
   font-size: 0.85rem;

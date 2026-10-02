@@ -170,7 +170,8 @@ export default {
 }
 
 .pull-refresh-card {
-  background: white;
+  background: var(--color-surface);
+  color: $dark-text;
   border-radius: 24px;
   padding: 0.75rem 1.25rem;
   display: flex;
@@ -182,7 +183,7 @@ export default {
   animation: pulseGlow 1.5s ease-in-out infinite;
 
   &.ready {
-    background: linear-gradient(135deg, #4F46E5, #6366F1);
+    background: var(--color-action);
     color: white;
 
     .pull-spinner {
@@ -192,7 +193,7 @@ export default {
   }
 
   &.refreshing {
-    background: $primary;
+    background: var(--color-action);
     color: white;
 
     .pull-spinner {

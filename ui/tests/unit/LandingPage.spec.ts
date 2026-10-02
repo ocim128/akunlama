@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { mount, type VueWrapper } from '@vue/test-utils'
+import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { createRouter, createMemoryHistory, type Router } from 'vue-router'
 import LandingPage from '@/LandingPage.vue'
 
@@ -194,6 +194,17 @@ describe('LandingPage.vue', () => {
     })
 
     describe('Copy Functionality', () => {
+        it('does not claim success when clipboard access is denied', async () => {
+            vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(new Error('Denied'))
+            await wrapper.find('.main-email-input').setValue('test-user')
+            await wrapper.find('.domain-display').trigger('click')
+            await flushPromises()
+
+            expect(wrapper.find('.domain-display').classes()).not.toContain('copied')
+            expect(wrapper.find('.copy-status').text()).toContain('Unable to copy')
+            expect(wrapper.find('.copy-status').classes()).not.toContain('sr-only')
+        })
+
         it('should copy email to clipboard when domain display is clicked', async () => {
             const input = wrapper.find('.main-email-input')
             await input.setValue('test-user')
